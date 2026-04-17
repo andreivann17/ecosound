@@ -95,7 +95,7 @@ export const actionLogin = (params, onSuccess, onError) => {
       }
 
       const token = data?.access_token;
-      console.log(data)
+     
       if (!token) throw new Error("Invalid login response");
 
       localStorage.setItem("tokenadmin", token);
@@ -159,7 +159,7 @@ export const actionCorreo = (parametros, callback, callbackError) => {
   return async () => {
     try {
       const response = await apiServiceNoToken.fetchData(
-        `http://${window.location.hostname}:8000/users/email/`,
+        `${BASE_URL}/users/email/`,
         parametros
       );
       callback(response.data);
@@ -173,7 +173,7 @@ export const actionCodigo = (parametros, callback, callbackError) => {
   return async () => {
     try {
       const response = await apiServiceNoToken.fetchData(
-        `http://${window.location.hostname}:8000/users/validate-code/`,
+        `${BASE_URL}/users/validate-code/`,
         parametros
       );
       callback(response.data);
@@ -187,7 +187,7 @@ export const actionNewPassword = (parametros, callback, callbackError) => {
   return async () => {
     try {
       const response = await apiServiceNoToken.fetchData(
-        `http://${window.location.hostname}:8000/users/new-password/`,
+        `${BASE_URL}/users/new-password/`,
         parametros
       );
       callback(response.data);
@@ -200,7 +200,7 @@ export const actionNewPassword = (parametros, callback, callbackError) => {
 export const actionSignUp = (parametros, callback, callbackError) => {
   return async () => {
     try {
-      await axios.post("http://${window.location.hostname}:8000/auth/register/", parametros, {
+      await axios.post(`${BASE_URL}/auth/register/`, parametros, {
         headers: { "Content-Type": "application/json" },
       });
 
