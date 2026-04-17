@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /f/proyectos/ontiveros/backend/app/routers/*.py)",
+      "Bash(npx react-scripts:*)",
+      "Bash(node -e ':*)",
+      "Bash(node --input-type=module -e ':*)"
+    ]
+  }
+}

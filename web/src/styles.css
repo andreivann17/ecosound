@@ -1,0 +1,506 @@
+/* electronHeader.css */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root{
+  --eh-bg: #05060a;
+  --eh-text: #ffffff;
+  --eh-muted: rgba(255,255,255,.70);
+  --eh-muted2: rgba(255,255,255,.45);
+  --eh-accent: #d1d3f5;
+  --eh-shadow: 0 2px 10px rgba(0,0,0,.20);
+  --eh-pop-shadow: 0 18px 50px rgba(0,0,0,.25);
+  --eh-card: #ffffff;
+  --eh-border: rgba(0,0,0,.08);
+  --eh-blue: #3b82f6;
+  --eh-red: #ef4444;
+  --eh-amber: #f59e0b;
+}
+
+.eh-root{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 2000;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  -webkit-app-region: drag;
+  box-shadow: var(--eh-shadow);
+}
+
+.eh-bar{
+  height: 56px;
+  background: var(--eh-bg);
+  color: var(--eh-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  gap: 14px;
+}
+
+.electron-no-drag{ -webkit-app-region: no-drag; }
+
+.eh-left{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.eh-brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.eh-logo{
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.eh-brand-text{ line-height: 1.05; }
+.eh-brand-top{
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  color: rgba(255,255,255,.82);
+}
+.eh-brand-sub{
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,.55);
+  letter-spacing: .12em;
+}
+
+.eh-nav{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.eh-link{
+  background: transparent;
+  border: none;
+  color: var(--eh-muted);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 18px 0;
+  cursor: pointer;
+  position: relative;
+  transition: color .15s ease;
+}
+
+.eh-link:hover{ color: #fff; }
+
+.eh-link.active{
+  color: #fff;
+}
+
+.eh-link.active::after{
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--eh-accent);
+}
+
+.eh-right{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eh-ico-btn{
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,.80);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  font-size: 18px;
+}
+
+.eh-ico-btn:hover{
+  background: rgba(255,255,255,.10);
+  color: #fff;
+}
+
+.eh-bell{
+  position: relative;
+}
+
+.eh-badge{
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 2px var(--eh-bg);
+}
+
+.eh-avatar{
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: var(--eh-accent);
+  color: #111827;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter .15s ease;
+}
+
+.eh-avatar:hover{ filter: brightness(1.05); }
+
+.eh-win{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  margin-left: 6px;
+  border-left: 1px solid rgba(255,255,255,.15);
+}
+
+.eh-win-btn{
+  width: 30px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,.55);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.eh-win-btn:hover{
+  background: rgba(255,255,255,.10);
+  color: rgba(255,255,255,.90);
+}
+
+.eh-win-btn.close:hover{
+  background: #e53935;
+  color: #fff;
+}
+
+.eh-popover .ant-popover-inner{
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--eh-pop-shadow);
+  padding: 0;
+}
+
+.eh-popover .ant-popover-arrow{ display: none; }
+
+/* ---------- Notificaciones ---------- */
+.eh-notif-pop{
+  width: 380px;
+  background: var(--eh-card);
+}
+
+.eh-notif-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.eh-notif-title{
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.eh-notif-action{
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.eh-notif-action:hover{ filter: brightness(.95); }
+
+.eh-notif-list{
+  max-height: 420px;
+  overflow: auto;
+}
+
+.eh-notif-item{
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  cursor: pointer;
+  transition: background .15s ease;
+  position: relative;
+}
+
+.eh-notif-item:hover{ background: #f8fafc; }
+
+.eh-notif-item.danger{ background: #fef2f2; }
+.eh-notif-item.danger:hover{ background: #fee2e2; }
+
+.eh-notif-ico-wrap{ padding-top: 2px; }
+
+.eh-notif-icon{
+  font-size: 18px;
+}
+
+.eh-notif-icon.danger{ color: var(--eh-red); }
+.eh-notif-icon.info{ color: var(--eh-blue); }
+.eh-notif-icon.warn{ color: var(--eh-amber); }
+.eh-notif-icon.neutral{ color: #6b7280; }
+
+.eh-notif-body{ flex: 1; min-width: 0; }
+
+.eh-notif-item-title{
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.eh-notif-item-desc{
+  margin-top: 2px;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.25;
+}
+
+.eh-notif-item-meta{
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.eh-notif-dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--eh-blue);
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+.eh-notif-foot{
+  background: #f8fafc;
+  padding: 10px 14px;
+  text-align: center;
+  border-top: 1px solid #eef2f7;
+}
+
+.eh-notif-link{
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.eh-notif-link:hover{ color: #f59e0b; }
+
+/* ---------- User popover ---------- */
+.eh-user-pop{
+  width: 260px;
+  padding: 14px;
+  background: var(--eh-card);
+}
+
+.eh-user-avatar{
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  background: var(--eh-accent);
+  color: #111827;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 16px;
+}
+
+.eh-user-email{
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.eh-user-actions{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* capa extra para asegurar drag en huecos */
+.eh-drag-overlay{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* add-on.css (solo lo que falta / respeta tus clases nav-link y nav-link--active) */
+
+/* Reusa tu animación de underline para que funcione con el header nuevo */
+.nav-link {
+  position: relative;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.nav-link:hover,
+.nav-link:focus,
+.nav-link:active {
+  text-decoration: none;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 2px;
+  width: 0;
+  background-color: #d1d3f5;
+  transition: width 0.18s ease-out;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-link--active::after {
+  width: 100%;
+}
+
+.nav-link--active {
+  font-weight: 600;
+}
+/* styles.css (AGREGA ESTO AL FINAL) */
+
+/* Ajusta altura/centrado de los tabs para que no quede ese espacio debajo */
+.eh-nav {
+  align-items: center;
+  gap: 18px;
+}
+
+.eh-link {
+  height: 44px;              /* controla el alto del área clickeable */
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+/* Línea amarilla más arriba */
+.nav-link::after {
+  bottom: 6px;               /* SUBE la línea (antes estaba pegada abajo) */
+  height: 2px;
+}
+
+/* Activo: mismo comportamiento */
+.nav-link--active::after {
+  width: 100%;
+}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
+
+/* -------- Transiciones opcionales -------- */
+.page-enter { opacity: 0; transform: translateY(20px); }
+.page-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms ease-out, transform 300ms ease-out; }
+.page-exit { opacity: 1; transform: translateY(0); }
+.page-exit-active { opacity: 0; transform: translateY(-20px); transition: opacity 300ms ease-out, transform 300ms ease-out; }
+
+/* -------- Global -------- */
+html, body, #root { height: 100%; margin: 0; overflow: hidden; }
+body { background: #f0f2f5; }
+
+/* =========================
+   HEADER (2 niveles fijos)
+   ========================= */
+.electron-header{
+  position: fixed; top: 0; left: 0; right: 0;
+  background: #05060a; color: #fff;
+  -webkit-app-region: drag;   /* drag en la zona no interactiva */
+  z-index: 2000;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+
+/* Filas */
+.eh-row{
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px;
+}
+.eh-top   { height: 44px; }     /* Fila 1: logo + perfil + window btns */
+.eh-bottom{ height: 56px; }     /* Fila 2: flechas+titulo / menú */
+
+/* Columnas */
+.eh-left, .eh-right{ display: flex; align-items: center; gap: 10px; }
+.eh-left { justify-content: flex-start; }
+.eh-right{ justify-content: flex-end; }
+
+/* Elementos interactivos: no-drag */
+.electron-no-drag { -webkit-app-region: no-drag; }
+
+/* Logo (fila 1 izquierda) */
+.eh-logo{ width: 28px; display: block; }
+
+/* Perfil + controles (fila 1 derecha) */
+.user-btn { color: #fff !important; }
+.profile-dot{ background: #d1d3f5; width: 64px; height: 64px; border-radius: 50%; }
+.profile-dot.small{ width: 20px; height: 20px; border-radius: 50%; }
+
+.win-controls{ display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.electron-btn{
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: #fff; font-size: 15px;
+  border-radius: 4px; cursor: pointer; transition: background .15s ease;
+}
+.electron-btn:hover{ background: #ffffff26; }
+.electron-btn-close:hover{ background:#e53935; color:#fff; }
+
+/* Flechas + título (fila 2 izquierda) */
+.nav-arrow{
+  width: 28px; height: 28px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; color:#fff; border:none; font-size:16px; line-height:1;
+  border-radius:6px; cursor:pointer; transition:background .15s ease, color .2s ease;
+}
+.nav-arrow:hover{ background: #ffffff1f; color:#d1d3f5; }
+
+.electron-title{
+  color:#fff; font-weight:600; font-size:16px; letter-spacing:.2px;
+  font-family:'Poppins', sans-serif; margin-left: 6px;
+}
+
+/* Menú (fila 2 derecha) */
+.top-links{ display:flex; align-items:center; gap:24px; }
+.styled-link{ color:#fff; text-decoration:none; opacity:.92; font-weight:600; }
+.styled-link:hover{ opacity:1; text-decoration:underline; }
+
+/* -------- Contenido debajo del header de 2 filas -------- */
+.content-electron{
+  /* 44 (fila 1) + 56 (fila 2) = 100 */
+  margin-top: 73px;
+  height: calc(100vh - 73px);
+  overflow:auto;
+  background-color: #e7e7e7;
+}

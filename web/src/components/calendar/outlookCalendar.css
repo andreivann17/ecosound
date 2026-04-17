@@ -1,0 +1,1907 @@
+.ol-root {
+  height: 100vh;
+  background: #f5f6f8;
+}
+
+.ol-header {
+  height: 56px;
+  padding: 0;
+  background: #1f5aa6;
+}
+
+
+
+/* ===== Top bar ===== */
+.ol-topbar {
+  height: 56px;
+  display: grid;
+  grid-template-columns: 240px 1fr 520px;
+  align-items: center;
+  padding: 0 12px;
+  color: #fff;
+}
+
+.ol-topbarLeft {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ol-topbarBrand {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.ol-topbarIcon {
+  color: #fff;
+}
+
+.ol-topbarCenter {
+  display: flex;
+  justify-content: center;
+}
+
+.ol-topbarSearch {
+  width: min(720px, 90%);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.ol-topbarRight {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.ol-newBtn {
+  background: #05060a;
+  border-color: #05060a;
+}
+
+.ol-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+/* ===== Sidebar ===== */
+.ol-sider {
+  background: #fff;
+  border-right: 1px solid #e8eaed;
+}
+
+.ol-sidebar {
+  padding: 12px 12px 16px;
+}
+
+.ol-miniHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ol-miniTitle {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.ol-miniNav button {
+  padding: 0 10px;
+}
+
+.ol-miniGrid {
+  margin-top: 8px;
+  border: 1px solid #e8eaed;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.ol-miniWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.ol-miniW {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.ol-miniRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ol-miniCell {
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: #111827;
+}
+
+.ol-miniCell.out {
+  color: #9ca3af;
+}
+
+.ol-miniCell.today {
+  border-color: #05060a;
+}
+
+.ol-miniCell.sel {
+  background: #05060a;
+  color: #fff;
+}
+
+.ol-divider {
+  margin: 10px 0;
+}
+
+.ol-addCalendarBtn {
+  width: 100%;
+  text-align: left;
+  color: #05060a;
+  font-weight: 600;
+}
+
+.ol-calSectionTitle {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ol-calList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ol-calDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+
+.ol-showAll {
+  padding: 0;
+  margin-top: 6px;
+}
+
+/* ===== Main ===== */
+.ol-main {
+  background: #fff;
+}
+
+.ol-toolbarWrap {
+  border-bottom: 1px solid #e8eaed;
+  background: #fff;
+}
+
+.ol-toolbar {
+  display: grid;
+  grid-template-columns: 420px 1fr 420px;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.ol-rangeLabel {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.ol-filterRow {
+  padding: 4px 0;
+}
+
+.ol-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+
+/* ===== Week / Day grid ===== */
+.ol-weekWrap {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+}
+
+.ol-timeCol {
+  border-right: 1px solid #e8eaed;
+  background: #fff;
+}
+
+.ol-timeCell {
+  height: 56px;
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.ol-days {
+  display: grid;
+  grid-template-rows: 44px 1fr;
+  height: 100%;
+}
+
+.ol-daysHeader {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border-bottom: 2px solid #dfe3ea;
+  margin-bottom: -10px;
+}
+
+.ol-dayHeaderCell {
+  border-right: 1px solid #e8eaed;
+  padding: 6px 10px;
+  text-transform: capitalize;
+}
+
+.ol-dayHeaderCell:last-child {
+  border-right: none;
+}
+
+.ol-dayHeaderTop {
+  font-weight: 800;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.ol-dayHeaderDow {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.ol-daysBody {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+ min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ol-dayCol {
+  position: relative;
+  border-right: 1px solid #e8eaed;
+  cursor: crosshair;
+  min-width: 160px;
+}
+
+.ol-dayCol:last-child {
+  border-right: none;
+}
+
+.ol-dayCol.one,
+.ol-dayHeaderCell.one {
+  grid-column: 1 / -1;
+}
+
+.ol-slot {
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.ol-ev {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  background: #f0f0f2;
+  border-left: 4px solid #6b7280;
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ol-ev.cancel {
+  background: #f3f4f6;
+  border-left-color: #9ca3af;
+  color: #374151;
+}
+
+.ol-evTitle {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ol-evMeta {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ol-evIcon {
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+}
+
+/* ===== Month ===== */
+.ol-month {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 44px 1fr;
+}
+
+.ol-monthHeader {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #e8eaed;
+  background: #fff;
+}
+
+.ol-monthHCell {
+  padding: 10px 12px;
+  font-weight: 700;
+  color: #374151;
+  border-right: 1px solid #e8eaed;
+}
+
+.ol-monthHCell:last-child {
+  border-right: none;
+}
+
+.ol-monthBody {
+  overflow: auto;
+}
+
+.ol-monthRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-height: 140px;
+}
+
+.ol-monthCell {
+  border-right: 1px solid #e8eaed;
+  border-bottom: 1px solid #e8eaed;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.ol-monthCell.out {
+  background: #fafafa;
+  color: #9ca3af;
+}
+
+.ol-monthDate {
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.ol-monthEvents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ol-monthEv {
+  font-size: 12px;
+  background: #f0f0f2;
+  border-left: 3px solid #6b7280;
+  border-radius: 8px;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.ol-monthEv.cancel {
+  background: #f3f4f6;
+  border-left-color: #9ca3af;
+}
+
+.ol-monthMore {
+  font-size: 12px;
+  color: #05060a;
+  font-weight: 700;
+}
+
+/* ===== Modal ===== */
+.ol-modal .ant-modal-content {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ol-modalBody {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 14px;
+}
+
+.ol-modalTopRow {
+  padding: 8px 0 10px;
+  border-bottom: 1px solid #eef0f2;
+  margin-bottom: 10px;
+}
+
+.ol-titleItem .ant-input {
+  border: none;
+  border-bottom: 1px solid #eef0f2;
+  border-radius: 0;
+  padding-left: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ol-titleItem .ant-input:focus {
+  box-shadow: none;
+}
+
+.ol-dtRow {
+  display: grid;
+  grid-template-columns: 180px 160px 160px 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.ol-miniControls {
+  display: grid;
+  grid-template-columns: 180px 180px 1fr 1fr;
+  gap: 10px;
+}
+
+.ol-descItem textarea {
+  border-radius: 12px;
+}
+
+.ol-modalRight {
+  border-left: 1px solid #eef0f2;
+  padding-left: 12px;
+}
+
+.ol-previewHeader {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ol-previewTitle {
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.ol-previewGrid {
+  position: relative;
+  border: 1px solid #eef0f2;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 520px;
+}
+
+.ol-previewRow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  height: 52px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.ol-previewHour {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.ol-previewLine {
+  background: #fff;
+}
+
+.ol-previewEvent {
+  position: absolute;
+  left: 48px;
+  right: 10px;
+  top: 260px;
+  height: 34px;
+  background: #2bb673;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: 800;
+  color: #0b1b12;
+}
+/* label clickeable mes/año */
+.ol-rangeWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ol-rangeClickable {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+}
+
+.ol-rangeClickable:hover {
+  background: #f3f6fb;
+}
+
+.ol-monthPickerInline {
+  width: 190px;
+}
+
+.ol-createBtn {
+  background: #05060a;
+  border-color: #05060a;
+  color: #fff;
+  font-weight: 700;
+}
+/* Tabs de vista (Día / Semana laboral / Semana / Mes) con activo azul */
+.ol-viewTabs.ant-segmented {
+  background: #f3f6fb;
+  border: 1px solid #e6ebf2;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.ol-viewTabs .ant-segmented-item {
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.ol-viewTabs .ant-segmented-item-selected {
+  background: #05060a !important;
+  color: #fff !important;
+}
+
+.ol-viewTabs .ant-segmented-item-selected .ant-segmented-item-label {
+  color: #fff !important;
+}
+
+/* sliding thumb that Ant Design v5 renders as the active indicator */
+.ol-viewTabs .ant-segmented-thumb {
+  background: #05060a !important;
+  border-radius: 10px !important;
+}
+
+/* Ant Design v5 CSS-variable override for primary color inside this component */
+.ol-viewTabs.ant-segmented,
+.ol-viewTabs .ant-segmented {
+  --ant-color-bg-elevated: #05060a;
+  --ant-segmented-item-selected-bg: #05060a;
+  --ant-segmented-item-selected-color: #fff;
+}
+
+/* hover suave */
+.ol-viewTabs .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  background: rgba(5, 6, 10, 0.08);
+}
+/* CONTENEDOR del toolbar */
+.ol-toolbarWrap {
+  background: #f4f6fa;      /* gris suave tipo Outlook */
+  padding: 12px 16px;
+  border-bottom: 1px solid #e6eaf0;
+}
+.ol-toolbarElevated {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 16px;
+
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 4px 14px rgba(16, 24, 40, 0.12);
+
+  border: 1px solid #e9edf3;
+}
+.ol-content {
+  background: #ffffff;
+  padding-top: 8px;
+}
+.ol-rangeLabel {
+  margin-right: 24px;
+  white-space: nowrap;
+  display: inline-block;
+}.ol-rangeFixed {
+  width: 160px;          /* súbelo a 180/200 si quieres más aire */
+  flex: 0 0 160px;
+  display: flex;
+  align-items: center;
+}
+
+.ol-rangeLabel {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ol-monthPickerInline {
+  width: 100%;
+}
+.ol-toolbarShell {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f5f7fb;
+  padding-top: 8px;
+}
+/* espacio fijo para que el DatePicker no invada los tabs */
+.ol-rangeWrap.ol-rangeFixed {
+  width: 220px;     /* aquí está el “más espacio” (sube a 240 si quieres) */
+  flex: 0 0 220px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* el texto no debe romper línea */
+.ol-rangeLabel {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* el DatePicker ocupa TODO el ancho reservado */
+.ol-monthPickerInline {
+  width: 100% !important;
+}
+/* ===== RIBBON arriba de TODO ===== */
+.ol-ribbonWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #f5f7fb;
+  border-bottom: 1px solid #e6eaf0;
+}
+
+.ol-ribbon {
+  height: 54px;
+  display: grid;
+  grid-template-columns: 1fr 280px; /* izquierda grande + derecha (filtrar) */
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.ol-ribbonLeft {
+  display: flex;
+  align-items: center;
+}
+
+.ol-ribbonCenter {
+  display: flex;
+  justify-content: flex-start; /* antes center */
+  align-items: center;
+}
+
+.ol-ribbonRight {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ===== Date bar (solo sobre calendario principal) ===== */
+.ol-datebarWrap {
+  background: #f5f7fb;
+  border-bottom: 1px solid #e6eaf0;
+  padding: 10px 12px;
+}
+
+.ol-datebar {
+  background: #fff;
+  border: 1px solid #e9edf3;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 4px 14px rgba(16, 24, 40, 0.10);
+}
+
+/* area del label/datepicker: aquí va el “espacio a fuerzas” */
+.ol-rangeArea {
+  margin-left: 14px;
+  min-width: 260px; /* espacio real para que NO choque */
+  display: inline-flex;
+  align-items: center;
+}
+
+.ol-rangeLabel {
+  font-weight: 800;
+  text-transform: capitalize;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.ol-rangeClickable {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+}
+
+.ol-rangeClickable:hover {
+  background: #f3f6fb;
+}
+
+/* DatePicker ancho real para que no “invada” tabs */
+.ol-monthPickerWide {
+  width: 260px;
+}
+
+/* ya no uses .ol-toolbarWrap/.ol-toolbarElevated para esto */
+.ol-toolbarWrap {
+  display: none;
+}
+.ol-evtModal {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+}
+
+.ol-evtLeft {
+  min-width: 0;
+}
+
+.ol-evtTitleInput {
+  height: 44px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ol-evtGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 120px;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ol-evtRow3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ol-evtLabel {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ol-evtSwitchCol {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ol-evtDivider {
+  margin: 14px 0;
+}
+
+.ol-evtQuillWrap .ql-container {
+  min-height: 180px;
+}
+
+.ol-evtFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.ol-evtRight {
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  padding-left: 16px;
+}
+
+.ol-evtRightHeader {
+  margin-bottom: 10px;
+}
+
+.ol-evtRightDateText {
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ol-evtRightSlots {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ol-evtSlotRow {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  height: 34px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.ol-evtSlotRow:first-child {
+  border-top: none;
+}
+
+.ol-evtSlotHour {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.ol-evtSlotLine {
+  height: 100%;
+}
+.ol-evtModal {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+}
+
+.ol-evtLeft {
+  min-width: 0;
+}
+
+.ol-evtGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 140px;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ol-evtRow3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ol-evtLabel {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ol-evtSwitchInline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ol-evtDivider {
+  margin: 14px 0;
+}
+
+.ol-evtQuillWrap .ql-container {
+  min-height: 180px;
+}
+
+.ol-evtFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.ol-evtRight {
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  padding-left: 16px;
+}
+
+.ol-evtRightHeader {
+  margin-bottom: 10px;
+}
+
+.ol-evtRightDateText {
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ol-evtRightSlots {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ol-evtSlotRow {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  height: 34px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.ol-evtSlotRow:first-child {
+  border-top: none;
+}
+
+.ol-evtSlotHour {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.ol-evtSlotLine {
+  height: 100%;
+}
+.ol-modalBody {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+}
+
+.ol-modalLeft {
+  min-width: 0;
+}
+
+.ol-titleItem {
+  margin-bottom: 10px;
+}
+
+.ol-dtRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 140px;
+  gap: 12px;
+}
+
+.ol-miniControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ol-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ol-field .ant-picker,
+.ol-field .ant-select,
+.ol-field .ant-input {
+  width: 100%;
+}
+
+.ol-fieldLabel {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ol-fieldSwitch {
+  align-items: flex-start;
+}
+
+.ol-sep {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin: 12px 0;
+}
+
+.ol-descItem {
+  margin-top: 0;
+}
+
+.ol-quillWrap .ql-container {
+  min-height: 220px;
+}
+
+.ol-modalRight {
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  padding-left: 16px;
+}
+
+.ol-previewHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ol-previewTitle {
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ol-previewGrid {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ol-previewRow {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  height: 34px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.ol-previewRow:first-child {
+  border-top: none;
+}
+
+.ol-previewHour {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.ol-previewLine {
+  height: 100%;
+}
+/* ===== ReactQuill: altura fija + scroll interno ===== */
+.ol-quillWrap {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* toolbar fijo arriba */
+.ol-quillWrap .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* contenedor fijo */
+.ol-quillWrap .ql-container {
+  border: none;
+  height: 260px;               /* AJUSTA la altura aquí */
+}
+
+/* scroll real dentro del área editable */
+.ol-quillWrap .ql-editor {
+  height: 100%;
+  overflow-y: auto;
+}
+/* ===== Panel derecho: scroll suave ===== */
+.ol-miniDayWrap {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.ol-miniDayWrap.dragging {
+  cursor: grabbing;
+}
+
+/* scrollbar visible y decente (Chrome/Edge) */
+.ol-miniDayWrap::-webkit-scrollbar {
+  width: 10px;
+}
+.ol-miniDayWrap::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.18);
+  border-radius: 10px;
+}
+.ol-miniDayWrap::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.04);
+}
+/* ===========================
+   PANEL DERECHO (mini día)
+   =========================== */
+
+/* el scroll REAL vive aquí */
+.ol-miniDayWrap {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow-y: auto;          /* <-- ESTE ERA EL FALLO */
+  height: 520px;             /* <-- altura fija para que exista scroll */
+  position: relative;
+  background: #fff;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.ol-miniDayWrap.dragging {
+  cursor: grabbing;
+}
+
+/* scrollbar visible */
+.ol-miniDayWrap::-webkit-scrollbar { width: 10px; }
+.ol-miniDayWrap::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.18);
+  border-radius: 10px;
+}
+.ol-miniDayWrap::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.04);
+}
+
+/* contenido interno de 24h donde van ABSOLUTOS los eventos */
+.ol-miniDayContent {
+  position: relative;
+  min-width: 0;
+}
+
+/* fila hora (OVERRIDE: NO uses .ol-miniRow porque ya existe para el mini calendar) */
+.ol-miniDayRow {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: stretch;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+.ol-miniDayRow:first-child {
+  border-top: none;
+}
+
+.ol-miniHour {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+  padding-top: 6px;
+  user-select: none;
+}
+
+.ol-miniLine {
+  height: 100%;
+}
+
+/* ===========================
+   EVENTOS (absolutos)
+   =========================== */
+
+.ol-miniEv {
+  position: absolute;
+  left: 42px;      /* deja espacio al número de hora */
+  right: 10px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.ol-miniEvTime {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.ol-miniEvTitle {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* evento local (verde, draggable) */
+.ol-miniEvLocal {
+  background: #2bb673;
+  color: #0b1b12;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+  cursor: grab;
+  z-index: 3;
+}
+.ol-miniEvLocal.dragging {
+  cursor: grabbing;
+  transform: scale(1.01);
+}
+
+/* eventos existentes (gris) */
+.ol-miniEvOther {
+  background: #eef2f7;
+  color: #111827;
+  border-left: 4px solid rgba(0,0,0,0.18);
+  z-index: 2;
+}
+
+/* ===========================
+   ReactQuill: scroll interno real
+   =========================== */
+.ol-quillWrap {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ol-quillWrap .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* altura fija */
+.ol-quillWrap .ql-container {
+  border: none;
+  height: 260px;  /* ajusta aquí */
+}
+
+/* scroll adentro */
+.ol-quillWrap .ql-editor {
+  height: 100%;
+  overflow-y: auto;
+}
+/* ===== Modal Repetir (RecurrenceModal) ===== */
+.ol-recurModal .ant-modal-content {
+  background: #fff !important; /* opaco, siempre */
+  border-radius: 14px;
+}
+
+.ol-recurBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ol-recurRow {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.ol-recurLabel {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.ol-recurWeek {
+  display: flex;
+  gap: 10px;
+  padding-left: 92px; /* alinear con inputs */
+}
+
+.ol-dowBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: #f3f4f6;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.ol-dowBtn.active {
+  background: #05060a;
+  color: #fff;
+  border-color: #05060a;
+}
+
+.ol-recurRadio {
+  padding-left: 92px;
+}
+
+.ol-recurUntil {
+  padding-left: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ol-recurUntilRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ol-recurFooter {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* =========================
+   Layout: aire general
+   ========================= */
+.ol-root {
+  background: #f5f7fb;
+}
+
+.ol-shell {
+  gap: 0;
+}
+
+.ol-sider {
+  background: #fff;
+  border-right: 1px solid #e9edf3;
+}
+
+.ol-sidebar {
+  padding: 16px 14px 18px; /* más aire */
+}
+
+/* separadores más finos */
+.ol-siderDivider {
+  margin: 14px 0 12px !important;
+}
+
+/* =========================
+   Mini calendar: más “card”
+   ========================= */
+.ol-miniGrid {
+  margin-top: 10px;
+  border: 1px solid #e9edf3;
+  border-radius: 14px;
+  padding: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.ol-miniHeader {
+  padding: 4px 2px 8px;
+}
+
+.ol-miniTitle {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+}
+
+.ol-miniNav button {
+  border-radius: 10px;
+}
+
+/* celdas un poco más grandes */
+.ol-miniCell {
+  height: 28px;
+  border-radius: 10px;
+}
+
+/* =========================
+   Legend: tarjeta + chips
+   ========================= */
+.ol-legendCard {
+  border: 1px solid #e9edf3;
+  border-radius: 14px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.ol-legendHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.ol-legendTitle {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: #111827;
+  text-transform: uppercase;
+}
+
+.ol-legendHint {
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.55);
+}
+
+.ol-legendGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.ol-legendChip {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: 12px;
+  background: #f6f8fc;
+  border: 1px solid rgba(16, 24, 40, 0.06);
+  cursor: default;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.ol-legendChip:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.10);
+  transform: translateY(-1px);
+}
+
+.ol-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.85);
+}
+
+/* Colores */
+.sw-blue  { background: #1677ff; }
+.sw-black { background: #111827; }
+.sw-wine  { background: #7b1e3a; }
+.sw-red   { background: #d32029; }
+.sw-purple   { background: #7c20d3ff; }
+
+.ol-legendText {
+  min-width: 0;
+}
+
+.ol-legendName {
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.ol-legendSub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(17, 24, 39, 0.60);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================
+   Ribbon / Datebar: más aire
+   ========================= */
+.ol-ribbonWrap {
+  padding: 8px 10px; /* más margen exterior */
+}
+
+.ol-ribbon {
+  height: 58px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e9edf3;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 24px rgba(16, 24, 40, 0.08);
+}
+
+.ol-datebarWrap {
+  padding: 10px 12px 12px;
+}
+
+.ol-datebar {
+  border-radius: 14px;
+}
+
+/* =========================
+   Calendario: padding general
+   ========================= */
+.ol-content {
+  background: #f5f7fb;
+  padding: 12px;          /* aire alrededor del board */
+}
+
+.ol-main {
+  background: transparent; /* deja ver el fondo suave */
+}
+
+/* Month cells: más “respirable” */
+.ol-monthCell {
+  border-radius: 0;
+  padding: 10px 12px;
+}
+
+.ol-monthRow {
+  min-height: 150px; /* un poco más alto */
+}
+
+/* Eventos: mejor legibilidad */
+.ol-monthEv,
+.ol-ev {
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.ol-evTitle {
+  font-size: 13px;
+}
+/* =========================
+   HOVER: eventos en VISTA MES
+   ========================= */
+.ol-monthEv {
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+  will-change: transform, box-shadow;
+}
+
+.ol-monthEv:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  filter: brightness(0.98);
+}
+
+/* “+N más” que también responda */
+.ol-monthMore {
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  cursor: pointer;
+}
+
+.ol-monthMore:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.10);
+}
+
+
+/* =========================
+   HOVER: eventos en VISTA DÍA/SEMANA (bloques absolutos)
+   ========================= */
+.ol-ev {
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+  will-change: transform, box-shadow;
+}
+
+.ol-ev:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+  filter: brightness(0.99);
+}
+
+/* Opcional: que el puntito se vea más “vivo” */
+.ol-ev:hover .ol-evDot,
+.ol-monthEv:hover .ol-monthEvDot {
+  transform: scale(1.15);
+}
+
+.ol-evDot,
+.ol-monthEvDot {
+  transition: transform 140ms ease;
+}
+/* ===== Outlook look: tipografía + botones + bordes ===== */
+.ol-root{
+  font-family: "Segoe UI Variable","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+}
+
+/* Botones (AntD) */
+.ol-root .ant-btn{
+  font-family: inherit;
+  border-radius: 10px;
+  font-weight: 600;
+  border-color: #dfe3ea;
+}
+
+.ol-root .ant-btn-default{
+  background: #fff;
+}
+
+.ol-root .ant-btn-default:hover{
+  border-color: #05060a;
+  color: #05060a;
+}
+
+.ol-root .ant-btn-primary{
+  background: #05060a;
+  border-color: #05060a;
+  font-weight: 700;
+}
+
+.ol-root .ant-btn-primary:hover{
+  background: #2a2b30;
+  border-color: #2a2b30;
+}
+
+/* Segmented (Día/Semana/Mes) */
+.ol-viewTabs.ant-segmented{
+  background: #f3f6fb;
+  border: 1px solid #dfe3ea;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.ol-viewTabs .ant-segmented-item{
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.ol-viewTabs .ant-segmented-item-selected{
+  background: #05060a !important;
+  color: #fff !important;
+}
+
+.ol-viewTabs .ant-segmented-item-selected .ant-segmented-item-label{
+  color: #fff !important;
+}
+
+.ol-viewTabs .ant-segmented-thumb{
+  background: #05060a !important;
+  border-radius: 10px !important;
+}
+
+/* Bordes de la tabla (MES / SEMANA / DÍA) más “Outlook” */
+.ol-month,
+.ol-weekWrap{
+  border: 1px solid #dfe3ea;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ol-monthHeader,
+.ol-daysHeader{
+  border-bottom: 1px solid #cfd6e1;
+}
+
+.ol-monthHCell,
+.ol-dayHeaderCell{
+  border-right: 1px solid #cfd6e1;
+}
+
+.ol-monthCell,
+.ol-dayCol{
+  border-right: 1px solid #cfd6e1;
+  border-bottom: 1px solid #cfd6e1;
+}
+
+.ol-timeCol{
+  border-right: 1px solid #cfd6e1;
+}
+/* =========================
+   RESPONSIVE: sin scroll en la página
+   ========================= */
+html, body, #root {
+  height: 100%;
+  overflow: hidden; /* quita scrollbar global */
+}
+
+.ol-root {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden; /* nada sale del layout */
+}
+
+/* Layout principal */
+.ol-shell {
+  height: calc(100vh - 56px); /* ajusta si tu ribbon cambia */
+  overflow: hidden;
+}
+
+.ol-main {
+  min-width: 0;   /* CLAVE: evita overflow horizontal en grids flex */
+}
+
+.ol-content {
+  height: calc(100vh - 56px - 58px - 12px); /* header + datebar + padding */
+  overflow: hidden; /* el scroll vive adentro del grid */
+  padding: 12px;
+}
+
+/* Sidebar responsive: que no cause overflow */
+.ol-sider {
+  flex: 0 0 280px;
+  min-width: 240px;
+  max-width: 320px;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .ol-sider { width: 240px !important; min-width: 220px; }
+}
+
+@media (max-width: 900px) {
+  .ol-sider { display: none; } /* en mobile se oculta (cero overflow) */
+  .ol-content { padding: 8px; }
+}
+
+/* =========================
+   Grid: cero scroll horizontal
+   ========================= */
+
+/* Week/Day */
+.ol-weekWrap {
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ol-daysBody {
+  overflow-x: hidden;   /* NO horizontal */
+  overflow-y: auto;     /* sí vertical interno */
+  min-width: 0;
+}
+
+.ol-dayCol {
+  min-width: 0;         /* CLAVE */
+}
+
+/* Month */
+.ol-month {
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ol-monthBody {
+  overflow-x: hidden;   /* NO horizontal */
+  overflow-y: auto;     /* sí vertical interno */
+}
+
+/* Evita que textos largos rompan el layout */
+.ol-monthHCell,
+.ol-dayHeaderCell,
+.ol-monthEv,
+.ol-evTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* =========================
+   MES: grid perfecto 7x6 (líneas siempre alineadas)
+   ========================= */
+
+/* El contenedor del mes ocupa TODO el alto disponible */
+.ol-month{
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Header fijo, body rellena */
+.ol-monthHeader{
+  flex: 0 0 auto;
+}
+
+/* Body = 6 filas iguales, sin scroll, sin deformar líneas */
+.ol-monthBody{
+  height: calc(100% - 44px);     /* 44px = header del mes */
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  overflow: hidden;              /* NO scroll aquí */
+  min-height: 0;
+}
+
+/* Cada semana = 7 columnas iguales */
+.ol-monthRow{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-height: 0;                 /* CLAVE para que no empuje */
+}
+
+/* Cada celda rellena su fila sin romper líneas */
+.ol-monthCell{
+  min-height: 0;
+  box-sizing: border-box;        /* líneas 1px perfectas */
+  padding: clamp(6px, 1vw, 10px);
+}
+
+/* Tipografía/paddings responsivos sin perder proporción */
+.ol-monthDate{
+  font-size: clamp(12px, 1.2vw, 14px);
+}
+
+.ol-monthEv{
+  font-size: clamp(11px, 1.1vw, 12px);
+  padding: clamp(4px, 0.8vw, 6px) clamp(6px, 1vw, 10px);
+  border-radius: 12px;
+}
+
+/* Opcional: en pantallas chicas baja el “aire” sin romper el grid */
+@media (max-width: 1100px){
+  .ol-content{ padding: 8px; }
+}
+@media (max-width: 900px){
+  .ol-sider{ display: none; }     /* evita que aplaste el grid */
+  .ol-content{ padding: 6px; }
+}
+.ol-root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+.ol-main {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column; /* datebar arriba, content abajo */
+}
+
+.ol-datebarWrap {
+  flex: 0 0 auto;
+}
+
+.ol-content {
+  flex: 1 1 auto;   /* ocupa TODO lo que queda */
+  min-height: 0;    /* CLAVE para que el hijo pueda “encogerse” */
+  overflow: hidden; /* el mes/semana controla su overflow */
+  padding: 12px;
+}
+
+/* ===== Mes: body rellena alto disponible (sin huecos) ===== */
+.ol-month {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ol-monthHeader {
+  flex: 0 0 44px;
+}
+
+.ol-monthBody {
+
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  overflow: hidden;
+}
+
+.ol-monthRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-height: 0;
+}
+/* La grilla del mes debe poder ocupar altura real sin forzar scroll interno */
+.ol-month { height: 100%; min-height: 0; }
+.ol-monthBody { height: 100%; min-height: 0; overflow: hidden; }
+
+/* Cada celda del mes NO puede crecer por contenido */
+.ol-monthCell {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header del día (número) fijo */
+.ol-monthCellHeader {
+  flex: 0 0 auto;
+}
+
+/* Área de eventos: se recorta por altura y se mide con ResizeObserver */
+.ol-monthEvents {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* GAP debe coincidir con el hook */
+}
+
+/* Pill con altura fija para que el cálculo sea exacto */
+.ol-eventPill {
+  height: 24px;          /* ITEM_H debe coincidir con el hook */
+  line-height: 24px;
+  border-radius: 999px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* +N siempre visible si hay ocultos */
+.ol-monthMore {
+  flex: 0 0 auto;
+  height: 22px;
+  line-height: 22px;
+  font-size: 12px;
+  color: #05060a;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(5, 6, 10, 0.06);
+}
+.ol-monthCell { overflow: hidden; min-height: 0; }
+.ol-monthEvents { overflow: hidden; min-height: 0; }
+.ol-monthEv { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ol-monthMore { cursor: pointer; user-select: none; }

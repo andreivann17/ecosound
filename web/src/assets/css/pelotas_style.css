@@ -1,0 +1,556 @@
+.img_logo_home {
+  -webkit-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  -moz-box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  animation: spin 1s linear infinite;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.spinner-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: bounce 0.6s infinite alternate;
+}
+@keyframes rotateCircle {
+  0% {
+    transform: rotate(0deg) translateX(60px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(60px) rotate(-360deg);
+  }
+}
+.pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 20px);
+  grid-gap: 14px;
+  transition: transform 0.4s ease-in-out;
+}
+
+.pulse-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  animation: pulse-breath 1.8s ease-in-out infinite;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pulse-dot:hover {
+  transform: scale(2) translateY(-4px);
+  box-shadow: 0 0 8px rgba(0, 255, 128, 0.6);
+  cursor: pointer;
+}
+
+@keyframes pulse-breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 1;
+  }
+}
+.galaxy-container {
+  width: 320px;
+  height: 200px;
+  position: relative;
+  perspective: 800px;
+}
+
+.galaxy-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  animation: orbit-warp 3.6s infinite ease-in-out alternate;
+}
+
+.galaxy-dot.layer2 {
+  animation: orbit-flow 4.4s ease-in-out infinite alternate;
+}
+
+.galaxy-dot.layer3 {
+  animation: orbit-reverse 5.2s ease-in-out infinite alternate;
+}
+
+@keyframes orbit-warp {
+  0% {
+    transform: translate3d(0px, 0px, 0px) scale(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translate3d(60px, -30px, 20px) scale(1.3);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(-70px, 40px, -10px) scale(1.1);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate3d(30px, 60px, 15px) scale(1.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(-50px, -50px, 30px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes orbit-flow {
+  0% {
+    transform: translate3d(0px, 0px, 0px) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate3d(-70px, -40px, -20px) scale(1.4);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(50px, 20px, 10px) scale(1.2);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translate3d(-30px, 60px, 20px) scale(1.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(40px, -60px, -10px) scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes orbit-reverse {
+  0% {
+    transform: translate3d(0px, 0px, 0px) scale(1);
+    opacity: 0.4;
+  }
+  25% {
+    transform: translate3d(-50px, 40px, 10px) scale(1.2);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(40px, -20px, -20px) scale(1.4);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate3d(-30px, -50px, 20px) scale(1.3);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(60px, 40px, -15px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+.orbital-loader {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.orb-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform-origin: -60px 0;
+  animation: rotateCircle 2.4s linear infinite;
+}
+
+.green-dot {
+  background-color: #00723F;
+  animation-delay: 0s;
+}
+
+.gold-dot {
+  background-color: #ffc107;
+  animation-delay: 0.3s;
+}
+.spinner-waiting {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.typing-cursor {
+  animation: blink 1s step-end infinite;
+  color: #555;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.typing-cursor {
+  animation: blink 1s step-end infinite;
+  color: #00723F;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.spinner-waiting .spinner-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  animation: bounce 0.6s infinite alternate;
+}
+
+.spinner-waiting .spinner-dot:nth-child(1) { animation-delay: 0s; }
+.spinner-waiting .spinner-dot:nth-child(2) { animation-delay: 0.1s; }
+.spinner-waiting .spinner-dot:nth-child(3) { animation-delay: 0.2s; }
+.spinner-waiting .spinner-dot:nth-child(4) { animation-delay: 0.3s; }
+
+.waiting-text {
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+  animation: fadeInOutText 1.8s ease-in-out infinite;
+}
+
+@keyframes fadeInOutText {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-20px); }
+}
+
+.leaves-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh);
+    overflow: hidden;
+    background-color: #ffffff;
+  }
+  .styled-link {
+    margin: 0 10px; /* Agrega espacio entre los enlaces */
+    color: #101010; /* Un azul claro, bueno para fondos claros */
+    text-transform: uppercase; /* Texto en mayúsculas para más estilo */
+    font-size: 16px; /* Tamaño adecuado para legibilidad */
+    text-decoration: none; /* Elimina el subrayado por defecto */
+    transition: color 0.3s; /* Transición suave para cambios de color */
+  }
+  .card-content {
+  display: flex;
+  align-items: center;
+}
+
+.card-content img {
+  float: left;
+}
+
+.card-content div {
+  flex-grow: 1;
+}
+.responsive-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start; /* Alinea las tarjetas a la izquierda en pantallas pequeñas */
+  }
+  .card-image {
+    width: 100%;
+    height: auto;
+    object-fit: cover; /* Asegura que la imagen cubra bien el espacio asignado sin deformarse */
+  }
+  
+  .card-content {
+    padding: 10px;
+  }
+  
+  .card {
+    width: 100%;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border-radius: 5px; /* Añade bordes redondeados si es deseado */
+    overflow: hidden; /* Asegura que todo el contenido se ajuste al borde redondeado */
+    box-shadow: 0 4px 8px #0000001a; /* Opcional: añade sombra para un efecto elevado */
+  }
+  .card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  }
+  .flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between; /* Asegura que los elementos estén distribuidos uniformemente */
+    gap: 20px; /* Espacio entre cards */
+  }
+  .diagonal-container {
+    display: flex;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .custom-modal .ant-modal-close-x {
+    color: #fff;
+  }
+  
+  .custom-modal .ant-modal-close:hover {
+    color: #fff;
+    background-color: transparent;
+  }
+  
+  .image-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+  }
+  .custom-modal .ant-modal-content {
+    background-color: #000000f3;
+    color: white;
+  }
+  
+  .steps-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 20px;
+  }
+  
+  .step-item {
+    text-align: center;
+    margin: 0 10px;
+  }
+  
+  .step-arrow {
+    font-size: 24px;
+    margin: 0 10px;
+    color: white;
+  }
+  
+  .image-container img {
+    transition: transform 0.3s ease;
+  }
+  
+  .image-container:hover img {
+    transform: scale(1.05);
+  }
+  
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    user-select: none;
+    align-items: center;
+    color: white; 
+    font-size: 1.5em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .image-container:hover .overlay {
+    opacity: 1;
+  }
+  
+  .text-section, .image-section {
+    width: 100%;
+    height: 300px; /* Ajusta la altura según necesites */
+    position: relative;
+  }
+  .box {
+    width: 100%;
+    border-right: 2px solid #808080; /* Solo el borde derecho es visible */
+    padding: 16px; /* 16px es equivalente a 'p-4' en muchos frameworks CSS */
+  }
+  .text-section {
+   
+    padding: 20px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+  }
+  
+  .image-section {
+    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .text-white {
+    color: white;
+    text-align: justify;
+  }
+  
+  .card {
+    flex: 1 1 300px; /* Crecen para llenar el espacio pero no menos de 300px */
+    margin-bottom: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .card-image {
+    width: 100%;
+    height: 180px; /* Altura fija para la imagen */
+    object-fit: cover;
+  }
+  
+  .card-content {
+    padding: 10px;
+  }
+    
+  @media (max-width: 768px) {
+    .responsive-container {
+      flex-direction: column;
+    }
+  
+    .card-container {
+      justify-content: center; /* Centra las tarjetas en pantallas pequeñas */
+      width: 100%;
+    }
+  
+    .card-container .ant-card {
+      margin: 10px auto; /* Centra las tarjetas horizontalmente y añade espacio vertical */
+    }
+  }
+  
+  .styled-link:hover {
+    color: #005f34; /* Un azul más claro para el hover */
+    text-decoration: none; /* Confirma que no hay subrayado al hacer hover */
+  }
+  
+  .leaf {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    position: absolute;
+  }
+  
+  .green {
+    background-color: #00723F;
+  }
+  
+  .gold {
+    background-color: #ffc107;
+  }
+  
+  /* Animaciones individuales para cada pelotita */
+  .leaf:nth-child(1) {
+    animation: move1 12s linear infinite;
+  }
+  
+  .leaf:nth-child(2) {
+    animation: move2 14s linear infinite;
+  }
+  
+  .leaf:nth-child(3) {
+    animation: move3 10s linear infinite;
+  }
+  
+  .leaf:nth-child(4) {
+    animation: move4 17s linear infinite;
+  }
+  
+  .leaf:nth-child(5) {
+    animation: move5 13s linear infinite;
+  }
+  .leaf:nth-child(6) {
+    animation: move6 12s linear infinite;
+  }
+  .leaf:nth-child(7) {
+    animation: move6 11s linear infinite;
+  }
+  .leaf:nth-child(8) {
+    animation: move6 13s linear infinite;
+  }
+  .leaf:nth-child(9) {
+    animation: move6 12s linear infinite;
+  }
+  .leaf:nth-child(10) {
+    animation: move6 16s linear infinite;
+  }
+  .leaf:nth-child(11) {
+    animation: move6 14s linear infinite;
+  }
+  .leaf:nth-child(12) {
+    animation: move6 13s linear infinite;
+  }
+
+  /* Definiciones de Keyframes para diferentes movimientos */
+@keyframes move1  { 0%{transform:translate(0,0);} 50%{transform:translate(100vw,80vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move2  { 0%{transform:translate(50vw,0);} 50%{transform:translate(-40vw,70vh);} 100%{transform:translate(50vw,100vh);} }
+@keyframes move3  { 0%{transform:translate(100vw,0);} 25%{transform:translate(-50vw,30vh);} 50%{transform:translate(100vw,60vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move4  { 0%{transform:translate(0,10vh);} 50%{transform:translate(80vw,60vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move5  { 0%{transform:translate(100vw,0);} 25%{transform:translate(0,40vh);} 50%{transform:translate(-100vw,80vh);} 100%{transform:translate(100vw,100vh);} }
+@keyframes move6  { 0%{transform:translate(0,0);} 50%{transform:translate(-50vw,50vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move7  { 0%{transform:translate(80vw,0);} 50%{transform:translate(10vw,80vh);} 100%{transform:translate(80vw,100vh);} }
+@keyframes move8  { 0%{transform:translate(-10vw,0);} 50%{transform:translate(90vw,70vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move9  { 0%{transform:translate(0,0);} 50%{transform:translate(120vw,60vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move10 { 0%{transform:translate(100vw,0);} 50%{transform:translate(-100vw,50vh);} 100%{transform:translate(100vw,100vh);} }
+@keyframes move11 { 0%{transform:translate(0,10vh);} 30%{transform:translate(60vw,30vh);} 60%{transform:translate(30vw,80vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move12 { 0%{transform:translate(50vw,0);} 50%{transform:translate(-50vw,90vh);} 100%{transform:translate(50vw,100vh);} }
+@keyframes move13 { 0%{transform:translate(-50vw,0);} 50%{transform:translate(100vw,60vh);} 100%{transform:translate(-50vw,100vh);} }
+@keyframes move14 { 0%{transform:translate(100vw,0);} 50%{transform:translate(0,80vh);} 100%{transform:translate(100vw,100vh);} }
+@keyframes move15 { 0%{transform:translate(0,0);} 50%{transform:translate(-70vw,70vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move16 { 0%{transform:translate(20vw,0);} 50%{transform:translate(70vw,90vh);} 100%{transform:translate(20vw,100vh);} }
+@keyframes move17 { 0%{transform:translate(-20vw,0);} 50%{transform:translate(50vw,80vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move18 { 0%{transform:translate(60vw,0);} 50%{transform:translate(-10vw,60vh);} 100%{transform:translate(60vw,100vh);} }
+@keyframes move19 { 0%{transform:translate(90vw,0);} 50%{transform:translate(10vw,90vh);} 100%{transform:translate(90vw,100vh);} }
+@keyframes move20 { 0%{transform:translate(10vw,0);} 50%{transform:translate(80vw,80vh);} 100%{transform:translate(10vw,100vh);} }
+@keyframes move21 { 0%{transform:translate(-30vw,0);} 50%{transform:translate(90vw,50vh);} 100%{transform:translate(-30vw,100vh);} }
+@keyframes move22 { 0%{transform:translate(70vw,0);} 50%{transform:translate(-10vw,90vh);} 100%{transform:translate(70vw,100vh);} }
+@keyframes move23 { 0%{transform:translate(0,0);} 50%{transform:translate(90vw,90vh);} 100%{transform:translate(0,100vh);} }
+@keyframes move24 { 0%{transform:translate(30vw,0);} 50%{transform:translate(-70vw,80vh);} 100%{transform:translate(30vw,100vh);} }
+@keyframes move25 { 0%{transform:translate(100vw,0);} 50%{transform:translate(0,60vh);} 100%{transform:translate(100vw,100vh);} }
+
+/* Movimiento individual para 25 hojas */
+.leaf:nth-child(1)  { animation: move1 10s linear infinite; }
+.leaf:nth-child(2)  { animation: move2 11s ease-in-out infinite; }
+.leaf:nth-child(3)  { animation: move3 9s ease-in infinite; }
+.leaf:nth-child(4)  { animation: move4 12s linear infinite; }
+.leaf:nth-child(5)  { animation: move5 8s ease-out infinite; }
+.leaf:nth-child(6)  { animation: move6 9s ease-in-out infinite; }
+.leaf:nth-child(7)  { animation: move7 11s linear infinite; }
+.leaf:nth-child(8)  { animation: move8 10s ease-in infinite; }
+.leaf:nth-child(9)  { animation: move9 7s ease-out infinite; }
+.leaf:nth-child(10) { animation: move10 12s ease-in-out infinite; }
+.leaf:nth-child(11) { animation: move11 9s linear infinite; }
+.leaf:nth-child(12) { animation: move12 8s ease-out infinite; }
+.leaf:nth-child(13) { animation: move13 10s ease-in infinite; }
+.leaf:nth-child(14) { animation: move14 11s linear infinite; }
+.leaf:nth-child(15) { animation: move15 7s ease-in-out infinite; }
+.leaf:nth-child(16) { animation: move16 9s ease-in infinite; }
+.leaf:nth-child(17) { animation: move17 10s linear infinite; }
+.leaf:nth-child(18) { animation: move18 8s ease-in-out infinite; }
+.leaf:nth-child(19) { animation: move19 7s linear infinite; }
+.leaf:nth-child(20) { animation: move20 12s ease-out infinite; }
+.leaf:nth-child(21) { animation: move21 10s linear infinite; }
+.leaf:nth-child(22) { animation: move22 9s ease-in-out infinite; }
+.leaf:nth-child(23) { animation: move23 8s ease-in infinite; }
+.leaf:nth-child(24) { animation: move24 10s linear infinite; }
+.leaf:nth-child(25) { animation: move25 11s ease-out infinite; }

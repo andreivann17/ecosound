@@ -1,0 +1,133 @@
+/* ====== WRAPPER ====== */
+.oa-dd-wrap { width: 100%; }
+
+/* Select trigger (borde suave como la imagen) */
+.oa-dd-select .ant-select-selector {
+  height: 44px !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  border: 1px solid #e6e6e6 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  padding: 0 14px !important;
+  display: flex;
+  align-items: center;
+}
+
+.oa-dd-select.ant-select-focused .ant-select-selector {
+  border-color: #ec5b13 !important;
+  box-shadow: 0 0 0 4px rgba(236, 91, 19, 0.10) !important;
+}
+
+.oa-dd-chevron {
+  font-size: 22px;
+  color: #9aa0a6;
+}
+
+/* ====== DROPDOWN ====== */
+.oa-dd-popup {
+  padding: 0 !important;
+}
+
+.oa-dd {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+}
+
+/* Search header */
+.oa-dd-search {
+  position: relative;
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.oa-dd-search-ico {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #9aa0a6;
+}
+
+.oa-dd-search-input {
+  height: 34px;
+  border-radius: 10px !important;
+  padding-left: 34px !important;
+  border: 1px solid #eee !important;
+  background: #fff !important;
+}
+
+/* List container */
+.oa-dd-list {
+  max-height: 220px;
+  overflow: auto;
+  padding: 6px 0;
+}
+
+/* Hide inner select trigger (we only want its menu items look) */
+.oa-dd-inner .ant-select-selector {
+  display: none !important;
+}
+
+/* Items style similar a tu imagen */
+.oa-dd-popup .ant-select-item {
+  padding: 10px 14px !important;
+  border-radius: 10px;
+  margin: 2px 8px;
+}
+
+.oa-dd-popup .ant-select-item-option-active {
+  background: #f7f7f7 !important;
+}
+
+.oa-dd-popup .ant-select-item-option-selected {
+  background: rgba(236, 91, 19, 0.10) !important;
+  font-weight: 600;
+}
+
+/* Divider + add button */
+.oa-dd-divider {
+  margin: 0 !important;
+}
+
+.oa-dd-addbtn {
+  width: 100%;
+  border: 0;
+  background: #fdeee7;
+  color: #ec5b13;
+  font-weight: 700;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.oa-dd-addbtn:hover {
+  background: #fbe3d8;
+}
+
+.oa-dd-addico {
+  font-size: 18px;
+}
+
+/* ====== MODAL ====== */
+.oa-addopt-modal { padding-top: 6px; }
+.oa-addopt-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+.oa-addopt-input { border-radius: 10px !important; }
+.oa-addopt-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}

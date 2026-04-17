@@ -1,0 +1,187 @@
+  .laboral-expedientes-card {
+          border-radius: 14px !important;
+          box-shadow: 0 4px 14px rgba(15, 34, 58, 0.08);
+          border: none !important;
+        }
+
+        .exp-card-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 12px;
+        }
+
+        .exp-card {
+          border-radius: 16px;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.07);
+          border: 1px solid #efefef;
+          transition: box-shadow 180ms ease, transform 180ms ease;
+        }
+        .exp-card:hover {
+          box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+          transform: translateY(-2px);
+        }
+
+        .exp-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          width: 100%;
+        }
+
+        .exp-card-head-left {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .exp-card-title {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .exp-card-title .ant-typography {
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 1.25;
+        }
+
+        .exp-status-tag {
+          flex: 0 0 auto;
+          margin: 0;
+          max-width: 100px;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          text-align: center;
+          line-height: 1.1;
+          display: inline-flex;
+          justify-content: center;
+          align-items: flex-start;
+        }
+
+        .exp-notif-wrap {
+          display: inline-flex;
+          max-width: 100%;
+        }
+
+        .exp-notif-tag {
+          display: inline-flex;
+          align-items: flex-start;
+          gap: 6px;
+          max-width: 100%;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          line-height: 1.15;
+          padding: 6px 10px;
+          border-radius: 999px;
+        }
+
+        .exp-notif-text {
+          max-width: 100%;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+        }
+
+        .exp-notif-wrap-card {
+          display: flex;
+          width: 100%;
+          justify-content: center;
+        }
+
+        .exp-notif-tag-card {
+          width: 100%;
+          justify-content: center;
+          text-align: center;
+          border-radius: 12px;
+        }
+
+        .exp-notif-tag-card .anticon {
+          margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+          .exp-card-title-row {
+            flex-wrap: wrap;
+          }
+        }
+          .exp-card-content {
+  padding: 18px;
+}
+
+.exp-card-footer {
+  margin-top: auto;
+  width: 100%;
+}
+
+.exp-bottom-strip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.exp-bottom-strip.is-red {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+.exp-bottom-strip.is-green {
+  background: #f6ffed;
+  color: #389e0d;
+}
+
+.exp-btn-dark {
+  width: 100%;
+  border-radius: 0;
+  height: 44px;
+  font-weight: 800;
+}
+.ant-card-body{
+padding-left:0px;
+}
+.ant-segmented {
+  background: #f5f7fa;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.ant-segmented-item {
+  font-weight: 600;
+}
+
+.ant-segmented-item-selected {
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.exp-date-badge{
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 8px;
+  white-space: normal;
+}
+
+.exp-date-badge-text{
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+.exp-bottom-strip.is-yellow{
+  background: #fff7e6;
+  color: #ad6800;
+  border-top: 1px solid #ffe7ba;
+}

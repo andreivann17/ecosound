@@ -1,0 +1,932 @@
+/* TabBitacora.css */
+
+/* ====== Tokens (igual idea que tu HTML) ====== */
+:root {
+  --primary: #0f172a;
+  --primary-accent: #2563eb;
+  --secondary-accent: #f59e0b;
+
+  --bg-light: #f1f5f9;
+  --surface-light: #ffffff;
+  --border-light: #e2e8f0;
+
+  --text: #334155;
+  --text-muted: #64748b;
+
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --radius-xl: 1rem;
+}
+
+/* si tu app maneja dark con .dark en body */
+.dark {
+  --bg-light: #0f172a;
+  --surface-light: #1e293b;
+  --border-light: #334155;
+
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+
+  --shadow-soft: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.tb2-root {
+  display: flex;
+  gap: 1.5rem; /* 24px */
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+@media (max-width: 1024px) {
+  .tb2-root {
+    flex-direction: column;
+  }
+}
+
+/* ====== Left panel ====== */
+.tb2-left {
+  width: 100%;
+  max-width: 420px;
+  flex: 0 0 420px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .tb2-left {
+    max-width: 100%;
+    flex: 0 0 auto;
+  }
+}
+
+.tb2-left-head {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-light);
+  background: rgba(241, 245, 249, 0.5);
+}
+
+.dark .tb2-left-head {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.tb2-left-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.tb2-ico {
+  color: var(--primary-accent);
+  font-size: 20px;
+}
+
+.tb2-search {
+  position: relative;
+  width: 100%;
+}
+
+.tb2-search-ico {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: #94a3b8;
+}
+
+.tb2-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.dark .tb2-search-input {
+  background: #0b1220;
+  border-color: #475569;
+  color: var(--text);
+}
+
+.tb2-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.tb2-search-input:focus {
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.tb2-left-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Scroll similar */
+.tb2-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.tb2-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.tb2-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.tb2-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.dark .tb2-scroll::-webkit-scrollbar-track {
+  background: #0b1220;
+}
+.dark .tb2-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark .tb2-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ====== Fase item ====== */
+.tb2-fase {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  border-left: 4px solid transparent;
+  transition: background 160ms ease, border-left-color 160ms ease, opacity 160ms ease;
+}
+
+.tb2-fase:hover {
+  background: rgba(241, 245, 249, 0.7);
+}
+
+.dark .tb2-fase:hover {
+  background: rgba(2, 6, 23, 0.25);
+}
+
+.tb2-fase--active {
+  border-left-color: var(--primary-accent);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.dark .tb2-fase--active {
+  background: rgba(37, 99, 235, 0.16);
+}
+
+.tb2-fase-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.tb2-fase-date {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.tb2-fase-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(51, 65, 85, 0.95);
+  margin-bottom: 0.15rem;
+}
+
+.dark .tb2-fase-name {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.tb2-fase-name--active {
+  color: var(--primary-accent);
+  font-weight: 800;
+}
+
+.tb2-fase-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Status pill */
+.tb2-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.tb2-status--done {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.tb2-status--progress {
+  color: var(--primary-accent);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.tb2-status--pending {
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.tb2-status--soft {
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.dark .tb2-status--pending,
+.dark .tb2-status--soft {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+/* ====== Right panel (viewer) ====== */
+.tb2-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  min-height: 500px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tb2-right-head {
+  height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border-light);
+  background: rgba(241, 245, 249, 1);
+}
+
+.dark .tb2-right-head {
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.tb2-doc {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.tb2-doc-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.dark .tb2-doc-ico {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.tb2-doc-mid {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tb2-doc-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 520px;
+}
+
+.tb2-doc-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 520px;
+}
+
+.tb2-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tb2-iconbtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.6rem;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.tb2-iconbtn:hover {
+  background: rgba(226, 232, 240, 0.8);
+  color: #0f172a;
+}
+
+.dark .tb2-iconbtn:hover {
+  background: rgba(51, 65, 85, 0.6);
+  color: #e2e8f0;
+}
+
+.tb2-iconbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tb2-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(148, 163, 184, 0.7);
+  margin: 0 0.25rem;
+}
+
+.tb2-fullbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 0;
+  background: var(--primary-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15);
+  transition: background 160ms ease, transform 120ms ease;
+}
+
+.tb2-fullbtn:hover {
+  background: #1d4ed8;
+}
+
+.tb2-fullbtn:active {
+  transform: translateY(1px);
+}
+
+.tb2-viewbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.dark .tb2-viewbtn {
+  background: #0b1220;
+  color: #e2e8f0;
+  border-color: rgba(71, 85, 105, 0.9);
+}
+
+.tb2-viewbtn:hover {
+  background: rgba(241, 245, 249, 0.85);
+}
+
+.dark .tb2-viewbtn:hover {
+  background: rgba(51, 65, 85, 0.45);
+}
+
+.tb2-viewbtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tb2-right-body {
+  flex: 1;
+  min-height: 0;
+  background: #e2e8f0;
+  position: relative;
+}
+
+.dark .tb2-right-body {
+  background: #0b1220;
+}
+
+.tb2-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.tb2-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.tb2-empty-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.tb2-empty-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 520px;
+}
+
+/* ====== Ajustes para Material Symbols si no tienes global ====== */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}/* === STRIP (reemplazo del select) === */
+.tb2-stripWrap{
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 10px;
+  align-items: center;
+}
+
+.tb2-stripNav{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.06);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.tb2-stripNav:disabled{
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.tb2-strip{
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 2px 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.tb2-strip::-webkit-scrollbar{
+  display: none;
+}
+
+/* Tarjetita PDF */
+.tb2-docCard{
+  width: 150px;
+  min-width: 150px;
+  border-radius: 14px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.06);
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.tb2-docCard:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(16, 24, 40, 0.10);
+  border-color: #cfe0ff;
+}
+
+.tb2-docCard--active{
+  border-color: #2f6bff;
+  box-shadow: 0 14px 30px rgba(47, 107, 255, 0.18);
+}
+
+.tb2-docCard--disabled{
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.tb2-docIcon{
+  width: 22px;
+  height: 22px;
+  border-radius: 14px;
+  border: 1px solid #edf2fb;
+  background: #f7faff;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.tb2-docIcon .material-symbols-outlined{
+  font-size: 24px;
+}
+
+.tb2-docCardText{
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1.1;
+  color: #0f172a;
+  margin-bottom: 6px;
+  max-height: 2.2em;
+  overflow: hidden;
+}
+
+.tb2-docCardSub{
+  font-size: 12px;
+  color: #64748b;
+}/* Header: más aire */
+.tb2-right-head{
+  padding: 14px 16px;
+}
+
+/* Quitar espacio fantasma por el icono que eliminaste */
+.tb2-doc{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* La strip NO debe “pegarse” al header */
+.tb2-stripWrap{
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Flechas */
+.tb2-stripNav{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.06);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+/* Carrusel */
+.tb2-strip{
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 6px 6px;            /* ✅ antes estaba muy apretado */
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.tb2-strip::-webkit-scrollbar{ display:none; }
+
+/* Card */
+.tb2-docCard{
+  width: 160px;
+  min-width: 160px;
+  border-radius: 14px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.06);
+  padding: 12px 12px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.tb2-docCard:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(16, 24, 40, 0.10);
+  border-color: #cfe0ff;
+}
+
+.tb2-docCard--active{
+  border-color: #2f6bff;
+  box-shadow: 0 14px 30px rgba(47, 107, 255, 0.18);
+}
+
+/* Icono del card (rojo) */
+.tb2-docIcon{
+  width: 24px;
+  height: 24px;
+  border-radius: 14px;
+  border: 1px solid #ffe1e1;
+  background: #fff5f5;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.tb2-docIcon .material-symbols-outlined{
+  font-size: 24px;
+  color: #dc2626;              /* ✅ rojo */
+}
+
+/* Texto */
+.tb2-docCardText{
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1.15;
+  color: #0f172a;
+  margin-bottom: 6px;
+  max-height: 2.4em;
+  overflow: hidden;
+}
+
+.tb2-docCardSub{
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Disabled */
+.tb2-docCard--disabled{
+  opacity: .45;
+  cursor: not-allowed;
+}/* Panel derecho: layout vertical correcto */
+.tb2-right{
+  display: flex;
+  flex-direction: column;
+  min-height: 0;           /* clave para que el iframe no se desborde */
+}
+
+/* Header: limpio, alineado, con aire */
+.tb2-right-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e7edf7;
+  background: #fff;
+}
+
+.tb2-headLeft{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tb2-docTitle{
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 520px;
+}
+
+.tb2-docSub{
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Barra de thumbnails: altura fija + grid */
+.tb2-stripBar{
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e7edf7;
+  background: #f8fbff;
+}
+
+/* Flechas */
+.tb2-stripNav{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.06);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.tb2-stripNav:disabled{
+  opacity: .45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Carrusel real */
+.tb2-strip{
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+.tb2-strip::-webkit-scrollbar{
+  height: 8px;
+}
+.tb2-strip::-webkit-scrollbar-thumb{
+  background: #dbe7ff;
+  border-radius: 999px;
+}
+
+/* Card documento (mejor tamaño, legible) */
+.tb2-docCard{
+  width: 170px;
+  min-width: 170px;
+  border-radius: 14px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.06);
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.tb2-docCard:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(16, 24, 40, 0.10);
+  border-color: #cfe0ff;
+}
+
+.tb2-docCard--active{
+  border-color: #2f6bff;
+  box-shadow: 0 14px 30px rgba(47, 107, 255, 0.18);
+}
+
+/* Icono PDF del card: rojo y visible */
+.tb2-docIcon{
+  width: 24px;
+  height: 24px;
+  border-radius: 14px;
+  border: 1px solid #ffd3d3;
+  background: #fff2f2;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.tb2-docIcon .material-symbols-outlined{
+  font-size: 24px;
+  color: #dc2626;
+}
+
+/* Texto del card */
+.tb2-docCardText{
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.15;
+  height: 16px;            /* 2 líneas aprox */
+  overflow: hidden;
+}
+
+.tb2-docCardSub{
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Viewer: ocupa el resto correctamente */
+.tb2-viewerArea{
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+}
+
+.tb2-iframe{
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Botones acciones: que no se amontonen */
+.tb2-actions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.tb2-iconbtn{
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #e7edf7;
+  background: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.tb2-iconbtn:disabled{
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.tb2-sep{
+  width: 1px;
+  height: 26px;
+  background: #e7edf7;
+}
+
+.tb2-fullbtn{
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e7edf7;
+  background: #2f6bff;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tb2-fullbtn:disabled{
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.tb2-viewbtn{
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+.tb2-viewbtn:disabled{
+  opacity: .55;
+  cursor: not-allowed;
+}

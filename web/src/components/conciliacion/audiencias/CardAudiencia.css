@@ -1,0 +1,498 @@
+/* src/components/laboral/CardAudiencia.css */
+
+.audiencia-header-value {
+  font-weight: 500;
+  color: #111827;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.audiencia-subtitle {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* Tarjeta tipo tabla (como la del citatorio) */
+.audiencia-summary-card {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  margin-top: 8px;
+}
+
+.audiencia-summary-header {
+  background: #f9fafb;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.audiencia-summary-body {
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audiencia-summary-body.pagos {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+}
+
+.audiencia-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .audiencia-summary-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.audiencia-summary-label {
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 11px;
+}
+
+.audiencia-summary-value {
+  font-weight: 500;
+  color: #111827;
+}
+
+.audiencia-summary-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+/* Tabla resumen */
+.audiencia-table.resumen th,
+.audiencia-table.resumen td {
+  font-size: 12px;
+}
+
+/* Lista de prestaciones */
+.audiencia-prestaciones-list {
+  padding-left: 18px;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+/* Caja para riesgos / acciones */
+.audiencia-riesgos-box {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed #e5e7eb;
+  background: #f9fafb;
+  font-size: 13px;
+}
+
+.audiencia-table-container {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.audiencia-table.detalle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.audiencia-table.detalle th {
+  padding: 10px 14px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #e5e7eb;
+  width: 22%;
+}
+
+.audiencia-table.detalle td {
+  padding: 10px 14px;
+  background: #ffffff;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+  width: 28%;
+}
+
+.audiencia-table.detalle tr:last-child th,
+.audiencia-table.detalle tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .audiencia-table.detalle tr {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .audiencia-table.detalle th {
+    border-bottom: none;
+  }
+
+  .audiencia-table.detalle td {
+    border-bottom: 1px solid #e5e7eb;
+  }
+}
+
+.audiencia-edit-card {
+  margin-top: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.audiencia-view-card {
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
+.audiencia-section-divider {
+  border-top: 1px solid #e5e7eb;
+  margin: 12px 0 16px;
+}
+
+.audiencia-quill-wrapper .ql-toolbar {
+  border-radius: 6px 6px 0 0;
+  border-color: #e5e7eb;
+}
+
+.audiencia-quill-wrapper .ql-container {
+  border-radius: 0 0 6px 6px;
+  border-color: #e5e7eb;
+  min-height: 180px;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.audiencia-quill-wrapper .ql-editor {
+  min-height: 150px;
+}
+
+.audiencia-checkbox-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audiencia-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.audiencia-table th {
+  width: 55%;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 500;
+}
+
+.audiencia-table td {
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.audiencia-html p {
+  margin-bottom: 4px;
+}
+.audiencia-table.detalle th:first-child,
+.audiencia-table.detalle td:first-child {
+  width: 4%;        /* o 3–5% según veas */
+  max-width: 280px;
+  padding-left: 8px;
+  padding-right: 8px;
+  text-align: center;
+}
+.audiencia-table.resumen th:first-child,
+.audiencia-table.resumen td:first-child {
+  width: 4%;        /* o 3–5 % según te guste */
+  max-width: 40px;
+  padding-left: 8px;
+  padding-right: 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.ant-picker-dropdown {
+  z-index: 2000;
+}
+.aud-doc-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:24px;
+}
+@media (max-width: 900px){
+  .aud-doc-grid{ grid-template-columns: 1fr; }
+}
+
+.aud-doc-box{
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+}
+
+.aud-doc-box__top{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.aud-doc-box__title{
+  font-weight: 700;
+  color: #111827;
+  font-size: 13px;
+}
+
+.aud-doc-box__meta{
+  margin-top: 4px;
+  color:#6b7280;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.aud-doc-open-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border: 1px solid #e5e7eb;
+  background:#111827;
+  color:#fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.aud-doc-open-btn .material-symbols-outlined{
+  font-size: 18px;
+}
+
+.aud-const-form{
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+/* Grid para 2 cards como el mock */
+.aud-doc-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:18px;
+}
+@media (min-width: 992px){
+  .aud-doc-grid{ grid-template-columns: 1fr 1fr; gap:22px; }
+}
+
+/* Card base (tipo Tailwind mock) */
+.aud-doc-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:26px;
+  transition: box-shadow .25s ease, border-color .25s ease, transform .25s ease;
+  box-shadow: 0 10px 30px rgba(15,23,42,.04);
+}
+.aud-doc-card:hover{
+  border-color: rgba(236,91,19,.25);
+  box-shadow: 0 28px 70px rgba(236,91,19,.10);
+  transform: translateY(-1px);
+}
+
+.aud-doc-card__row{
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+}
+
+/* Icon badge */
+.aud-doc-card__icon{
+  width:78px;
+  height:78px;
+  border-radius:18px;
+  background: rgba(236,91,19,.10);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex: 0 0 auto;
+  transition: background .25s ease;
+}
+.aud-doc-card:hover .aud-doc-card__icon{
+  background: #111c33;
+}
+.aud-doc-card__icon .material-symbols-outlined{
+  font-size:38px;
+  color: #111c33;
+  transition: color .25s ease;
+}
+.aud-doc-card:hover .aud-doc-card__icon .material-symbols-outlined{
+  color:#fff;
+}
+
+.aud-doc-card__content{ flex:1; min-width: 0; }
+
+/* Title + badge row */
+.aud-doc-card__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.aud-doc-card__title{
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+  letter-spacing:-.01em;
+}
+
+/* Badge green */
+.aud-doc-card__badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  background:#dcfce7;
+  color:#15803d;
+  border:1px solid #bbf7d0;
+  white-space:nowrap;
+}
+.aud-doc-card__badge-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:#22c55e;
+}
+
+/* Filename */
+.aud-doc-card__filename{
+  margin-top:6px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  font-weight:600;
+  color:#9ca3af;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.aud-doc-card__filename .material-symbols-outlined{
+  font-size:16px;
+  color:#9ca3af;
+}
+
+/* Chips */
+.aud-doc-card__chips{
+  margin-top:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.aud-doc-card__chip{
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:7px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:#6b7280;
+}
+
+/* Desc */
+.aud-doc-card__desc{
+  margin-top:10px;
+  font-size:13px;
+  line-height:1.55;
+  color:#6b7280;
+}
+
+/* Actions */
+.aud-doc-card__actions{ margin-top:16px; }
+.aud-doc-card__btn{
+  width:100%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  border:none;
+  border-radius:14px;
+  padding:12px 16px;
+  font-weight:900;
+  cursor:pointer;
+  transition: transform .08s ease, opacity .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.aud-doc-card__btn:active{ transform: scale(.98); }
+.aud-doc-card__btn:disabled{ opacity:.55; cursor:not-allowed; }
+.aud-doc-card__btn .material-symbols-outlined{ font-size:18px; }
+
+/* Primary button */
+.aud-doc-card__btn{
+  background:#111c33;
+  color:#fff;
+  box-shadow: 0 12px 26px rgba(236,91,19,.25);
+}
+.aud-doc-card__btn:hover{ opacity:.95; }
+
+/* Dark button (constancia) */
+.aud-doc-card__btn.is-dark{
+  background:#111c33;
+  color:#fff;
+  box-shadow: 0 12px 26px rgba(15,23,42,.20);
+}
+
+/* Constancia: mantenemos mismo layout, pero el icon ya es verified */
+.aud-doc-card.is-constancia .aud-doc-card__icon .material-symbols-outlined{
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+/* Form "rápido" debajo, con look limpio */
+.aud-const-form{
+  margin-top:18px;
+  border-top:1px solid #e5e7eb;
+  padding-top:16px;
+}
+.aud-const-form__title{
+  font-weight:800;
+  color:#111827;
+  margin-bottom:10px;
+}
+.aud-const-form__actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+/* cuando solo mostramos el form, quitamos la línea superior y compactamos */
+.aud-const-form--only{
+  margin-top:0;
+  border-top:none;
+  padding-top:0;
+}

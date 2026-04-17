@@ -1,0 +1,444 @@
+/* EstadisticasPage.css */
+
+.est-main {
+  background-color: #f5f7f9;
+  min-height: calc(100vh - 56px);
+  padding: 24px;
+}
+
+.est-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Page header ── */
+.est-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 4px 0 0;
+}
+
+.est-page-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 2px;
+  line-height: 1.2;
+}
+
+.est-page-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Section Card ── */
+.est-section-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 24px rgba(15, 34, 58, 0.06);
+}
+
+/* ── Section header ── */
+.est-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.est-section-header-sm {
+  margin-bottom: 16px;
+}
+
+.est-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.est-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.est-period-display {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* ── Period Selector ── */
+.est-period-selector {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.est-select .ant-select-selector {
+  border-radius: 10px !important;
+  border-color: #e2e8f0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+.est-select.ant-select-focused .ant-select-selector {
+  border-color: #05060a !important;
+  box-shadow: 0 0 0 2px rgba(5, 6, 10, 0.08) !important;
+}
+
+/* ── KPI Grid ── */
+.est-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.est-kpi-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.est-kpi-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.est-kpi-icon-green { background: #dcfce7; color: #15803d; }
+.est-kpi-icon-red   { background: #fee2e2; color: #b91c1c; }
+.est-kpi-icon-blue  { background: #ede9fe; color: #4f46e5; }
+.est-kpi-icon-amber { background: #fef9c3; color: #92400e; }
+
+.est-kpi-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.est-kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 4px 0 2px;
+  line-height: 1.1;
+}
+
+.est-kpi-green { color: #15803d; }
+.est-kpi-red   { color: #b31b25; }
+
+.est-kpi-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ── Charts ── */
+.est-charts-wrap {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.est-chart-main,
+.est-chart-side {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.est-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 16px;
+}
+
+.est-bar-wrap {
+  height: 240px;
+  position: relative;
+}
+
+.est-donut-wrap {
+  height: 260px;
+  position: relative;
+}
+
+/* ── Bottom Row ── */
+.est-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── List heading ── */
+.est-list-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 10px;
+}
+
+/* ── Vencidos / Pendientes list ── */
+.est-vencidos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.est-vencido-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+  gap: 12px;
+}
+
+.est-vencido-row:hover {
+  background: #f1f5f9;
+}
+
+.est-vencido-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.est-vencido-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.est-vencido-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.est-vencido-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.est-vencido-monto {
+  font-size: 13px;
+  font-weight: 700;
+  color: #b31b25;
+  white-space: nowrap;
+}
+
+/* ── Dots ── */
+.est-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.est-dot-red    { background: #ef4444; }
+.est-dot-orange { background: #f97316; }
+.est-dot-yellow { background: #f59e0b; }
+.est-dot-green  { background: #10b981; }
+.est-dot-blue   { background: #6366f1; }
+
+/* ── Tags/Badges ── */
+.est-badge-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.est-badge-red    { background: #fee2e2; color: #b91c1c; }
+.est-badge-orange { background: #ffedd5; color: #c2410c; }
+.est-badge-green  { background: #dcfce7; color: #15803d; }
+.est-badge-amber  { background: #fef9c3; color: #92400e; }
+
+.est-count-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── Contratos del período table ── */
+.est-contratos-head {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1fr;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.est-contratos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.est-contrato-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1fr;
+  padding: 10px 10px;
+  border-radius: 8px;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 12px;
+  color: #334155;
+  gap: 4px;
+}
+
+.est-contrato-row:hover {
+  background: #f8fafc;
+}
+
+.est-contrato-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+}
+
+.est-contrato-nombre span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.est-contrato-tipo {
+  color: #475569;
+  font-size: 11px;
+}
+
+.est-contrato-fecha {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.est-contrato-importe {
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.est-contrato-saldo {
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.est-saldo-pending { color: #b31b25; }
+.est-saldo-ok      { color: #15803d; }
+
+/* ── Pagination ── */
+.est-pagination {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+}
+
+/* ── Loading ── */
+.est-loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 260px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+  .est-charts-wrap {
+    grid-template-columns: 1fr;
+  }
+  .est-donut-wrap {
+    height: 220px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .est-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .est-bottom-row {
+    grid-template-columns: 1fr;
+  }
+  .est-contratos-head,
+  .est-contrato-row {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+  .est-contrato-tipo { display: none; }
+}
+
+@media (max-width: 600px) {
+  .est-main { padding: 14px 12px; }
+  .est-section-card { padding: 18px 16px; }
+  .est-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .est-kpi-value { font-size: 1.4rem; }
+  .est-page-title { font-size: 1.3rem; }
+  .est-section-header { flex-direction: column; align-items: flex-start; }
+  .est-contratos-head,
+  .est-contrato-row {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+  .est-contrato-fecha { display: none; }
+}

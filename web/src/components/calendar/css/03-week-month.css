@@ -1,0 +1,365 @@
+/* =========================
+   WEEK / DAY
+   ========================= */
+
+.ol-weekWrap {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  border: 1px solid #dfe3ea;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;   /* ✔ correcto */
+}
+.ol-timeCol {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-right: 1px solid #cfd6e1;
+  overflow: hidden;
+}
+
+/* NUEVO */
+.ol-timeBody {
+  flex: 1 1 auto;
+  overflow-y: hidden; /* scroll lo controla daysBody */
+}
+.ol-timeCell,
+.ol-slot {
+  height: 36px;
+}
+
+
+.ol-timeCell {
+  height: 36px;   /* ↓ CLAVE */
+  font-size: 12px;
+  color: #6b7280;
+  padding-top: 6px;
+  text-align: center;
+}
+
+/* ===== DAYS GRID ===== */
+
+.ol-days {
+  display: grid;
+  grid-template-rows: 44px 1fr;
+  min-height: 0;
+}
+.ol-timeHeaderSpacer{
+  height: 56px; /* igual al header */
+  border-bottom: 1px solid #cfd6e1; /* para que “cierre” la línea */
+  background: #fff;
+}
+.ol-daysHeader {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border-bottom: 1px solid #cfd6e1;
+  margin-bottom: 0;
+  position: relative;
+  z-index: 5; /* header arriba */
+}
+
+.ol-dayHeaderCell {
+  padding: 6px 10px;
+  border-right: 1px solid #cfd6e1;
+}
+
+.ol-dayHeaderCell:last-child {
+  border-right: none;
+}
+
+.ol-dayHeaderTop {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ol-dayHeaderDow {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ===== BODY (SCROLL REAL) ===== */
+
+.ol-daysBody {
+  flex: 1 1 auto;     /* ← CLAVE */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  min-height: 0;
+  overflow-y: auto;   /* ← ÚNICO SCROLL */
+  overflow-x: hidden;
+}
+.ol-dayCol {
+  position: relative;
+  border-right: 1px solid #cfd6e1;
+}
+
+.ol-dayCol:last-child {
+  border-right: none;
+}
+
+.ol-slot {
+  height: 36px;   /* ↓ CLAVE */
+  border-bottom: 1px solid #f0f2f5;
+}
+
+/* ===== EVENTS ===== */
+
+.ol-ev {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  background: #f0f0f2;
+  border-left: 4px solid #6b7280;
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.ol-evTitle {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================
+   MONTH
+   ========================= */
+
+.ol-month {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dfe3ea;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.ol-monthHeader {
+  flex: 0 0 44px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #cfd6e1;
+}
+
+.ol-monthHCell {
+  padding: 10px;
+  font-weight: 700;
+  border-right: 1px solid #cfd6e1;
+}
+
+.ol-monthHCell:last-child {
+  border-right: none;
+}
+
+/* ===== BODY SIN SCROLL ===== */
+
+.ol-monthBody {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  overflow: hidden;
+}
+
+.ol-monthRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.ol-monthCell {
+  padding: 8px;
+  border-right: 1px solid #cfd6e1;
+  border-bottom: 1px solid #cfd6e1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ol-monthCell:last-child {
+  border-right: none;
+}
+
+.ol-monthDate {
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.ol-monthEvents {
+  flex: 1 1 auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ol-monthEv {
+  height: 22px;
+  font-size: 11px;
+  background: #f0f0f2;
+  border-left: 3px solid #6b7280;
+  border-radius: 999px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ol-monthMore {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1677ff;
+  cursor: pointer;
+}
+.ol-weekWrap {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+.ol-daysHeader {
+  flex: 0 0 56px;
+  height: 56px;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+}
+.ol-days {
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  min-height: 0;
+}
+
+
+.ol-daysHeader {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  width: 100%;
+}
+
+.ol-daysScroll {
+  overflow-y: auto;   /* ← scrollbar vive aquí */
+  overflow-x: hidden;
+}
+
+.ol-daysBody {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  width: 100%;        /* MISMO WIDTH */
+  min-width: 0;
+}
+.ol-daysScroll {
+  scrollbar-gutter: stable;
+}
+/* =========================
+   WEEK / DAY (FINAL)
+   ========================= */
+
+.ol-weekWrap{
+  height: 100%;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  border: 1px solid #dfe3ea;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* ===== TIME COLUMN ===== */
+
+.ol-timeCol{
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #cfd6e1;
+  background: #fff;
+}
+
+.ol-timeHeaderSpacer{
+  height: 56px;
+  border-bottom: 1px solid #cfd6e1;
+}
+
+.ol-timeBody{
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.ol-timeCell{
+  height: 36px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  padding-top: 6px;
+}
+
+/* ===== DAYS ===== */
+
+.ol-days{
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0; /* ✅ clave */
+}
+
+.ol-daysHeader{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border-bottom: 1px solid #cfd6e1;
+  background: #fff;
+}
+
+.ol-dayHeaderCell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 10px;
+  border-right: 1px solid #cfd6e1;
+  overflow: hidden;
+}
+
+.ol-dayHeaderDow {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+
+.ol-daysScroll{
+  min-height: 0; /* ✅ clave */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+/* GRID REAL */
+.ol-daysBody{
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  min-width: 0;
+}
+
+.ol-dayCol{
+  position: relative;
+  border-right: 1px solid #cfd6e1;
+}
+
+.ol-dayCol:last-child{
+  border-right: none;
+}
+
+.ol-slot{
+  height: 36px;
+  border-bottom: 1px solid #f0f2f5;
+}

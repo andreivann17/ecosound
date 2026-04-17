@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(./venv/Scripts/pip install:*)"
+    ],
+    "additionalDirectories": [
+      "f:\\proyectos\\ecosound\\backend"
+    ]
+  }
+}

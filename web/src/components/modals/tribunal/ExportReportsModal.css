@@ -1,0 +1,552 @@
+/* src/components/export/ExportReportsModal.css */
+
+:root{
+  --concilia-dark:#0f172a;
+  --concilia-accent:#3b82f6;
+  --concilia-bg:#f8fafc;
+  --concilia-border:#e2e8f0;
+
+  --slate-50:#f8fafc;
+  --slate-100:#f1f5f9;
+  --slate-200:#e2e8f0;
+  --slate-300:#cbd5e1;
+  --slate-400:#94a3b8;
+  --slate-500:#64748b;
+  --slate-600:#475569;
+  --slate-700:#334155;
+  --slate-800:#1f2937;
+
+  --shadow-2xl: 0 25px 50px -12px rgba(0,0,0,.25);
+}
+
+/* =========================
+   Overlay + Modal (layout + animación)
+   ========================= */
+.er-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.60);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+.er-modal{
+  width: min(1200px, 100%);
+  height: 85vh;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+
+  opacity: 0;
+  transform: translateY(10px) scale(.985);
+  transition: transform 180ms ease, opacity 180ms ease;
+  will-change: transform, opacity;
+}
+
+/* abierto */
+.er-overlay.is-open{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 180ms ease, visibility 0s linear 0s;
+}
+
+.er-overlay.is-open .er-modal{
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* cerrando */
+.er-overlay.is-closing{
+  opacity: 0;
+  visibility: visible;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.er-overlay.is-closing .er-modal{
+  opacity: 0;
+  transform: translateY(8px) scale(.99);
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .er-overlay, .er-modal{ transition: none !important; }
+}
+
+/* =========================
+   Header
+   ========================= */
+.er-header{
+  background: var(--concilia-dark);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.er-header-left{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.er-header-icon{
+  width: 24px;
+  height: 24px;
+  color: var(--slate-400);
+}
+
+.er-header-title{
+  font-size: 20px;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: .2px;
+}
+
+.er-icon-btn{
+  border: 0;
+  background: transparent;
+  color: var(--slate-400);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 10px;
+  transition: color .18s ease, background .18s ease;
+}
+
+.er-icon-btn:hover{
+  color: #fff;
+  background: rgba(255,255,255,.08);
+}
+
+.er-icon{
+  width: 24px;
+  height: 24px;
+}
+
+/* =========================
+   Body / Main
+   ========================= */
+.er-body{
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.er-main{
+  flex: 1;
+  background: var(--concilia-bg);
+  overflow: auto;
+}
+
+.er-main-inner{
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* =========================
+   Sections
+   ========================= */
+.er-section{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.er-h2{
+  margin: 0;
+  color: var(--slate-800);
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.er-grid-2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 900px){
+  .er-grid-2{ grid-template-columns: 1fr; }
+  .er-main-inner{ padding: 18px 16px 28px; }
+}
+
+/* =========================
+   Cards
+   ========================= */
+.er-card{
+  background: #fff;
+  border: 1px solid var(--concilia-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  padding: 16px;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+}
+
+.er-card-pad{
+  padding: 18px;
+  min-height: auto;
+}
+
+.er-card-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.er-card-label{
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--slate-700);
+  letter-spacing: .10em;
+}
+
+.er-link{
+  border: 0;
+  background: transparent;
+  color: var(--concilia-accent);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.er-link:hover{
+  text-decoration: underline;
+}
+
+/* =========================
+   Inputs
+   ========================= */
+.er-input-wrap{ margin-bottom: 10px; }
+
+.er-input{
+  width: 100%;
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border .15s ease, box-shadow .15s ease;
+}
+
+.er-input:focus{
+  border-color: var(--concilia-accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* =========================
+   Scroll list
+   ========================= */
+.er-scroll{
+  height: 160px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.er-scroll::-webkit-scrollbar{ width: 6px; }
+.er-scroll::-webkit-scrollbar-track{ background: #f1f1f1; }
+.er-scroll::-webkit-scrollbar-thumb{ background: #cbd5e1; border-radius: 10px; }
+.er-scroll::-webkit-scrollbar-thumb:hover{ background: #94a3b8; }
+
+.er-check-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.er-check-row:hover{ background: var(--slate-50); }
+
+.er-check-row input[type="checkbox"]{
+  width: 16px;
+  height: 16px;
+  accent-color: var(--concilia-dark);
+}
+
+.er-check-row span{
+  font-size: 13px;
+  color: var(--slate-600);
+}
+
+.er-empty{
+  color: var(--slate-500);
+  font-size: 13px;
+  padding: 10px 8px;
+}
+
+/* =========================
+   Pills
+   ========================= */
+.er-pills{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.er-pill{
+  border: 0;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--slate-100);
+  color: var(--slate-600);
+  font-size: 12px;
+  font-weight: 750;
+  transition: background .18s ease, color .18s ease;
+}
+
+.er-pill:hover{
+  background: var(--concilia-dark);
+  color: #fff;
+}
+
+.er-pill.is-on{
+  background: var(--concilia-dark);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(15,23,42,.18);
+}
+
+/* =========================
+   Dates
+   ========================= */
+.er-grid-dates{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 700px){
+  .er-grid-dates{ grid-template-columns: 1fr; }
+}
+
+.er-date-col{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.er-date-label{
+  font-size: 12px;
+  color: var(--slate-500);
+  font-weight: 650;
+}
+
+.er-date{
+  width: 100%;
+  border: 1px solid var(--slate-200);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border .15s ease, box-shadow .15s ease;
+}
+
+.er-date:focus{
+  border-color: var(--concilia-accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* =========================
+   Format cards
+   ========================= */
+.er-format-row{
+  display: flex;
+  gap: 14px;
+}
+
+@media (max-width: 700px){
+  .er-format-row{ flex-direction: column; }
+}
+
+.er-format{
+  flex: 1;
+  cursor: pointer;
+}
+
+.er-format input{ display: none; }
+
+.er-format-card{
+  border: 2px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  transition: border .18s ease, background .18s ease;
+}
+
+.er-format-card:hover{
+  border-color: var(--slate-200);
+}
+
+.er-format-card.is-excel{
+  border-color: #22c55e;
+  background: rgba(34,197,94,.08);
+}
+
+.er-format-card.is-pdf{
+  border-color: #ef4444;
+  background: rgba(239,68,68,.08);
+}
+
+.er-format-ic{
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.er-format-ic.excel{
+  background: rgba(34,197,94,.16);
+  color: #16a34a;
+}
+
+.er-format-ic.pdf{
+  background: rgba(239,68,68,.16);
+  color: #dc2626;
+}
+
+.er-doc{
+  width: 22px;
+  height: 22px;
+}
+
+.er-format-text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.er-format-title{
+  font-weight: 800;
+  color: var(--slate-700);
+  font-size: 14px;
+}
+
+.er-format-sub{
+  font-size: 12px;
+  color: var(--slate-500);
+}
+
+/* =========================
+   Footer
+   ========================= */
+.er-footer{
+  background: #fff;
+  border-top: 1px solid var(--concilia-border);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.er-btn{
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s ease, box-shadow .18s ease, border-color .18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.er-btn-cancel{
+  background: #fff;
+  border: 1px solid var(--slate-300);
+  color: var(--slate-600);
+}
+
+.er-btn-cancel:hover{
+  background: var(--slate-50);
+}
+
+.er-btn-primary{
+  background: var(--concilia-dark);
+  border: 1px solid var(--concilia-dark);
+  color: #fff;
+  padding: 10px 22px;
+  box-shadow: 0 10px 18px rgba(15,23,42,.22);
+}
+
+.er-btn-primary:hover{
+  background: #0b1224;
+}
+
+.er-btn-ic{
+  width: 18px;
+  height: 18px;
+}
+/* ===== Animación visible (agrega al FINAL del CSS) ===== */
+
+/* keyframes */
+@keyframes erFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes erPopIn {
+  from { opacity: 0; transform: translateY(16px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* cuando abre */
+.er-overlay.is-open{
+  animation: erFadeIn 180ms ease both;
+}
+
+.er-overlay.is-open .er-modal{
+  animation: erPopIn 200ms ease both;
+}
+
+/* cuando cierra (ya lo tienes con transitions, pero aquí se siente mejor) */
+.er-overlay.is-closing{
+  opacity: 0;
+  visibility: visible;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.er-overlay.is-closing .er-modal{
+  opacity: 0;
+  transform: translateY(10px) scale(.985);
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .er-overlay.is-open, .er-overlay.is-open .er-modal{
+    animation: none !important;
+  }
+}

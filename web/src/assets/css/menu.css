@@ -1,0 +1,29 @@
+.div-navbar {
+    width: 60px;
+    overflow-y: hidden;
+    transition: width 0.3s ease;
+  }
+  
+  .div-navbar:hover {
+    width: 250px;
+    overflow-y: auto;
+  }
+  
+  .div-navbar-img img {
+    width: 120px;
+    transition: width 0.3s ease;
+  }
+  
+  .div-navbar:hover .div-navbar-img img {
+    width: 140px;
+  }
+  
+  .div-navbar-buttons h6,.icon-collapse span {
+    display: none;
+    transition: display 0.3s ease;
+  }
+  
+  .div-navbar:hover .div-navbar-buttons h6,.div-navbar:hover .icon-collapse span {
+    display: inline-block;
+  }
+  

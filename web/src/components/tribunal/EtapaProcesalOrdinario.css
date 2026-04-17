@@ -1,0 +1,958 @@
+/* Base */
+.lxp-ep-wrap {
+  display: block;
+}
+
+.lxp-ep-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  overflow: hidden;
+}
+
+/* Header */
+.lxp-ep-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(241,245,249,0.7);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.lxp-ep-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lxp-ep-title .material-symbols-outlined {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.lxp-ep-sub {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Toggle */
+.lxp-ep-toggle {
+  display: flex;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.06);
+}
+
+.lxp-ep-toggle-btn {
+  border: 0;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lxp-ep-toggle-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.lxp-ep-toggle-btn:hover {
+  color: #0f172a;
+}
+
+.lxp-ep-toggle-btn.is-active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(37,99,235,0.35);
+}
+
+/* Timeline scroll (solo horizontal) */
+.lxp-ep-timeline-scroll {
+  padding: 26px 22px 18px 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #fff;
+}
+
+.lxp-ep-timeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.lxp-ep-timeline-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.lxp-ep-timeline-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.lxp-ep-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.lxp-ep-timeline {
+  min-width: 1000px;
+  position: relative;
+  padding: 6px 0 40px 0;
+}
+
+.lxp-ep-line {
+  position: absolute;
+  top: 68px;
+  left: 18px;
+  right: 18px;
+  height: 2px;
+  background: #e2e8f0;
+}
+
+.lxp-ep-steps {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Step */
+.lxp-ep-step {
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.lxp-ep-step-n {
+  font-size: 12px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.lxp-ep-step-stick {
+  width: 1px;
+  height: 16px;
+  background: #93c5fd;
+}
+
+.lxp-ep-step-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(37,99,235,0.25);
+  border: 4px solid #fff;
+}
+
+.lxp-ep-step-icon .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.lxp-ep-step-text {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #1e40af;
+  line-height: 1.3;
+}
+
+/* Active step (igual al HTML) */
+.lxp-ep-step.is-active {
+  width: 120px;
+  transform: translateY(-10px);
+}
+
+.lxp-ep-step.is-active .lxp-ep-step-n {
+  font-size: 14px;
+  background: #eff6ff;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: #2563eb;
+}
+
+.lxp-ep-step.is-active .lxp-ep-step-stick {
+  height: 24px;
+  width: 2px;
+  background: #2563eb;
+}
+
+.lxp-ep-step.is-active .lxp-ep-step-icon {
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  box-shadow: 0 10px 22px rgba(37,99,235,0.18);
+}
+
+.lxp-ep-step.is-active .lxp-ep-step-icon .material-symbols-outlined {
+  font-size: 30px;
+}
+
+.lxp-ep-active-label {
+  position: absolute;
+  bottom: -46px;
+  width: 160px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.lxp-ep-active-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lxp-ep-active-sub {
+  font-size: 10px;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* Pending */
+.lxp-ep-step.is-pending .lxp-ep-step-n {
+  color: #94a3b8;
+  font-weight: 700;
+}
+.lxp-ep-step.is-pending .lxp-ep-step-stick {
+  background: #cbd5e1;
+}
+.lxp-ep-step.is-pending .lxp-ep-step-icon {
+  background: #f8fafc;
+  color: #94a3b8;
+  border: 4px solid #fff;
+  box-shadow: none;
+  outline: 1px solid #e2e8f0;
+}
+.lxp-ep-step.is-pending .lxp-ep-step-text {
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Bottom section */
+.lxp-ep-bottom {
+  background: rgba(241,245,249,0.7);
+  border-top: 1px solid #e2e8f0;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+}
+
+.lxp-ep-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lxp-ep-detail-head {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lxp-ep-dot {
+  width: 8px;
+  height: 8px;
+  background: #2563eb;
+  border-radius: 999px;
+}
+
+.lxp-ep-detail-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.lxp-ep-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lxp-ep-btn {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+}
+
+.lxp-ep-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.lxp-ep-btn .material-symbols-outlined {
+  font-size: 18px;
+  color: #2563eb;
+}
+.lxp-ep-btn:nth-child(2) .material-symbols-outlined {
+  color: #16a34a;
+}
+
+/* Docs box */
+.lxp-ep-docs {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+}
+
+.lxp-ep-docs-head {
+  padding: 12px 14px;
+  background: rgba(241,245,249,0.55);
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.lxp-ep-docs-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lxp-ep-docs-title .material-symbols-outlined {
+  font-size: 18px;
+  color: #2563eb;
+}
+
+.lxp-ep-docs-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lxp-ep-docs-count {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.lxp-ep-link {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lxp-ep-link .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.lxp-ep-link:hover {
+  color: #1d4ed8;
+}
+
+.lxp-ep-docs-body {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+/* Doc item */
+.lxp-ep-doc-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  transition: all 160ms ease;
+}
+
+.lxp-ep-doc-item:hover {
+  border-color: #93c5fd;
+  background: rgba(239,246,255,0.35);
+}
+
+.lxp-ep-doc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lxp-ep-doc-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.lxp-ep-doc-item.is-pdf .lxp-ep-doc-ico {
+  background: rgba(254,242,242,1);
+  color: #dc2626;
+}
+
+.lxp-ep-doc-item.is-doc .lxp-ep-doc-ico {
+  background: rgba(239,246,255,1);
+  color: #2563eb;
+}
+
+.lxp-ep-doc-ico .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.lxp-ep-doc-meta {
+  min-width: 0;
+}
+
+.lxp-ep-doc-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lxp-ep-doc-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lxp-ep-doc-sub .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.lxp-ep-doc-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.lxp-ep-iconbtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lxp-ep-iconbtn:hover {
+  background: #f1f5f9;
+  color: #2563eb;
+}
+
+.lxp-ep-iconbtn:last-child:hover {
+  color: #ef4444;
+}
+
+/* Drop */
+.lxp-ep-drop {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 18px;
+  background: #fff;
+  text-align: center;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.lxp-ep-drop:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.lxp-ep-drop-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px auto;
+  transition: all 160ms ease;
+}
+
+.lxp-ep-drop:hover .lxp-ep-drop-ico {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.lxp-ep-drop-ico .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.lxp-ep-drop-t {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.lxp-ep-drop-s {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Right deadline */
+.lxp-ep-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.lxp-ep-deadline-card {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+}
+
+.lxp-ep-deadline-title {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.lxp-ep-deadline-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lxp-ep-deadline-days {
+  font-size: 26px;
+  font-weight: 900;
+  color: #dc2626;
+}
+
+.lxp-ep-deadline-ico {
+  font-size: 40px;
+  color: #fee2e2;
+}
+
+.lxp-ep-bar {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 10px 0 8px 0;
+}
+
+.lxp-ep-bar-fill {
+  height: 100%;
+  background: #ef4444;
+  border-radius: 999px;
+}
+
+.lxp-ep-deadline-foot {
+  text-align: right;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .lxp-ep-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lxp-ep-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+/* ====== Etapas como botones amigables (sin cambiar estructura) ====== */
+.lxp-ep-step {
+  cursor: pointer;
+  user-select: none;
+}
+
+.lxp-ep-step:focus {
+  outline: none;
+}
+
+.lxp-ep-step:hover .lxp-ep-step-icon {
+  transform: translateY(-1px);
+}
+
+.lxp-ep-step-icon {
+  transition: transform 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease, outline 140ms ease;
+}
+
+/* ====== Etapa sin documentos: blanco + icono azul (como pediste) ====== */
+.lxp-ep-step.is-empty .lxp-ep-step-n {
+  color: #2563eb;
+}
+
+.lxp-ep-step.is-empty .lxp-ep-step-stick {
+  background: #93c5fd;
+}
+
+.lxp-ep-step.is-empty .lxp-ep-step-icon {
+  background: #fff;
+  color: #2563eb;
+  box-shadow: none;
+  outline: 1px solid #dbeafe;
+}
+
+/* Texto mantiene look */
+.lxp-ep-step.is-empty .lxp-ep-step-text {
+  color: #1e40af;
+  font-weight: 800;
+}
+
+/* ====== Etapa con documentos: relleno azul (como las anteriores “hechas”) ====== */
+.lxp-ep-step.is-done .lxp-ep-step-n {
+  color: #2563eb;
+}
+
+.lxp-ep-step.is-done .lxp-ep-step-stick {
+  background: #93c5fd;
+}
+
+.lxp-ep-step.is-done .lxp-ep-step-icon {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(37,99,235,0.25);
+  outline: none;
+}
+
+/* ====== Marca de “tiene docs” (puntito) ====== */
+.lxp-ep-doc-dot {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #22c55e;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* ====== Etapa actual (backend) sin romper el active (seleccionada) ====== */
+.lxp-ep-step.is-current:not(.is-active) .lxp-ep-step-icon {
+  outline: 2px solid rgba(37,99,235,0.35);
+}
+
+/* ====== Dropzone compacto cuando ya hay documentos (misma caja, solo menos alto) ====== */
+.lxp-ep-drop.is-compact {
+  padding: 14px;
+}
+
+.lxp-ep-drop.is-compact .lxp-ep-drop-ico {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 6px;
+}.lxp-ep-step.is-clickable {
+  cursor: pointer;
+}
+
+.lxp-ep-step.is-clickable:focus {
+  outline: none;
+}
+
+.lxp-ep-step.is-clickable:focus-visible .lxp-ep-step-icon {
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.12), 0 6px 14px rgba(37,99,235,0.25);
+}
+
+/* EMPTY: blanco con icono azul */
+.lxp-ep-step.is-empty .lxp-ep-step-n {
+  color: #2563eb;
+}
+.lxp-ep-step.is-empty .lxp-ep-step-stick {
+  background: #bfdbfe;
+}
+.lxp-ep-step.is-empty .lxp-ep-step-icon {
+  background: #fff;
+  color: #2563eb;
+  border: 2px solid #dbeafe;
+  box-shadow: 0 6px 14px rgba(37,99,235,0.10);
+}
+
+/* DONE: relleno azul */
+.lxp-ep-step.is-done .lxp-ep-step-n {
+  color: #2563eb;
+}
+.lxp-ep-step.is-done .lxp-ep-step-stick {
+  background: #93c5fd;
+}
+.lxp-ep-step.is-done .lxp-ep-step-icon {
+  background: #2563eb;
+  color: #fff;
+  border: 4px solid #fff;
+  box-shadow: 0 6px 14px rgba(37,99,235,0.25);
+}
+
+.lxp-ep-step-icon {
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, color 120ms ease, border 120ms ease;
+}
+.lxp-ep-step.is-clickable:hover .lxp-ep-step-icon {
+  transform: translateY(-1px);
+}.lxp-ep-dategrid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+
+.lxp-ep-datefield{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lxp-ep-datelabel{
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.lxp-ep-datepicker{
+  width: 100%;
+}
+
+@media (max-width: 900px){
+  .lxp-ep-dategrid{ grid-template-columns: 1fr; }
+}
+
+/* ====== Forzar Upload a ocupar todo el ancho ====== */
+.lxp-ep-upload-block,
+.lxp-ep-upload-block .ant-upload,
+.lxp-ep-upload-block .ant-upload-wrapper {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* El dropzone sí o sí a 100% */
+.lxp-ep-drop {
+  width: 100%;
+}/* ====== Row: inputs + botón guardar/editar (zona marcada) ====== */
+.lxp-ep-dates-row{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 10px 0 14px;
+}
+
+/* 3 columnas (fecha + días hábiles + fecha límite) */
+.lxp-ep-dategrid-3{
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+/* input number ancho completo */
+.lxp-ep-inputnumber{
+  width: 100%;
+}
+
+/* readonly estilo similar a input */
+.lxp-ep-readonly{
+  width: 100%;
+  height: 32px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 4px 11px;
+  background: #f5f5f5;
+  color: rgba(0,0,0,0.65);
+}
+
+/* caja botón + estado */
+.lxp-ep-savebox{
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.lxp-ep-savestatus{
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-align: right;
+}
+
+.lxp-ep-savestatus.is-saved{
+  color: #16a34a;
+}
+
+.lxp-ep-savestatus.is-edit{
+  color: #2563eb;
+}
+
+/* responsive */
+@media (max-width: 900px){
+  .lxp-ep-dates-row{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lxp-ep-savebox{
+    align-items: flex-end;
+  }
+  .lxp-ep-dategrid-3{
+    grid-template-columns: 1fr;
+  }
+}.lxp-ep-dategrid-2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+@media (max-width: 900px){
+  .lxp-ep-dategrid-2{
+    grid-template-columns: 1fr;
+  }
+}.lxp-ep-step.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+
+}.lxp-ep-date-static {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+
+  background: #f9fafb;
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.lxp-ep-date-static .material-symbols-outlined {
+  font-size: 18px;
+  color: #6b7280;
+}.lxp-ep-etapa3-wrap {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.lxp-ep-etapa3-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+}
+
+.lxp-ep-etapa3-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lxp-ep-etapa3-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lxp-ep-etapa3-icon .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.lxp-ep-etapa3-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.lxp-ep-etapa3-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  padding-left: 42px;
+}

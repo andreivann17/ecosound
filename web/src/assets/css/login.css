@@ -1,0 +1,53 @@
+.link-pointer{
+  cursor: pointer;
+}
+.btn-facebook *{
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+
+
+.home-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 1rem;
+  background: #00723f;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+
+.login-container {
+  background-color: #fff;
+  max-width: 400px;
+  width: 100%;
+  padding: 2rem;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.logo {
+  width: 100px;
+}
+
+.login-form .btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.forgot-password-link {
+  margin-top: 1rem;
+  text-align: center;
+}
