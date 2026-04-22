@@ -485,3 +485,113 @@
     flex-wrap: wrap;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Crear / Editar Contrato — layout de dos columnas
+═══════════════════════════════════════════════════════════════ */
+
+.cc-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.cc-left-col,
+.cc-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cada sección/card del formulario */
+.cc-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 24px 8px;
+  box-shadow: 0 2px 8px rgba(15, 34, 58, 0.05);
+}
+
+/* Título de sección */
+.cc-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  color: #111827;
+  text-transform: uppercase;
+}
+
+/* Icono cuadrado de la sección */
+.cc-section-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Badge "Opcional" */
+.cc-optional-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #bbf7d0;
+  text-transform: uppercase;
+}
+
+/* Inputs dentro de cc-section-card */
+.cc-section-card .ant-input,
+.cc-section-card .ant-input-affix-wrapper,
+.cc-section-card .ant-select-selector,
+.cc-section-card .ant-picker,
+.cc-section-card .ant-input-textarea textarea {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+.cc-section-card .ant-input:focus,
+.cc-section-card .ant-input-affix-wrapper-focused,
+.cc-section-card .ant-select-focused .ant-select-selector,
+.cc-section-card .ant-picker-focused {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+
+/* Labels de campo dentro de cc cards */
+.cc-section-card .contratos-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .cc-body-grid {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .cc-body-grid {
+    grid-template-columns: 1fr;
+  }
+}

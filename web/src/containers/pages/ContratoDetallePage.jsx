@@ -663,6 +663,37 @@ export default function ContratoDetallePage() {
                   </p>
                 </div>
               </div>
+
+              {/* Información de Misa */}
+              <div className="cd-misa-block">
+                <div className="cd-misa-title">
+                  <EnvironmentOutlined style={{ fontSize: 13, color: "#6b7280" }} />
+                  Información de Misa
+                </div>
+                {contrato.direccion_misa || contrato.hora_misa ? (
+                  <div className="cd-misa-fields">
+                    {contrato.direccion_misa && (
+                      <div>
+                        <span className="cd-field-label">Dirección de la Misa</span>
+                        <span className="cd-field-value">{contrato.direccion_misa}</span>
+                      </div>
+                    )}
+                    {contrato.hora_misa && (
+                      <div>
+                        <span className="cd-field-label">Hora de la Misa</span>
+                        <div className="cd-field-icon-row">
+                          <ClockCircleOutlined className="cd-field-row-icon" />
+                          <span className="cd-field-value">{fmtHora(contrato.hora_misa)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="cd-misa-none">
+                    <span>No se registró misa para este evento</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="cd-card cd-card-financial">

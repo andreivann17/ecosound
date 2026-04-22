@@ -850,3 +850,41 @@
   .cd-pagos-summary { grid-template-columns: 1fr 1fr; }
   .cd-financial-value { font-size: 1.6rem; }
 }
+
+/* ── Bloque de Misa (en Datos del evento) ── */
+.cd-misa-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.cd-misa-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.cd-misa-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd-misa-none {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}

@@ -44,11 +44,13 @@ def create_contrato(
             fecha_anticipo,
             importe_anticipo,
             comentarios,
+            direccion_misa,
+            hora_misa,
             datetime,
             code,
             active
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, 1
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
         )
     """
     with conn.cursor() as cur:
@@ -67,6 +69,8 @@ def create_contrato(
             data.get("fecha_anticipo"),
             data.get("importe_anticipo", ""),
             data.get("comentarios") or None,
+            data.get("direccion_misa") or None,
+            data.get("hora_misa") or None,
             now,
             "",            # placeholder — se actualiza abajo con el id real
         ))
@@ -178,8 +182,10 @@ def update_contrato(
         "cliente_nombre", "domicilio", "celular", "fecha_evento", "lugar_evento",
         "hora_inicio", "hora_final", "importe", "fecha_anticipo",
         "importe_anticipo", "id_tipo_evento", "id_ciudad", "comentarios",
+        "direccion_misa", "hora_misa",
     }
-    updates = {k: v for k, v in data.items() if k in allowed and v is not None}
+    # Incluir campos aunque sean None explícito (para poder borrar valores)
+    updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
         return 0, None
 

@@ -75,6 +75,8 @@ class ContratoCreate(BaseModel):
     id_tipo_evento: Optional[int] = None
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
+    direccion_misa: Optional[str] = None
+    hora_misa: Any = None
 
     model_config = ConfigDict(extra="ignore")
 
@@ -82,6 +84,7 @@ class ContratoCreate(BaseModel):
 class ContratoUpdate(BaseModel):
     cliente_nombre: Optional[str] = None
     domicilio: Optional[str] = None
+    celular: Optional[str] = None
     fecha_evento: Optional[str] = None
     lugar_evento: Optional[str] = None
     hora_inicio: Optional[str] = None
@@ -89,7 +92,11 @@ class ContratoUpdate(BaseModel):
     importe: Optional[str] = None
     fecha_anticipo: Optional[str] = None
     importe_anticipo: Optional[str] = None
+    id_tipo_evento: Optional[int] = None
+    id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
+    direccion_misa: Optional[str] = None
+    hora_misa: Any = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -263,7 +270,7 @@ async def crear_contrato(
 
     payload_dict, _ = await _parse_payload_and_files(request)
 
-    # Combinar fecha_evento + hora_inicio/hora_final ANTES de validar y guardar
+    # Combinar fecha_evento + hora_inicio/hora_final/hora_misa ANTES de validar y guardar
     fecha_base = payload_dict.get("fecha_evento")
     start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
     if not start_dt:
@@ -279,6 +286,10 @@ async def crear_contrato(
     # reemplazar los strings por datetimes completos para que el modelo los guarde bien
     payload_dict["hora_inicio"] = start_dt
     payload_dict["hora_final"] = end_dt
+
+    # hora_misa: combinar con fecha_evento para obtener datetime completo
+    if payload_dict.get("hora_misa"):
+        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
 
     conn = get_connection()
 
@@ -629,6 +640,10 @@ async def actualizar_contrato(
                 elif end_dt <= start_dt:
                     end_dt += dt.timedelta(days=1)
                 payload_dict["hora_final"] = end_dt
+
+            # hora_misa: combinar con fecha_evento para obtener datetime completo
+            if payload_dict.get("hora_misa"):
+                payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
 
             affected, code = contrato_model.update_contrato(
                 id_contrato=id_contrato,
