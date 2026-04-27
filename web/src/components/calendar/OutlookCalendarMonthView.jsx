@@ -2,12 +2,10 @@
 import React, { useMemo, useRef, useState, useLayoutEffect } from "react";
 import dayjs from "dayjs";
 import { SyncOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Dropdown, Menu, Popover, Modal } from "antd";
-import EventPeek from "./EventPeek";
+import { Dropdown, Menu, Modal } from "antd";
 import {
   buildMonthMatrix,
   clamp,
-  clampPeekIntoViewport,
   eventKey,
   fmtTime,
   getEventColors,
@@ -82,7 +80,6 @@ export default function OutlookCalendarMonthView({
   closePeek,
   onEditEvent,
   onDeleteEvent,
-  getPopupContainer,
 }) {
   const month = useMemo(() => buildMonthMatrix(anchor), [anchor]);
   const monthKey = useMemo(() => anchor.format("YYYY-MM"), [anchor]);
@@ -98,13 +95,8 @@ export default function OutlookCalendarMonthView({
 
   const [monthMore, setMonthMore] = useState({ open: false, dayKey: null });
 
-  // Peek inside the "+N más" modal
-  const [modalPeekId, setModalPeekId] = useState(null);
-  const closeModalPeek = () => setModalPeekId(null);
-
   const closeMonthMore = () => {
     setMonthMore({ open: false, dayKey: null });
-    setModalPeekId(null);
   };
 
   const selectedDayEvents = useMemo(() => {
@@ -143,7 +135,6 @@ export default function OutlookCalendarMonthView({
                     {dayEvents.slice(0, visibleCount).map((ev) => {
                       const { bg, accent, hoverBg } = getEventColors(ev);
                       const evKey = eventKey(ev);
-                      const isOpen = peek.open && peek.id === evKey;
 
                       const menu = (
                         <Menu
@@ -166,57 +157,29 @@ export default function OutlookCalendarMonthView({
                       );
 
                       return (
-                        <Popover
-                          key={evKey}
-                          open={isOpen}
-                          placement={isOpen ? peek.placement : "rightTop"}
-                          overlayClassName="ol-peekPopover"
-                          overlayStyle={{ width: 420, maxWidth: "calc(100vw - 24px)" }}
-                          trigger="click"
-                          onOpenChange={(open) => {
-                            if (!open) {
-                              closePeek();
-                              return;
-                            }
-                            requestAnimationFrame(() => {
-                              requestAnimationFrame(() => clampPeekIntoViewport());
-                            });
-                          }}
-                          content={
-                            <div style={{ maxHeight: "calc(100vh - 120px)", overflow: "auto" }}>
-                              <EventPeek
-                                ev={ev}
-                                onEdit={(x) => onEditEvent?.(x)}
-                                onDelete={(x) => onDeleteEvent?.(x)}
-                              />
-                            </div>
-                          }
-                          getPopupContainer={getPopupContainer}
-                        >
-                          <Dropdown overlay={menu} trigger={["contextMenu"]}>
-                            <div
-                              className="ol-monthEv"
-                              style={{ background: bg, borderLeftColor: accent }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openPeek(ev, e.currentTarget);
-                              }}
-                              onDoubleClick={(e) => {
-                                e.stopPropagation();
-                                onEditEvent?.(ev);
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = hoverBg;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = bg;
-                              }}
-                            >
-                              {fmtTime(ev._start)} {ev.title}
-                            </div>
-                          </Dropdown>
-                        </Popover>
+                        <Dropdown key={evKey} overlay={menu} trigger={["contextMenu"]}>
+                          <div
+                            className="ol-monthEv"
+                            style={{ background: bg, borderLeftColor: accent }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openPeek(ev, e.currentTarget);
+                            }}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              onEditEvent?.(ev);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = hoverBg;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = bg;
+                            }}
+                          >
+                            {fmtTime(ev._start)} {ev.title}
+                          </div>
+                        </Dropdown>
                       );
                     })}
 
@@ -260,37 +223,28 @@ export default function OutlookCalendarMonthView({
             selectedDayEvents.map((ev) => {
               const { bg, accent } = getEventColors(ev);
               const evKey = eventKey(ev);
-              const isPeekOpen = modalPeekId === evKey;
 
               return (
-                <Popover
+                <Dropdown
                   key={evKey}
-                  open={isPeekOpen}
-                  placement="left"
-                  overlayClassName="ol-peekPopover"
-                  overlayStyle={{ width: 420, maxWidth: "calc(100vw - 24px)" }}
-                  trigger="click"
-                  getPopupContainer={() => document.body}
-                  onOpenChange={(open) => {
-                    if (!open) closeModalPeek();
+                  trigger={["contextMenu"]}
+                  menu={{
+                    items: [
+                      {
+                        key: "edit",
+                        icon: <SyncOutlined />,
+                        label: "Editar",
+                        onClick: () => { closeMonthMore(); onEditEvent?.(ev); },
+                      },
+                      {
+                        key: "del",
+                        icon: <DeleteOutlined />,
+                        danger: true,
+                        label: "Eliminar",
+                        onClick: () => { closeMonthMore(); onDeleteEvent?.(ev); },
+                      },
+                    ],
                   }}
-                  content={
-                    <div style={{ maxHeight: "calc(100vh - 120px)", overflow: "auto" }}>
-                      <EventPeek
-                        ev={ev}
-                        onEdit={(x) => {
-                          closeModalPeek();
-                          closeMonthMore();
-                          onEditEvent?.(x);
-                        }}
-                        onDelete={(x) => {
-                          closeModalPeek();
-                          closeMonthMore();
-                          onDeleteEvent?.(x);
-                        }}
-                      />
-                    </div>
-                  }
                 >
                   <div
                     style={{
@@ -303,56 +257,14 @@ export default function OutlookCalendarMonthView({
                       borderLeft: `4px solid ${accent}`,
                       cursor: "pointer",
                     }}
-                    onClick={() => setModalPeekId(isPeekOpen ? null : evKey)}
+                    onClick={(e) => openPeek(ev, e.currentTarget)}
                   >
                     <div style={{ minWidth: 54, fontWeight: 600 }}>
                       {fmtTime(ev.start)}
                     </div>
                     <div style={{ flex: 1 }}>{ev.title}</div>
-
-                    <Dropdown
-                      trigger={["click"]}
-                      menu={{
-                        items: [
-                          {
-                            key: "edit",
-                            icon: <SyncOutlined />,
-                            label: "Editar",
-                            onClick: () => {
-                              closeMonthMore();
-                              onEditEvent?.(ev);
-                            },
-                          },
-                          {
-                            key: "del",
-                            icon: <DeleteOutlined />,
-                            danger: true,
-                            label: "Eliminar",
-                            onClick: () => {
-                              closeMonthMore();
-                              onDeleteEvent?.(ev);
-                            },
-                          },
-                        ],
-                      }}
-                    >
-                      <div
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        style={{
-                          padding: "2px 8px",
-                          borderRadius: 8,
-                          border: "1px solid #cfd6e1",
-                          background: "#fff",
-                        }}
-                      >
-                        ⋯
-                      </div>
-                    </Dropdown>
                   </div>
-                </Popover>
+                </Dropdown>
               );
             })
           )}

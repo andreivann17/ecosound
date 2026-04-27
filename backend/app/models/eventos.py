@@ -17,16 +17,15 @@ def _get_unique_code() -> str:
 
 
 # ================== CRUD ==================
+# Nota: la tabla en BD sigue llamándose "contratos" / "contratos_abonos" /
+# "contratos_documentos" con PK "id_contrato". Se devuelve la clave como
+# "id_evento" mediante alias SQL para que el frontend no cambie.
 
-def create_contrato(
+def create_evento(
     data: Dict[str, Any],
     id_user_created: int,
     conn,
 ) -> Dict[str, Any]:
-    """
-    Inserta un contrato. Devuelve {id_contrato, code}.
-    Debe llamarse dentro de una transacción activa.
-    """
     now = dt.datetime.now()
     sql = """
         INSERT INTO contratos (
@@ -61,7 +60,7 @@ def create_contrato(
             data.get("domicilio") or None,
             data.get("celular", ""),
             data.get("fecha_evento"),
-            data.get("lugar_evento", ""), 
+            data.get("lugar_evento", ""),
             data.get("hora_inicio"),
             data.get("hora_final"),
             data.get("importe", ""),
@@ -72,11 +71,10 @@ def create_contrato(
             data.get("direccion_misa") or None,
             data.get("hora_misa") or None,
             now,
-            "",            # placeholder — se actualiza abajo con el id real
+            "",
         ))
         new_id = cur.lastrowid
 
-    # generar code único de 12 chars alfanuméricos
     code = _get_unique_code()
     with conn.cursor() as cur:
         cur.execute(
@@ -84,30 +82,32 @@ def create_contrato(
             (code, new_id),
         )
 
-    return {"id_contrato": new_id, "code": code}
+    return {"id_evento": new_id, "code": code}
 
 
-def get_contrato_by_id(id_contrato) -> Optional[Dict[str, Any]]:
+def get_evento_by_id(id_evento) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
                 """
-                SELECT c.*,
-                       u.name AS created_by_nombre
-                FROM contratos c
-                LEFT JOIN users u ON u.id_user = c.id_user
-                WHERE c.id_contrato = %s
+                SELECT e.*, e.id_contrato AS id_evento,
+                       u.name AS created_by_nombre,
+                       c.nombre AS nombre_ciudad
+                FROM contratos e
+                LEFT JOIN users u ON u.id_user = e.id_user
+                LEFT JOIN ciudades c ON c.id_ciudad = e.id_ciudad
+                WHERE e.id_contrato = %s
                 LIMIT 1
                 """,
-                (int(id_contrato),),
+                (int(id_evento),),
             )
             return cur.fetchone()
     finally:
         conn.close()
 
 
-def list_contratos(
+def list_eventos(
     cliente_nombre: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
@@ -120,40 +120,40 @@ def list_contratos(
     params: List[Any] = []
 
     if active is not None:
-        conditions.append("c.active = %s")
+        conditions.append("e.active = %s")
         params.append(active)
 
     if cliente_nombre:
-        conditions.append("c.cliente_nombre LIKE %s")
+        conditions.append("e.cliente_nombre LIKE %s")
         params.append(f"%{cliente_nombre}%")
 
     if search:
         conditions.append(
-            "(c.code LIKE %s OR c.cliente_nombre LIKE %s OR c.lugar_evento LIKE %s)"
+            "(e.code LIKE %s OR e.cliente_nombre LIKE %s OR e.lugar_evento LIKE %s)"
         )
         like = f"%{search}%"
         params.extend([like, like, like])
 
     if date_from:
-        conditions.append("c.fecha_evento >= %s")
+        conditions.append("e.fecha_evento >= %s")
         params.append(date_from)
 
     if date_to:
-        conditions.append("c.fecha_evento <= %s")
+        conditions.append("e.fecha_evento <= %s")
         params.append(date_to)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     sql = f"""
-        SELECT c.*,
+        SELECT e.*, e.id_contrato AS id_evento,
                COALESCE((
-                   SELECT SUM(CAST(ca.importe AS DECIMAL(12,2)))
-                   FROM contratos_abonos ca
-                   WHERE ca.id_contrato = c.id_contrato AND ca.active = 1
+                   SELECT SUM(CAST(ea.importe AS DECIMAL(12,2)))
+                   FROM contratos_abonos ea
+                   WHERE ea.id_contrato = e.id_contrato AND ea.active = 1
                ), 0) AS total_abonos
-        FROM contratos c
+        FROM contratos e
         {where}
-        ORDER BY c.fecha_evento DESC
+        ORDER BY e.fecha_evento DESC
     """
 
     if limit is not None:
@@ -170,27 +170,23 @@ def list_contratos(
         conn.close()
 
 
-def update_contrato(
-    id_contrato,
+def update_evento(
+    id_evento,
     data: Dict[str, Any],
     conn,
 ) -> Tuple[int, Optional[str]]:
-    """
-    Actualiza campos permitidos. Devuelve (rows_affected, code).
-    """
     allowed = {
         "cliente_nombre", "domicilio", "celular", "fecha_evento", "lugar_evento",
         "hora_inicio", "hora_final", "importe", "fecha_anticipo",
         "importe_anticipo", "id_tipo_evento", "id_ciudad", "comentarios",
         "direccion_misa", "hora_misa",
     }
-    # Incluir campos aunque sean None explícito (para poder borrar valores)
     updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
         return 0, None
 
     set_clause = ", ".join(f"{k} = %s" for k in updates)
-    vals = list(updates.values()) + [int(id_contrato)]
+    vals = list(updates.values()) + [int(id_evento)]
 
     with conn.cursor() as cur:
         cur.execute(
@@ -199,11 +195,10 @@ def update_contrato(
         )
         affected = cur.rowcount
 
-    # recuperar code actual
     with conn.cursor(dictionary=True) as cur:
         cur.execute(
             "SELECT code FROM contratos WHERE id_contrato = %s LIMIT 1",
-            (int(id_contrato),),
+            (int(id_evento),),
         )
         row = cur.fetchone()
 
@@ -211,7 +206,7 @@ def update_contrato(
     return affected, code
 
 
-def get_contratos_abonos(id_contrato: int) -> List[Dict[str, Any]]:
+def get_eventos_abonos(id_evento: int) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
@@ -222,15 +217,15 @@ def get_contratos_abonos(id_contrato: int) -> List[Dict[str, Any]]:
                 WHERE id_contrato = %s AND active = 1
                 ORDER BY fecha ASC
                 """,
-                (id_contrato,),
+                (id_evento,),
             )
             return cur.fetchall() or []
     finally:
         conn.close()
 
 
-def create_contrato_abono(
-    id_contrato: int,
+def create_evento_abono(
+    id_evento: int,
     id_user: int,
     importe: str,
     fecha: dt.datetime,
@@ -243,7 +238,7 @@ def create_contrato_abono(
                 INSERT INTO contratos_abonos (importe, fecha, active, id_user, id_contrato)
                 VALUES (%s, %s, 1, %s, %s)
                 """,
-                (importe, fecha, id_user, id_contrato),
+                (importe, fecha, id_user, id_evento),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -252,8 +247,7 @@ def create_contrato_abono(
         conn.close()
 
 
-def delete_contrato_abono(id_contrato: int, id_abono: int) -> Optional[Dict[str, Any]]:
-    """Marca un abono como inactivo. Devuelve el row antes de eliminarlo o None si no existe."""
+def delete_evento_abono(id_evento: int, id_abono: int) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
@@ -264,7 +258,7 @@ def delete_contrato_abono(id_contrato: int, id_abono: int) -> Optional[Dict[str,
                 WHERE id_contrato_abono = %s AND id_contrato = %s AND active = 1
                 LIMIT 1
                 """,
-                (id_abono, id_contrato),
+                (id_abono, id_evento),
             )
             row = cur.fetchone()
         if not row:
@@ -272,7 +266,7 @@ def delete_contrato_abono(id_contrato: int, id_abono: int) -> Optional[Dict[str,
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE contratos_abonos SET active = 0 WHERE id_contrato_abono = %s AND id_contrato = %s",
-                (id_abono, id_contrato),
+                (id_abono, id_evento),
             )
         conn.commit()
         return row
@@ -280,14 +274,14 @@ def delete_contrato_abono(id_contrato: int, id_abono: int) -> Optional[Dict[str,
         conn.close()
 
 
-def cards_contrato(
+def cards_evento(
     cliente_nombre: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     active: Optional[int] = 1,
     search: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    return list_contratos(
+    return list_eventos(
         cliente_nombre=cliente_nombre,
         date_from=date_from,
         date_to=date_to,

@@ -394,6 +394,58 @@
   margin-top: 8px;
 }
 
+/* ── Fila de totales — tabla contratos del período ── */
+.est-contratos-total-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 1fr;
+  padding: 10px 10px;
+  margin-top: 4px;
+  border-top: 2px solid #e2e8f0;
+  border-radius: 0 0 8px 8px;
+  background: #f0fdf4;
+  font-size: 12px;
+  font-weight: 700;
+  align-items: center;
+  gap: 4px;
+}
+
+.est-total-label {
+  color: #15803d;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.est-total-importe {
+  text-align: right;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.est-total-saldo {
+  text-align: right;
+  color: #b31b25;
+  font-size: 13px;
+}
+
+/* ── Fila de totales — lista cobranza ── */
+.est-cobranza-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-top: 2px solid #e2e8f0;
+  background: #fff7ed;
+  border-radius: 0 0 8px 8px;
+}
+
+.est-cobranza-total-monto {
+  font-size: 15px;
+  font-weight: 700;
+  color: #b31b25;
+}
+
 /* ── Loading ── */
 .est-loading-wrap {
   display: flex;

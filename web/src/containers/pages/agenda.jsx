@@ -100,6 +100,8 @@ const TIPO_CONTRATO_COLORS = {
   6: "#6b7280",  // Otro
 };
 
+const SESION_COLOR = "#e91e8c";
+
 // backend -> UI event
 const mapAgendaItemToUiEvent = (it) => {
   const canceled =
@@ -157,8 +159,12 @@ const mapAgendaItemToUiEvent = (it) => {
     documento_url,
     documento_filename,
 
-    color_hex: TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null,
-    color: TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null,
+    color_hex: it?.source_table === "sesiones_fotos"
+      ? SESION_COLOR
+      : (TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null),
+    color: it?.source_table === "sesiones_fotos"
+      ? SESION_COLOR
+      : (TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null),
     id_agenda_evento: it?.id_agenda_evento ?? it?.id_evento ?? null,
 
     is_recurring: it?.is_recurring ?? null,
@@ -209,6 +215,7 @@ export default function OutlookCalendarPage() {
   const [filters, setFilters] = useState({
     tipoContratoIds: null,
     cityIds: null,
+    showSesiones: true,
   });
 
   const rangeParams = useMemo(() => getRangeParams(view, cursorDate), [view, cursorDate]);
@@ -364,10 +371,12 @@ const estadosSlice = useSelector((state) => state.estados || {});
       (k) => selectedCalendars[k]
     );
 
-    return eventsUiInRange.filter((e) =>
-      enabledIds.includes(e.calendarId)
-    );
-  }, [eventsUiInRange, selectedCalendars]);
+    return eventsUiInRange.filter((e) => {
+      if (!enabledIds.includes(e.calendarId)) return false;
+      if (e.color_hex === SESION_COLOR && !filters.showSesiones) return false;
+      return true;
+    });
+  }, [eventsUiInRange, selectedCalendars, filters.showSesiones]);
 
   const rangeLabel = useMemo(() => {
     if (view === "month") return cursorDate.format("MMMM YYYY");

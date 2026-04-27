@@ -1,19 +1,16 @@
-/* ContratosPage.css — espejado de LaboralProcedimientoPage.css + expediente.css */
+/* EventosPage.css */
 
-/* ── Layout principal ── */
-.contratos-main {
+.eventos-main {
   background-color: #eef1f5;
   min-height: calc(100vh - 56px);
   padding: 24px;
 }
 
-.contratos-content {
-  
+.eventos-content {
   margin: 0 auto;
 }
 
-/* ── Header ── */
-.contratos-header-section {
+.eventos-header-section {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -21,23 +18,22 @@
   margin-bottom: 20px;
 }
 
-.contratos-title {
+.eventos-title {
   margin-bottom: 2px !important;
   font-weight: 650;
 }
 
-.contratos-subtitle {
+.eventos-subtitle {
   color: #7a7f87;
   font-size: 13px;
 }
 
-.contratos-section {
+.eventos-section {
   margin-top: 8px;
   margin-bottom: 20px;
 }
 
-/* ── Panel de filtros ── */
-.contratos-filters-panel {
+.eventos-filters-panel {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
@@ -47,7 +43,7 @@
   margin-bottom: 18px;
 }
 
-.contratos-field-label {
+.eventos-field-label {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -56,54 +52,54 @@
   text-transform: uppercase;
 }
 
-.contratos-control {
+.eventos-control {
   width: 100%;
 }
 
-.contratos-filters-panel .ant-input,
-.contratos-filters-panel .ant-input-affix-wrapper,
-.contratos-filters-panel .ant-select-selector,
-.contratos-filters-panel .ant-picker {
+.eventos-filters-panel .ant-input,
+.eventos-filters-panel .ant-input-affix-wrapper,
+.eventos-filters-panel .ant-select-selector,
+.eventos-filters-panel .ant-picker {
   width: 100%;
   background: #f8fafc !important;
   box-shadow: none !important;
 }
 
-.contratos-filters-panel .ant-input-affix-wrapper,
-.contratos-filters-panel .ant-select-single .ant-select-selector,
-.contratos-filters-panel .ant-picker {
+.eventos-filters-panel .ant-input-affix-wrapper,
+.eventos-filters-panel .ant-select-single .ant-select-selector,
+.eventos-filters-panel .ant-picker {
   min-height: 38px;
   align-items: center;
 }
 
-.contratos-filters-panel .ant-input-affix-wrapper:hover,
-.contratos-filters-panel .ant-select-selector:hover,
-.contratos-filters-panel .ant-picker:hover {
+.eventos-filters-panel .ant-input-affix-wrapper:hover,
+.eventos-filters-panel .ant-select-selector:hover,
+.eventos-filters-panel .ant-picker:hover {
   border-color: #cbd5e1 !important;
 }
 
-.contratos-filters-panel .ant-input-affix-wrapper-focused,
-.contratos-filters-panel .ant-select-focused .ant-select-selector,
-.contratos-filters-panel .ant-picker-focused {
+.eventos-filters-panel .ant-input-affix-wrapper-focused,
+.eventos-filters-panel .ant-select-focused .ant-select-selector,
+.eventos-filters-panel .ant-picker-focused {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
 
-.contratos-filters-panel .ant-input::placeholder {
+.eventos-filters-panel .ant-input::placeholder {
   color: #94a3b8;
 }
 
-.contratos-input-suffix {
+.eventos-input-suffix {
   color: #94a3b8;
 }
 
-.contratos-actions {
+.eventos-actions {
   display: flex;
   gap: 10px;
   width: 100%;
 }
 
-.contratos-btn-clean {
+.eventos-btn-clean {
   flex: 1;
   height: 38px;
   border-radius: 12px;
@@ -113,33 +109,32 @@
   font-weight: 700;
 }
 
-.contratos-btn-clean:hover {
+.eventos-btn-clean:hover {
   background: #e2e8f0 !important;
   border-color: #cbd5e1 !important;
   color: #334155 !important;
 }
 
-.contratos-btn-create {
+.eventos-btn-create {
   height: 38px;
   border-radius: 12px;
   font-weight: 800;
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
 }
 
-/* ── Stats cards ── */
-.contratos-stats-row {
+/* Stats cards */
+.eventos-stats-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.contratos-stats-row-3 {
+.eventos-stats-row-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* ── Sub-filtros de Activos ── */
-.contratos-substat-row {
+.eventos-substat-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -150,7 +145,7 @@
   border: 1px solid #c7d7f9;
 }
 
-.contratos-substat-card {
+.eventos-substat-card {
   border-radius: 10px !important;
   border: 1px solid #dde6f9 !important;
   background: #fff !important;
@@ -160,21 +155,21 @@
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.contratos-substat-card .ant-card-body {
+.eventos-substat-card .ant-card-body {
   padding: 10px 14px !important;
 }
 
-.contratos-substat-card:hover {
+.eventos-substat-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(15, 34, 58, 0.12);
 }
 
-.contratos-substat-active {
+.eventos-substat-active {
   box-shadow: 0 0 0 2px #2563eb inset !important;
   background: #eff6ff !important;
 }
 
-.contratos-substat-icon {
+.eventos-substat-icon {
   width: 26px;
   height: 26px;
   border-radius: 999px;
@@ -184,29 +179,29 @@
   font-size: 14px;
 }
 
-.contratos-substat-pendiente .contratos-substat-icon {
+.eventos-substat-pendiente .eventos-substat-icon {
   background: #fef9c3;
   color: #a16207;
 }
 
-.contratos-substat-completado .contratos-substat-icon {
+.eventos-substat-completado .eventos-substat-icon {
   background: #dcfce7;
   color: #15803d;
 }
 
-.contratos-substat-todo .contratos-substat-icon {
+.eventos-substat-todo .eventos-substat-icon {
   background: #e0f2fe;
   color: #0369a1;
 }
 
-.contratos-substat-value {
+.eventos-substat-value {
   font-size: 17px;
   font-weight: 700;
   color: #0f172a;
   line-height: 1;
 }
 
-.contratos-substat-label {
+.eventos-substat-label {
   font-size: 10px;
   color: #64748b;
   text-transform: uppercase;
@@ -215,7 +210,7 @@
   margin-top: 2px;
 }
 
-.contratos-stat-card {
+.eventos-stat-card {
   border-radius: 10px !important;
   border: none !important;
   box-shadow: 0 3px 10px rgba(15, 34, 58, 0.08);
@@ -224,16 +219,16 @@
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.contratos-stat-card:hover {
+.eventos-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(15, 34, 58, 0.15);
 }
 
-.contratos-stat-active {
+.eventos-stat-active {
   box-shadow: 0 0 0 2px #2563eb inset !important;
 }
 
-.contratos-stat-icon {
+.eventos-stat-icon {
   width: 30px;
   height: 30px;
   border-radius: 999px;
@@ -243,50 +238,45 @@
   font-size: 16px;
 }
 
-.contratos-stat-activos .contratos-stat-icon {
+.eventos-stat-activos .eventos-stat-icon {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #178BCA;
 }
 
-.contratos-stat-anticipo .contratos-stat-icon {
+.eventos-stat-anticipo .eventos-stat-icon {
   background: #dcfce7;
   color: #15803d;
 }
 
-.contratos-stat-pendiente .contratos-stat-icon {
+.eventos-stat-pendiente .eventos-stat-icon {
   background: #fef9c3;
   color: #a16207;
 }
 
-.contratos-stat-inactivos .contratos-stat-icon {
+.eventos-stat-inactivos .eventos-stat-icon {
   background: #f3f4f6;
-  color: #4b5563;
+  color: #52A855 ;
 }
 
-.contratos-stat-cancelados .contratos-stat-icon {
+.eventos-stat-cancelados .eventos-stat-icon {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.contratos-stat-pendiente-pago .contratos-stat-icon {
-  background: #fef9c3;
-  color: #a16207;
-}
-
-.contratos-stat-value {
+.eventos-stat-value {
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
   line-height: 1;
 }
 
-.contratos-stat-label {
+.eventos-stat-label {
   font-size: 11px;
   color: #64748b;
 }
 
-/* ── Toolbar sobre las tarjetas ── */
-.contratos-toolbar {
+/* Toolbar */
+.eventos-toolbar {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -295,18 +285,17 @@
   margin-top: 18px;
 }
 
-.contratos-toolbar-left {
+.eventos-toolbar-left {
   font-size: 12px;
 }
 
-.contratos-toolbar-right {
+.eventos-toolbar-right {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-/* ── Contenedor cards + tabla ── */
-.contratos-expedientes-card {
+.eventos-expedientes-card {
   border-radius: 14px !important;
   box-shadow: 0 4px 14px rgba(15, 34, 58, 0.08);
   border: none !important;
@@ -314,24 +303,7 @@
   padding: 18px;
 }
 
-/* toggle de vista */
-.contratos-list-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
-.contratos-list-toolbar-right {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #f1f5f9;
-  border-radius: 12px;
-  padding: 6px;
-}
-
-/* ── Grid de cards ── */
-.contratos-grid {
+.eventos-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -340,28 +312,28 @@
 }
 
 @media (max-width: 1280px) {
-  .contratos-grid {
+  .eventos-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 992px) {
-  .contratos-stats-row {
+  .eventos-stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .contratos-grid {
+  .eventos-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .contratos-grid {
+  .eventos-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* ── Card individual de contrato ── */
-.contrato-card {
+/* Card individual de evento */
+.evento-card {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e0e0e7;
@@ -373,18 +345,17 @@
   height: 100%;
 }
 
-.contrato-card:hover {
+.evento-card:hover {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
 }
 
-/* Cabecera */
-.contrato-card-header {
+.evento-card-header {
   padding: 14px 16px 12px;
   border-bottom: 1px solid #f0edf2;
 }
 
-.contrato-card-head {
+.evento-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -392,7 +363,7 @@
   margin-bottom: 8px;
 }
 
-.contrato-card-name {
+.evento-card-name {
   margin: 0 !important;
   font-weight: 600 !important;
   font-size: 15px !important;
@@ -400,7 +371,7 @@
   color: #0f172a !important;
 }
 
-.contrato-status-badge {
+.evento-status-badge {
   flex-shrink: 0;
   padding: 3px 10px;
   border-radius: 999px;
@@ -411,22 +382,27 @@
   white-space: nowrap;
 }
 
-.contrato-status-activo {
+.evento-status-activo {
   background: #d8e2ff;
   color: #0058be;
 }
 
-.contrato-status-concluido {
-  background: #e4e2e4;
-  color: #45464d;
+.evento-status-concluido {
+  background: #d0fff2;
+  color: #065f46;
 }
 
-.contrato-status-cancelado {
+.evento-status-cancelado {
   background: #ffdad6;
   color: #ba1a1a;
 }
 
-.contrato-tipo-chip {
+.evento-status-realizada {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.evento-tipo-chip {
   display: inline-block;
   background: rgba(216, 226, 255, 0.35);
   color: #004395;
@@ -436,8 +412,7 @@
   border-radius: 4px;
 }
 
-/* Cuerpo */
-.contrato-card-body {
+.evento-card-body {
   padding: 12px 16px 14px;
   flex: 1;
   display: flex;
@@ -445,25 +420,25 @@
   gap: 9px;
 }
 
-.contrato-info-row {
+.evento-info-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
 
-.contrato-info-icon {
+.evento-info-icon {
   color: #76777d;
   font-size: 15px;
   margin-top: 3px;
   flex-shrink: 0;
 }
 
-.contrato-info-text {
+.evento-info-text {
   display: flex;
   flex-direction: column;
 }
 
-.contrato-info-label {
+.evento-info-label {
   font-size: 11px;
   font-weight: 500;
   color: #76777d;
@@ -471,14 +446,13 @@
   margin-bottom: 2px;
 }
 
-.contrato-info-value {
+.evento-info-value {
   font-size: 13px;
   color: #1b1b1d;
   line-height: 1.3;
 }
 
-/* Grid importe / anticipo */
-.contrato-money-grid {
+.evento-money-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -487,36 +461,35 @@
   border-top: 1px solid #f0edf2;
 }
 
-.contrato-money-item {
+.evento-money-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.contrato-money-value {
+.evento-money-value {
   font-size: 17px;
   font-weight: 700;
   color: #0f172a;
   line-height: 1.2;
 }
 
-.contrato-money-anticipo {
+.evento-money-anticipo {
   color: #0058be;
 }
 
-.contrato-sin-anticipo {
+.evento-sin-anticipo {
   font-size: 11px;
   color: #92400e;
   font-weight: 700;
 }
 
-/* Footer */
-.contrato-card-footer {
+.evento-card-footer {
   margin-top: auto;
   width: 100%;
 }
 
-.contrato-bottom-strip {
+.evento-bottom-strip {
   width: 100%;
   display: flex;
   align-items: center;
@@ -525,38 +498,37 @@
   border-top: 1px solid transparent;
 }
 
-.contrato-strip-label {
+.evento-strip-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.contrato-strip-amount {
+.evento-strip-amount {
   font-size: 15px;
   font-weight: 800;
 }
 
-.contrato-bottom-strip.is-green {
+.evento-bottom-strip.is-green {
   background: #15803d;
   color: #ffffff;
   border-top: none;
 }
 
-.contrato-bottom-strip.is-red {
+.evento-bottom-strip.is-red {
   background: #b91c1c;
   color: #ffffff;
   border-top: none;
 }
 
-.contrato-bottom-strip.is-yellow {
-  background: #b45309;
+.evento-bottom-strip.is-yellow {
+  background: #f59e0b ;
   color: #ffffff;
   border-top: none;
 }
 
-/* Botón Ver Detalles */
-.contrato-btn-details {
+.evento-btn-details {
   width: 100%;
   padding: 14px 16px;
   background: #05060a;
@@ -575,41 +547,37 @@
   border-radius: 0 0 12px 12px;
 }
 
-.contrato-btn-details:hover {
+.evento-btn-details:hover {
   background: #1e293b;
 }
 
-/* ── Responsivo general ── */
 @media (max-width: 768px) {
-  .contratos-main {
+  .eventos-main {
     padding: 20px 12px 16px;
   }
 
-  .contratos-header-section {
+  .eventos-header-section {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .contratos-filters-panel {
+  .eventos-filters-panel {
     padding: 14px;
     border-radius: 14px;
   }
 
-  .contratos-toolbar {
+  .eventos-toolbar {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .contratos-toolbar-right {
+  .eventos-toolbar-right {
     width: 100%;
     flex-wrap: wrap;
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   Crear / Editar Contrato — layout de dos columnas
-═══════════════════════════════════════════════════════════════ */
-
+/* Crear / Editar Evento — layout de dos columnas */
 .cc-body-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -624,7 +592,6 @@
   gap: 16px;
 }
 
-/* Cada sección/card del formulario */
 .cc-section-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -633,7 +600,6 @@
   box-shadow: 0 2px 8px rgba(15, 34, 58, 0.05);
 }
 
-/* Título de sección */
 .cc-section-header {
   display: flex;
   align-items: center;
@@ -646,7 +612,6 @@
   text-transform: uppercase;
 }
 
-/* Icono cuadrado de la sección */
 .cc-section-icon {
   width: 28px;
   height: 28px;
@@ -660,7 +625,6 @@
   color: #475569;
 }
 
-/* Badge "Opcional" */
 .cc-optional-badge {
   margin-left: auto;
   display: inline-flex;
@@ -676,7 +640,6 @@
   text-transform: uppercase;
 }
 
-/* Inputs dentro de cc-section-card */
 .cc-section-card .ant-input,
 .cc-section-card .ant-input-affix-wrapper,
 .cc-section-card .ant-select-selector,
@@ -695,8 +658,7 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
 }
 
-/* Labels de campo dentro de cc cards */
-.cc-section-card .contratos-field-label {
+.cc-section-card .eventos-field-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;

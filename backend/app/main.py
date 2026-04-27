@@ -22,7 +22,8 @@ from .routers.audit import router as audit_log_router
 from .routers.agenda import router as agenda_router
 from .routers.notificaciones import router as notificaciones_router
 from .routers.ws import router as ws_router
-from .routers.contratos import router as contratos_router
+from .routers.eventos import router as eventos_router
+from .routers.sesiones_fotos import router as sesiones_fotos_router
 from .routers.estadisticas import router as estadisticas_router
 # Routers (solo los tuyos)
 from .routers import (
@@ -95,5 +96,6 @@ app.include_router(audit_log_router)
 app.include_router(agenda_router)
 app.include_router(ws_router)
 app.include_router(notificaciones_router)
-app.include_router(contratos_router)
+app.include_router(eventos_router)
+app.include_router(sesiones_fotos_router)
 app.include_router(estadisticas_router)

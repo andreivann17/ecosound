@@ -82,6 +82,8 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
   const isTribunalActive = pathname.startsWith("/materias/laboral/tribunal");
   const isDesvinculacionesActive = pathname.startsWith("/materias/laboral/desvinculaciones");
   const isHomeActive = pathname.startsWith("/home");
+  const isEventosActive = pathname.startsWith("/eventos");
+  const isSesionesFotosActive = pathname.startsWith("/sesiones-fotos");
   const isEstadisticasActive = pathname.startsWith("/estadisticas");
 
   // ---------- DROPDOWN MATERIA ----------
@@ -185,6 +187,24 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               onClick={() => navigate("/agenda")}
             >
               Agenda
+            </a>
+            <a
+              style={{ cursor: "pointer",marginRight:10}}
+              className={`styled-link nav-link text-light ${
+                isEventosActive ? "nav-link--active" : ""
+              }`}
+              onClick={() => navigate("/eventos")}
+            >
+              Eventos
+            </a>
+            <a
+              style={{ cursor: "pointer",marginRight:10}}
+              className={`styled-link nav-link text-light ${
+                isSesionesFotosActive ? "nav-link--active" : ""
+              }`}
+              onClick={() => navigate("/sesiones-fotos")}
+            >
+              Sesiones de Fotos
             </a>
             <a
               style={{ cursor: "pointer",marginRight:10}}

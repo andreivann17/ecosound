@@ -68,12 +68,14 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
 
       <div className="ol-peekMeta">{fmtRange(ev)}</div>
 
-      {ev.location ? (
+      {(ev.location || ev.nombre_ciudad) ? (
         <>
           <Divider style={{ margin: "10px 0" }} />
           <div className="ol-peekRow">
             <div className="ol-peekLabel">Ubicación</div>
-            <div className="ol-peekValue">{ev.location}</div>
+            <div className="ol-peekValue">
+              {[ev.nombre_ciudad, ev.location].filter(Boolean).join(" - ")}
+            </div>
           </div>
         </>
       ) : null}

@@ -897,3 +897,24 @@ def _agenda_changed_db(old_row: Dict[str, Any], new_payload: Dict[str, Any]) -> 
         return True
 
     return False
+
+
+def get_agenda_by_source(id_user: int, source_table: str, source_id: int) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT id_agenda, source_table, source_id, start_at, end_at, title,
+                       all_day, status, location, description, id_ciudad, reminder,
+                       in_person, is_recurring, url
+                FROM agenda
+                WHERE id_user = %s AND source_table = %s AND source_id = %s AND active = 1
+                ORDER BY id_agenda DESC
+                LIMIT 1
+                """,
+                (id_user, source_table, source_id),
+            )
+            return cur.fetchone()
+    finally:
+        conn.close()

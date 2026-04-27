@@ -2,8 +2,7 @@
 import React, { useMemo, useRef, useLayoutEffect } from "react";
 import dayjs from "dayjs";
 import { SyncOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Dropdown, Menu, Popover } from "antd";
-import EventPeek from "./EventPeek";
+import { Dropdown, Menu } from "antd";
 import {
   pxPerHour,
   buildDaysForView,
@@ -34,7 +33,6 @@ export default function OutlookCalendarWeekDayView({
   onSelectSlot,
   onEditEvent,
   onDeleteEvent,
-  getPopupContainer,
 }) {
   const daysForView = useMemo(() => buildDaysForView(anchor, view), [anchor, view]);
 
@@ -221,7 +219,6 @@ const GRID_TOP_SHIFT_PX = pxPerHour; // ✅ 1 hora exacta (36px)
     Boolean(ev?.canceled) || String(ev?.status).toLowerCase() === "canceled";
 
   const evKey = eventKey(ev);
-  const isOpen = peek.open && peek.id === evKey;
 
   const menu = (
     <Menu
@@ -244,61 +241,41 @@ const GRID_TOP_SHIFT_PX = pxPerHour; // ✅ 1 hora exacta (36px)
   );
 
   return (
-    <Popover
-      key={evKey}
-      open={isOpen}
-      placement={isOpen ? peek.placement : "rightTop"}
-      overlayClassName="ol-peekPopover"
-      trigger="click"
-      onOpenChange={(open) => {
-        if (!open) closePeek();
-      }}
-      content={
-        <EventPeek
-          ev={ev}
-          onEdit={(x) => onEditEvent?.(x)}
-          onDelete={(x) => onDeleteEvent?.(x)}
-        />
-      }
-      getPopupContainer={getPopupContainer}
-    >
-      <Dropdown overlay={menu} trigger={["contextMenu"]}>
-        <div
-          className={`ol-ev ${isCanceled ? "cancel" : ""}`}
-          style={{
-  top: topPx + DAY_TOP_OFFSET - GRID_TOP_SHIFT_PX, // ✅ corrige +1 hora visual
-  height: heightPx,
-  left,
-  right,
-  background: bg,
-  borderLeftColor: accent,
-}}
-
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openPeek(ev, e.currentTarget);
-          }}
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            onEditEvent?.(ev);
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = hoverBg;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = bg;
-          }}
-        >
-          <div className="ol-evTitle">
-            {fmtTime(ev.start)} {ev.title}
-          </div>
-          <div className="ol-evMeta">
-            <SyncOutlined className="ol-evIcon" />
-          </div>
+    <Dropdown key={evKey} overlay={menu} trigger={["contextMenu"]}>
+      <div
+        className={`ol-ev ${isCanceled ? "cancel" : ""}`}
+        style={{
+          top: topPx + DAY_TOP_OFFSET - GRID_TOP_SHIFT_PX,
+          height: heightPx,
+          left,
+          right,
+          background: bg,
+          borderLeftColor: accent,
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openPeek(ev, e.currentTarget);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onEditEvent?.(ev);
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = hoverBg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = bg;
+        }}
+      >
+        <div className="ol-evTitle">
+          {fmtTime(ev.start)} {ev.title}
         </div>
-      </Dropdown>
-    </Popover>
+        <div className="ol-evMeta">
+          <SyncOutlined className="ol-evIcon" />
+        </div>
+      </div>
+    </Dropdown>
   );
 })}
 

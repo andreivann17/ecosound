@@ -12,9 +12,12 @@ import {
 
 import { CSSTransition, SwitchTransition } from "react-transition-group";
 import { actionScroll } from "./redux/actions/utils/utils";
-import Contratos from "./containers/pages/ContratosPage.jsx"
-import CrearContratoPage from "./containers/pages/crearContratoPage.jsx"
-import ContratoDetallePage from "./containers/pages/ContratoDetallePage.jsx"
+import Eventos from "./containers/pages/EventosPage.jsx"
+import CrearEventoPage from "./containers/pages/crearEventoPage.jsx"
+import EventoDetallePage from "./containers/pages/EventoDetallePage.jsx"
+import SesionesPage from "./containers/pages/SesionesPage.jsx"
+import CrearSesionPage from "./containers/pages/CrearSesionPage.jsx"
+import SesionDetallePage from "./containers/pages/SesionDetallePage.jsx"
 import UsuariosPage from "./containers/pages/UsuariosPage.jsx"
 import CrearUsuarioPage from "./containers/pages/crearUsuarioPage.jsx"
 import UsuarioDetallePage from "./containers/pages/UsuarioDetallePage.jsx"
@@ -72,20 +75,20 @@ const routes = [
     className: "Agenda",
   },
   {
-    path: "/contratos",
-    value: "contratos",
-    name: "Contratos",
-    element: <Contratos />,
+    path: "/eventos",
+    value: "eventos",
+    name: "Eventos",
+    element: <Eventos />,
     nodeRef: createRef(),
-    className: "Contratos",
+    className: "Eventos",
   },
   {
-    path: "/contratos/:idContrato",
-    value: "contratos-detalle",
-    name: "Contratos-Detalle",
-    element: <ContratoDetallePage />,
+    path: "/eventos/:idEvento",
+    value: "eventos-detalle",
+    name: "Eventos-Detalle",
+    element: <EventoDetallePage />,
     nodeRef: createRef(),
-    className: "ContratosDetalle",
+    className: "EventosDetalle",
   },
   {
     path: "/estadisticas",
@@ -96,20 +99,52 @@ const routes = [
     className: "Estadisticas",
   },
   {
-    path: "/contratos/crear",
-    value: "contratos-crear",
-    name: "Contratos-Crear",
-    element: <CrearContratoPage />,
+    path: "/eventos/crear",
+    value: "eventos-crear",
+    name: "Eventos-Crear",
+    element: <CrearEventoPage />,
     nodeRef: createRef(),
-    className: "ContratosCrear",
+    className: "EventosCrear",
   },
   {
-    path: "/contratos/:idContrato/editar",
-    value: "contratos-editar",
-    name: "Contratos-Editar",
-    element: <CrearContratoPage />,
+    path: "/eventos/:idEvento/editar",
+    value: "eventos-editar",
+    name: "Eventos-Editar",
+    element: <CrearEventoPage />,
     nodeRef: createRef(),
-    className: "ContratosEditar",
+    className: "EventosEditar",
+  },
+  {
+    path: "/sesiones",
+    value: "sesiones",
+    name: "Sesiones",
+    element: <SesionesPage />,
+    nodeRef: createRef(),
+    className: "Sesiones",
+  },
+  {
+    path: "/sesiones/crear",
+    value: "sesiones-crear",
+    name: "Sesiones-Crear",
+    element: <CrearSesionPage />,
+    nodeRef: createRef(),
+    className: "SesionesCrear",
+  },
+  {
+    path: "/sesiones/:idSesion",
+    value: "sesiones-detalle",
+    name: "Sesiones-Detalle",
+    element: <SesionDetallePage />,
+    nodeRef: createRef(),
+    className: "SesionesDetalle",
+  },
+  {
+    path: "/sesiones/:idSesion/editar",
+    value: "sesiones-editar",
+    name: "Sesiones-Editar",
+    element: <CrearSesionPage />,
+    nodeRef: createRef(),
+    className: "SesionesEditar",
   },
    {
     path: "/notificaciones",

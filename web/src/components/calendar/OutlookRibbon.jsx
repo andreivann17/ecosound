@@ -10,6 +10,8 @@ export default function OutlookRibbon({ view, setView, filters, setFilters, onCr
       { id: 1, label: "San Luis Río Colorado" },
       { id: 2, label: "Mexicali" },
       { id: 3, label: "Puerto Peñasco" },
+       { id: 4, label: "Valle de San Luis" },
+        { id: 5, label: "Valle de Mexicali" },
     ],
     []
   );

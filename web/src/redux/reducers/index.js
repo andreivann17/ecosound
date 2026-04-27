@@ -16,7 +16,8 @@ import tribunal from "./tribunal"
 import conciliacion_status from "./conciliacion_status"
 import login from "./login"
 import agenda from "./agenda"
-import contratos from "./contratos"
+import eventos from "./eventos"
+import sesiones_fotos from "./sesiones_fotos"
 import usuarios from "./usuarios"
 export default combineReducers({
     materias,
@@ -35,7 +36,8 @@ export default combineReducers({
     tribunal,
     conciliacion,
     agenda,
-    contratos,
+    eventos,
+    sesiones_fotos,
     usuarios,
     login
 })

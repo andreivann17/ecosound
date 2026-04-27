@@ -1,12 +1,9 @@
-// src/containers/pages/ContratosPage.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import {
-  actionContratosGet,
-} from "../../redux/actions/contratos/contratos";
+import { actionEventosGet } from "../../redux/actions/eventos/eventos";
 
 import {
   Card,
@@ -36,16 +33,13 @@ import {
 } from "@ant-design/icons";
 
 import ImportarExcelModal from "./utils/ImportarExcelModal.jsx";
-import "./ContratosPage.css";
+import "./EventosPage.css";
 
 dayjs.locale("es");
 
 const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
 
-// ──────────────────────────────────────────────────────────────
-// Config
-// ──────────────────────────────────────────────────────────────
 const PAGE_SIZE = 20;
 
 const TIPO_EVENTO_MAP = {
@@ -57,9 +51,6 @@ const TIPO_EVENTO_MAP = {
   6: "Otro",
 };
 
-// ──────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────
 const fmtMoney = (val) => {
   if (val === null || val === undefined || val === "") return "—";
   const n = parseFloat(String(val).replace(/,/g, ""));
@@ -104,33 +95,25 @@ const toTitleCase = (str) => {
     .join(" ");
 };
 
-// ──────────────────────────────────────────────────────────────
-// Componente principal
-// ──────────────────────────────────────────────────────────────
-export default function ContratosPage() {
+export default function EventosPage() {
   const dispatch = useDispatch();
-  const { items = [] } = useSelector((state) => state.contratos);
+  const { items = [] } = useSelector((state) => state.eventos);
 
-  // ── filtros de búsqueda ───────────────────────────────────
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [dateRange, setDateRange] = useState(null);
   const [tipoFilter, setTipoFilter] = useState("todos");
 
-  // ── filtro de stat card ───────────────────────────────────
   const [statFilter, setStatFilter] = useState("todos");
   const [activoSubFilter, setActivoSubFilter] = useState("todo");
   const [concluidoSubFilter, setConcluidoSubFilter] = useState("todo");
 
-  // ── modal importar ────────────────────────────────────────
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  // ── paginación ────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
 
   const navigate = useNavigate();
 
-  // ── debounce búsqueda ─────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => {
       setSearchDebounced(search);
@@ -139,7 +122,6 @@ export default function ContratosPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // ── fetch ─────────────────────────────────────────────────
   const lastFetchKey = useRef("");
 
   const fetchParams = useMemo(
@@ -161,10 +143,9 @@ export default function ContratosPage() {
     const key = JSON.stringify(fetchParams);
     if (lastFetchKey.current === key) return;
     lastFetchKey.current = key;
-    dispatch(actionContratosGet(fetchParams));
+    dispatch(actionEventosGet(fetchParams));
   }, [dispatch, fetchParams]);
 
-  // ── helpers de lógica de negocio ─────────────────────────
   const today = dayjs().startOf("day");
 
   const esCancelado = (r) =>
@@ -176,16 +157,13 @@ export default function ContratosPage() {
   const esConcluido = (r) =>
     !esCancelado(r) && !!r.fecha_evento && dayjs(r.fecha_evento).isBefore(today);
 
-  // ── filtro cliente-side ───────────────────────────────────
   const filteredItems = useMemo(() => {
     let base = items;
 
-    // Filtro por tipo de evento
     if (tipoFilter !== "todos") {
       base = base.filter((r) => r.id_tipo_evento === tipoFilter);
     }
 
-    // Filtro por búsqueda de texto
     if (searchDebounced) {
       const q = searchDebounced.toLowerCase();
       base = base.filter(
@@ -196,7 +174,6 @@ export default function ContratosPage() {
       );
     }
 
-    // Filtro por rango de fecha
     if (dateRange?.[0] && dateRange?.[1]) {
       const from = dayjs(dateRange[0]).startOf("day");
       const to = dayjs(dateRange[1]).endOf("day");
@@ -207,7 +184,6 @@ export default function ContratosPage() {
       });
     }
 
-    // Filtro por stat card
     if (statFilter === "cancelados") return base.filter(esCancelado);
     if (statFilter === "activos") {
       const activos = base.filter(esActivo);
@@ -242,13 +218,11 @@ export default function ContratosPage() {
     return base;
   }, [items, statFilter, activoSubFilter, concluidoSubFilter, tipoFilter, searchDebounced, dateRange]);
 
-  // ── paginación cliente-side ───────────────────────────────
   const paginatedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return filteredItems.slice(start, start + PAGE_SIZE);
   }, [filteredItems, currentPage]);
 
-  // ── conteos para stat cards ───────────────────────────────
   const counts = useMemo(() => {
     const activos = items.filter(esActivo);
     const concluidos = items.filter(esConcluido);
@@ -276,7 +250,6 @@ export default function ContratosPage() {
     };
   }, [items]);
 
-  // ── totales ───────────────────────────────────────────────
   const totales = useMemo(() => {
     const totalImporte = items.reduce((a, r) => a + parseNum(r.importe), 0);
     const totalAnticipo = items.reduce(
@@ -286,10 +259,8 @@ export default function ContratosPage() {
     return { totalImporte, totalAnticipo, totalResta: totalImporte - totalAnticipo };
   }, [items]);
 
-  // ── navegación a crear / editar ──────────────────────────
-  const handleOpenCreate = () => navigate("/contratos/crear");
+  const handleOpenCreate = () => navigate("/eventos/crear");
 
-  // ── bottom strip de la card ───────────────────────────────
   const getBottomStrip = (row) => {
     const resta = calcResta(row);
     if (resta === null || resta === undefined) {
@@ -304,36 +275,30 @@ export default function ContratosPage() {
     return { cls: "is-red", label: "SIN ANTICIPO", amount: fmtMoney(String(resta)) };
   };
 
-  // ──────────────────────────────────────────────────────────
   return (
-    <main className="contratos-main">
-      <div className="contratos-content">
+    <main className="eventos-main">
+      <div className="eventos-content">
 
-        {/* ── HEADER ── */}
-        <section className="contratos-header-section">
+        <section className="eventos-header-section">
           <div>
             <Space direction="vertical" size={2}>
-              <Title level={2} className="contratos-title">
-           
-                Contratos
+              <Title level={2} className="eventos-title">
+                Eventos
               </Title>
-              <Text className="contratos-subtitle">
-                Gestión y seguimiento de contratos de eventos
+              <Text className="eventos-subtitle">
+                Gestión y seguimiento de eventos
               </Text>
             </Space>
           </div>
-          
         </section>
 
-        <section className="contratos-section">
+        <section className="eventos-section">
 
-          {/* ── PANEL DE FILTROS ── */}
-          <div className="contratos-filters-panel">
-            {/* Fila 1: Búsqueda + Fechas + Estado */}
+          <div className="eventos-filters-panel">
             <Row gutter={[16, 14]}>
               <Col xs={24} lg={10}>
                 <div>
-                  <div className="contratos-field-label">Buscador</div>
+                  <div className="eventos-field-label">Buscador</div>
                   <Input
                     value={search}
                     onChange={(e) => {
@@ -341,8 +306,8 @@ export default function ContratosPage() {
                       setCurrentPage(1);
                     }}
                     placeholder="Buscar por cliente, código o lugar..."
-                    suffix={<SearchOutlined className="contratos-input-suffix" />}
-                    className="contratos-control"
+                    suffix={<SearchOutlined className="eventos-input-suffix" />}
+                    className="eventos-control"
                     allowClear
                   />
                 </div>
@@ -350,7 +315,7 @@ export default function ContratosPage() {
 
               <Col xs={24} lg={8}>
                 <div>
-                  <div className="contratos-field-label">Fecha del evento</div>
+                  <div className="eventos-field-label">Fecha del evento</div>
                   <RangePicker
                     value={dateRange}
                     onChange={(v) => {
@@ -359,21 +324,21 @@ export default function ContratosPage() {
                     }}
                     format="DD/MM/YYYY"
                     placeholder={["Desde", "Hasta"]}
-                    className="contratos-control"
+                    className="eventos-control"
                   />
                 </div>
               </Col>
 
               <Col xs={24} lg={6}>
                 <div>
-                  <div className="contratos-field-label">Tipo de evento</div>
+                  <div className="eventos-field-label">Tipo de evento</div>
                   <Select
                     value={tipoFilter}
                     onChange={(v) => {
                       setTipoFilter(v);
                       setCurrentPage(1);
                     }}
-                    className="contratos-control"
+                    className="eventos-control"
                     options={[
                       { label: "Todos", value: "todos" },
                       { label: "Bodas", value: 1 },
@@ -388,12 +353,11 @@ export default function ContratosPage() {
               </Col>
             </Row>
 
-            {/* Fila 2: Limpiar */}
             <Row gutter={[16, 14]} style={{ marginTop: 14 }} align="bottom">
               <Col xs={24} lg={6}>
-                <div className="contratos-actions">
+                <div className="eventos-actions">
                   <Button
-                    className="contratos-btn-clean"
+                    className="eventos-btn-clean"
                     onClick={() => {
                       setSearch("");
                       setDateRange(null);
@@ -411,12 +375,10 @@ export default function ContratosPage() {
             </Row>
           </div>
 
-          {/* ── STAT CARDS (clickables) ── */}
-          <div className="contratos-stats-row contratos-stats-row-3">
-            {/* Activos */}
+          <div className="eventos-stats-row eventos-stats-row-3">
             <Card
-              className={`contratos-stat-card contratos-stat-activos ${
-                statFilter === "activos" ? "contratos-stat-active" : ""
+              className={`eventos-stat-card eventos-stat-activos ${
+                statFilter === "activos" ? "eventos-stat-active" : ""
               }`}
               hoverable
               onClick={() => {
@@ -427,20 +389,19 @@ export default function ContratosPage() {
               }}
             >
               <Space align="center" size={10}>
-                <div className="contratos-stat-icon">
-                  <CheckCircleOutlined />
+                <div className="eventos-stat-icon">
+                  <ClockCircleOutlined />
                 </div>
                 <div>
-                  <div className="contratos-stat-value">{counts.activos}</div>
-                  <div className="contratos-stat-label">Activos</div>
+                  <div className="eventos-stat-value">{counts.activos}</div>
+                  <div className="eventos-stat-label">Activos</div>
                 </div>
               </Space>
             </Card>
 
-            {/* Concluidos */}
             <Card
-              className={`contratos-stat-card contratos-stat-inactivos ${
-                statFilter === "concluidos" ? "contratos-stat-active" : ""
+              className={`eventos-stat-card eventos-stat-inactivos ${
+                statFilter === "concluidos" ? "eventos-stat-active" : ""
               }`}
               hoverable
               onClick={() => {
@@ -450,20 +411,19 @@ export default function ContratosPage() {
               }}
             >
               <Space align="center" size={10}>
-                <div className="contratos-stat-icon">
-                  <StopOutlined />
+                <div className="eventos-stat-icon">
+                  <CheckCircleOutlined />
                 </div>
                 <div>
-                  <div className="contratos-stat-value">{counts.concluidos}</div>
-                  <div className="contratos-stat-label">Concluidos</div>
+                  <div className="eventos-stat-value">{counts.concluidos}</div>
+                  <div className="eventos-stat-label">Concluidos</div>
                 </div>
               </Space>
             </Card>
 
-            {/* Cancelados */}
             <Card
-              className={`contratos-stat-card contratos-stat-cancelados ${
-                statFilter === "cancelados" ? "contratos-stat-active" : ""
+              className={`eventos-stat-card eventos-stat-cancelados ${
+                statFilter === "cancelados" ? "eventos-stat-active" : ""
               }`}
               hoverable
               onClick={() => {
@@ -472,55 +432,54 @@ export default function ContratosPage() {
               }}
             >
               <Space align="center" size={10}>
-                <div className="contratos-stat-icon">
+                <div className="eventos-stat-icon">
                   <CloseCircleOutlined />
                 </div>
                 <div>
-                  <div className="contratos-stat-value">{counts.cancelados}</div>
-                  <div className="contratos-stat-label">Cancelados</div>
+                  <div className="eventos-stat-value">{counts.cancelados}</div>
+                  <div className="eventos-stat-label">Cancelados</div>
                 </div>
               </Space>
             </Card>
           </div>
 
-          {/* ── SUB-FILTROS DE ACTIVOS ── */}
           {statFilter === "activos" && (
-            <div className="contratos-substat-row">
+            <div className="eventos-substat-row">
               {[
                 {
                   key: "pendiente_pago",
                   label: "Pendiente de pago",
                   count: counts.activosPendientePago,
                   icon: <ExclamationCircleOutlined />,
-                  cls: "contratos-substat-pendiente",
+                  cls: "eventos-substat-pendiente",
                 },
                 {
                   key: "pago_completado",
                   label: "Pago completado",
                   count: counts.activosPagoCompletado,
                   icon: <CheckCircleOutlined />,
-                  cls: "contratos-substat-completado",
+                  cls: "eventos-substat-completado",
                 },
                 {
                   key: "sin_anticipo",
                   label: "Sin anticipo",
                   count: counts.activosSinAnticipo,
                   icon: <StopOutlined />,
-                  cls: "contratos-substat-pendiente",
+                  cls: "eventos-substat-pendiente",
                 },
                 {
                   key: "todo",
                   label: "Todos",
                   count: counts.activos,
                   icon: <FileDoneOutlined />,
-                  cls: "contratos-substat-todo",
+                  cls: "eventos-substat-todo",
                 },
               ].map(({ key, label, count, icon, cls }) => (
                 <Card
                   key={key}
                   hoverable
-                  className={`contratos-substat-card ${cls} ${
-                    activoSubFilter === key ? "contratos-substat-active" : ""
+                  className={`eventos-substat-card ${cls} ${
+                    activoSubFilter === key ? "eventos-substat-active" : ""
                   }`}
                   onClick={() => {
                     setActivoSubFilter(key);
@@ -528,10 +487,10 @@ export default function ContratosPage() {
                   }}
                 >
                   <Space align="center" size={8}>
-                    <div className="contratos-substat-icon">{icon}</div>
+                    <div className="eventos-substat-icon">{icon}</div>
                     <div>
-                      <div className="contratos-substat-value">{count}</div>
-                      <div className="contratos-substat-label">{label}</div>
+                      <div className="eventos-substat-value">{count}</div>
+                      <div className="eventos-substat-label">{label}</div>
                     </div>
                   </Space>
                 </Card>
@@ -539,37 +498,36 @@ export default function ContratosPage() {
             </div>
           )}
 
-          {/* ── SUB-FILTROS DE CONCLUIDOS ── */}
           {statFilter === "concluidos" && (
-            <div className="contratos-substat-row">
+            <div className="eventos-substat-row">
               {[
                 {
                   key: "con_deuda",
                   label: "Con deuda",
                   count: counts.cluidosConDeuda,
                   icon: <ExclamationCircleOutlined />,
-                  cls: "contratos-substat-pendiente",
+                  cls: "eventos-substat-pendiente",
                 },
                 {
                   key: "liquidados",
                   label: "Liquidados",
                   count: counts.cluidosLiquidados,
                   icon: <CheckCircleOutlined />,
-                  cls: "contratos-substat-completado",
+                  cls: "eventos-substat-completado",
                 },
                 {
                   key: "todo",
                   label: "Todos",
                   count: counts.concluidos,
                   icon: <FileDoneOutlined />,
-                  cls: "contratos-substat-todo",
+                  cls: "eventos-substat-todo",
                 },
               ].map(({ key, label, count, icon, cls }) => (
                 <Card
                   key={key}
                   hoverable
-                  className={`contratos-substat-card ${cls} ${
-                    concluidoSubFilter === key ? "contratos-substat-active" : ""
+                  className={`eventos-substat-card ${cls} ${
+                    concluidoSubFilter === key ? "eventos-substat-active" : ""
                   }`}
                   onClick={() => {
                     setConcluidoSubFilter(key);
@@ -577,10 +535,10 @@ export default function ContratosPage() {
                   }}
                 >
                   <Space align="center" size={8}>
-                    <div className="contratos-substat-icon">{icon}</div>
+                    <div className="eventos-substat-icon">{icon}</div>
                     <div>
-                      <div className="contratos-substat-value">{count}</div>
-                      <div className="contratos-substat-label">{label}</div>
+                      <div className="eventos-substat-value">{count}</div>
+                      <div className="eventos-substat-label">{label}</div>
                     </div>
                   </Space>
                 </Card>
@@ -588,15 +546,14 @@ export default function ContratosPage() {
             </div>
           )}
 
-          {/* ── TOOLBAR (conteo + vista toggle + botones) ── */}
-          <div className="contratos-toolbar">
-            <div className="contratos-toolbar-left">
+          <div className="eventos-toolbar">
+            <div className="eventos-toolbar-left">
               <Title level={4} style={{ marginBottom: 0 }}>
-                Contratos ({filteredItems.length})
+                Eventos ({filteredItems.length})
               </Title>
               <Text type="secondary">{filteredItems.length} encontrados</Text>
             </div>
-            <div className="contratos-toolbar-right">
+            <div className="eventos-toolbar-right">
               <Button
                 icon={<UploadOutlined />}
                 onClick={() => setImportModalOpen(true)}
@@ -610,122 +567,116 @@ export default function ContratosPage() {
                 onClick={handleOpenCreate}
                 className="laboral-btn-create custom-button"
               >
-                Nuevo contrato
+                Nuevo evento
               </Button>
             </div>
           </div>
 
-          {/* ── CONTENEDOR CARDS ── */}
-          <div className="contratos-expedientes-card">
-                <div className="contratos-grid">
-                  {paginatedItems.map((row) => {
-                    const strip = getBottomStrip(row);
-                    const ini = row.hora_inicio
-                      ? dayjs(row.hora_inicio).format("HH:mm")
-                      : "—";
-                    const fin = row.hora_final
-                      ? dayjs(row.hora_final).format("HH:mm")
-                      : "—";
+          <div className="eventos-expedientes-card">
+            <div className="eventos-grid">
+              {paginatedItems.map((row) => {
+                const strip = getBottomStrip(row);
+                const ini = row.hora_inicio
+                  ? dayjs(row.hora_inicio).format("HH:mm")
+                  : "—";
+                const fin = row.hora_final
+                  ? dayjs(row.hora_final).format("HH:mm")
+                  : "—";
 
-                    const statusKey = esCancelado(row) ? "cancelado" : esConcluido(row) ? "concluido" : "activo";
-                    const statusLabel = { activo: "Activo", concluido: "Concluido", cancelado: "Cancelado" }[statusKey];
+                const statusKey = esCancelado(row) ? "cancelado" : esConcluido(row) ? "concluido" : "activo";
+                const statusLabel = { activo: "Activo", concluido: "Concluido", cancelado: "Cancelado" }[statusKey];
 
-                    return (
-                      <div key={row.id_contrato} className="contrato-card">
-                        {/* Cabecera */}
-                        <div className="contrato-card-header">
-                          <div className="contrato-card-head">
-                            <Paragraph
-                              className="contrato-card-name"
-                              ellipsis={{ rows: 2 }}
-                            >
-                              {toTitleCase(row.cliente_nombre)}
-                            </Paragraph>
-                            <span className={`contrato-status-badge contrato-status-${statusKey}`}>
-                              {statusLabel}
-                            </span>
-                          </div>
-                          {TIPO_EVENTO_MAP[row.id_tipo_evento] && (
-                            <span className="contrato-tipo-chip">
-                              {TIPO_EVENTO_MAP[row.id_tipo_evento]}
-                            </span>
-                          )}
-                        </div>
+                return (
+                  <div key={row.id_evento} className="evento-card">
+                    <div className="evento-card-header">
+                      <div className="evento-card-head">
+                        <Paragraph
+                          className="evento-card-name"
+                          ellipsis={{ rows: 2 }}
+                        >
+                          {toTitleCase(row.cliente_nombre)}
+                        </Paragraph>
+                        <span className={`evento-status-badge evento-status-${statusKey}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      {TIPO_EVENTO_MAP[row.id_tipo_evento] && (
+                        <span className="evento-tipo-chip">
+                          {TIPO_EVENTO_MAP[row.id_tipo_evento]}
+                        </span>
+                      )}
+                    </div>
 
-                        {/* Cuerpo */}
-                        <div className="contrato-card-body">
-                          <div className="contrato-info-row">
-                            <EnvironmentOutlined className="contrato-info-icon" />
-                            <div className="contrato-info-text">
-                              <span className="contrato-info-label">Lugar</span>
-                              <span className="contrato-info-value">{toTitleCase(row.lugar_evento) || "—"}</span>
-                            </div>
-                          </div>
-                          <div className="contrato-info-row">
-                            <CalendarOutlined className="contrato-info-icon" />
-                            <div className="contrato-info-text">
-                              <span className="contrato-info-label">Fecha</span>
-                              <span className="contrato-info-value">{fmtFecha(row.fecha_evento)}</span>
-                            </div>
-                          </div>
-                          <div className="contrato-info-row">
-                            <ClockCircleOutlined className="contrato-info-icon" />
-                            <div className="contrato-info-text">
-                              <span className="contrato-info-label">Horario</span>
-                              <span className="contrato-info-value">{ini} – {fin}</span>
-                            </div>
-                          </div>
-                          <div className="contrato-money-grid">
-                            <div className="contrato-money-item">
-                              <span className="contrato-info-label">Importe</span>
-                              <span className="contrato-money-value">{fmtMoney(row.importe)}</span>
-                            </div>
-                            <div className="contrato-money-item">
-                              <span className="contrato-info-label">Anticipo</span>
-                              <span className="contrato-money-value contrato-money-anticipo">
-                                {calcAnticipoTotal(row) > 0
-                                  ? fmtMoney(String(calcAnticipoTotal(row)))
-                                  : <span className="contrato-sin-anticipo">SIN ANTICIPO</span>}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="contrato-card-footer">
-                          <div className={`contrato-bottom-strip ${strip.cls}`}>
-                            <span className="contrato-strip-label">{strip.label}</span>
-                            {strip.amount && <span className="contrato-strip-amount">{strip.amount}</span>}
-                          </div>
-                          <button
-                            className="contrato-btn-details"
-                            onClick={() => navigate(`/contratos/${row.id_contrato}`)}
-                          >
-                            VER DETALLES
-                            <ArrowRightOutlined />
-                          </button>
+                    <div className="evento-card-body">
+                      <div className="evento-info-row">
+                        <EnvironmentOutlined className="evento-info-icon" />
+                        <div className="evento-info-text">
+                          <span className="evento-info-label">Lugar</span>
+                          <span className="evento-info-value">{toTitleCase(row.lugar_evento) || "—"}</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="evento-info-row">
+                        <CalendarOutlined className="evento-info-icon" />
+                        <div className="evento-info-text">
+                          <span className="evento-info-label">Fecha</span>
+                          <span className="evento-info-value">{fmtFecha(row.fecha_evento)}</span>
+                        </div>
+                      </div>
+                      <div className="evento-info-row">
+                        <ClockCircleOutlined className="evento-info-icon" />
+                        <div className="evento-info-text">
+                          <span className="evento-info-label">Horario</span>
+                          <span className="evento-info-value">{ini} – {fin}</span>
+                        </div>
+                      </div>
+                      <div className="evento-money-grid">
+                        <div className="evento-money-item">
+                          <span className="evento-info-label">Importe</span>
+                          <span className="evento-money-value">{fmtMoney(row.importe)}</span>
+                        </div>
+                        <div className="evento-money-item">
+                          <span className="evento-info-label">Anticipo</span>
+                          <span className="evento-money-value evento-money-anticipo">
+                            {calcAnticipoTotal(row) > 0
+                              ? fmtMoney(String(calcAnticipoTotal(row)))
+                              : <span className="evento-sin-anticipo">SIN ANTICIPO</span>}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Vacío */}
-                {paginatedItems.length === 0 && (
-                  <div
-                    style={{
-                      padding: "36px 12px",
-                      textAlign: "center",
-                      color: "rgba(0,0,0,0.55)",
-                    }}
-                  >
-                    <div style={{ fontSize: 16, fontWeight: 500 }}>
-                      Sin contratos que coincidan con los filtros
+                    <div className="evento-card-footer">
+                      <div className={`evento-bottom-strip ${strip.cls}`}>
+                        <span className="evento-strip-label">{strip.label}</span>
+                        {strip.amount && <span className="evento-strip-amount">{strip.amount}</span>}
+                      </div>
+                      <button
+                        className="evento-btn-details"
+                        onClick={() => navigate(`/eventos/${row.id_evento}`)}
+                      >
+                        VER DETALLES
+                        <ArrowRightOutlined />
+                      </button>
                     </div>
                   </div>
-                )}
+                );
+              })}
+            </div>
 
-            {/* Paginación */}
+            {paginatedItems.length === 0 && (
+              <div
+                style={{
+                  padding: "36px 12px",
+                  textAlign: "center",
+                  color: "rgba(0,0,0,0.55)",
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 500 }}>
+                  Sin eventos que coincidan con los filtros
+                </div>
+              </div>
+            )}
+
             {filteredItems.length > PAGE_SIZE && (
               <div style={{ marginTop: 16, textAlign: "right" }}>
                 <Pagination
@@ -742,17 +693,16 @@ export default function ContratosPage() {
         </section>
       </div>
 
-      {/* ── MODAL IMPORTAR EXCEL ── */}
       <ImportarExcelModal
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onSuccess={() => {
           lastFetchKey.current = "";
-          dispatch(actionContratosGet(fetchParams));
+          dispatch(actionEventosGet(fetchParams));
         }}
         context={{}}
-        endpoint="contratos/importar-excel"
-        title="Importar contratos desde Excel"
+        endpoint="eventos/importar-excel"
+        title="Importar eventos desde Excel"
       />
     </main>
   );

@@ -178,6 +178,19 @@ def agenda_list(
     return {"items": items}
 
 
+@router.get("/by-source", status_code=200)
+def agenda_by_source(
+    source_table: str = Query(...),
+    source_id: int = Query(...),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = current_user.get("id") or current_user.get("id_user")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid user ID")
+    row = agenda_model.get_agenda_by_source(int(user_id), source_table, source_id)
+    return row or {}
+
+
 @router.get("/{id_agenda}", status_code=200)
 def agenda_get(
     id_agenda: int,

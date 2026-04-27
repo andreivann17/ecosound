@@ -130,6 +130,18 @@ export default function EstadisticasPage() {
     return data.contratos_del_periodo.slice(start, start + PAGE_SIZE);
   }, [data, page]);
 
+  const totalImporte = useMemo(() =>
+    (data?.contratos_del_periodo ?? []).reduce((s, c) => s + (c.importe || 0), 0),
+  [data]);
+
+  const totalSaldoPendiente = useMemo(() =>
+    (data?.contratos_del_periodo ?? []).reduce((s, c) => s + (c.saldo_pendiente || 0), 0),
+  [data]);
+
+  const totalSaldoCobranza = useMemo(() =>
+    (data?.cobranza?.contratos_pendientes ?? []).reduce((s, c) => s + (c.saldo || 0), 0),
+  [data]);
+
   // ── Chart: bar ──────────────────────────────────────────────────────────
   const barData = data ? {
     labels: data.ingresos_por_mes.map((m) => m.mes),
@@ -290,7 +302,7 @@ export default function EstadisticasPage() {
                   </span>
                   <span className="est-kpi-label">CONTRATOS</span>
                   <p className="est-kpi-value">{data.kpis.contratos_count}</p>
-                  <span className="est-kpi-sub">firmados en el período</span>
+                  <span className="est-kpi-sub">con evento en el período</span>
                 </div>
 
                 <div className="est-kpi-card">
@@ -384,6 +396,13 @@ export default function EstadisticasPage() {
                       );
                     })}
                   </div>
+                  {/* Total cobranza */}
+                  <div className="est-cobranza-total-row">
+                    <span className="est-total-label">
+                      Total por cobrar ({data.cobranza.contratos_pendientes.length} contratos)
+                    </span>
+                    <span className="est-cobranza-total-monto">{fmtMoney(totalSaldoCobranza)}</span>
+                  </div>
                 </>
               ) : (
                 <Empty description="Sin contratos con saldo pendiente en este período" style={{ margin: "32px 0" }} />
@@ -437,6 +456,15 @@ export default function EstadisticasPage() {
                         </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Fila de totales */}
+                  <div className="est-contratos-total-row">
+                    <span className="est-total-label">Total ({data.contratos_del_periodo.length} contratos)</span>
+                    <span />
+                    <span />
+                    <span className="est-total-importe">{fmtMoney(totalImporte)}</span>
+                    <span className="est-total-saldo">{totalSaldoPendiente > 0 ? fmtMoney(totalSaldoPendiente) : "Liquidado"}</span>
                   </div>
 
                   {data.contratos_del_periodo.length > PAGE_SIZE && (

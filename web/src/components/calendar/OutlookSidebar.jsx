@@ -45,6 +45,11 @@ const tipoLegend = useMemo(
 );
 
 const selectedTipos = Array.isArray(filters?.tipoContratoIds) ? filters.tipoContratoIds : [];
+const showSesiones = filters?.showSesiones !== false;
+
+const toggleSesiones = () => {
+  setFilters((p) => ({ ...(p || {}), showSesiones: !showSesiones }));
+};
 
 const toggleTipo = (key) => {
   setFilters((p) => {
@@ -56,11 +61,11 @@ const toggleTipo = (key) => {
 };
 
 const setAllTipos = () => {
-  setFilters((p) => ({ ...(p || {}), tipoContratoIds: tipoLegend.map((c) => c.key) }));
+  setFilters((p) => ({ ...(p || {}), tipoContratoIds: tipoLegend.map((c) => c.key), showSesiones: true }));
 };
 
 const clearTipos = () => {
-  setFilters((p) => ({ ...(p || {}), tipoContratoIds: [] }));
+  setFilters((p) => ({ ...(p || {}), tipoContratoIds: [], showSesiones: false }));
 };
 
   return (
@@ -153,6 +158,30 @@ const clearTipos = () => {
         </div>
       );
     })}
+
+    {/* Sesiones de Fotos */}
+    <div
+      className="ol-legendChip"
+      role="button"
+      tabIndex={0}
+      onClick={toggleSesiones}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleSesiones(); }}
+      style={{
+        cursor: "pointer",
+        outline: "none",
+        border: showSesiones ? "1px solid rgba(233,30,140,.45)" : "1px solid rgba(0,0,0,.06)",
+        background: showSesiones ? "rgba(233,30,140,.06)" : "#fff",
+      }}
+    >
+      <span className="ol-swatch sw-sesiones" />
+      <div className="ol-legendText" style={{ flex: 1 }}>
+        <div className="ol-legendName" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Sesiones</span>
+          <Checkbox checked={showSesiones} onChange={toggleSesiones} onClick={(e) => e.stopPropagation()} />
+        </div>
+        <div className="ol-legendSub">Sesiones fotográficas</div>
+      </div>
+    </div>
   </div>
 </div>
 

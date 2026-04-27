@@ -148,6 +148,8 @@ const normalizeDraftForUI = (draft) => {
       ? !!draft.in_person
       : false;
 
+  const venue = draft.location || "";
+
   return {
     ...draft,
     estado_id: estadoId,
@@ -155,6 +157,7 @@ const normalizeDraftForUI = (draft) => {
     inPerson: inPersonBool,
     reminder,
     recurrence,
+    venue,
 
     start: asLocalIso(baseStart),
     end: asLocalIso(baseEnd),
@@ -254,11 +257,6 @@ const attachProps = {
     return (id) => (m.has(id) ? m.get(id) : "");
   }, [estadoOptions]);
 
-  const ciudadLabelById = useMemo(() => {
-    const m = new Map((ciudadOptions || []).map((o) => [o.value, o.label]));
-    return (id) => (m.has(id) ? m.get(id) : "");
-  }, [ciudadOptions]);
-
   const filteredCiudadOptions = useMemo(() => {
     if (!local?.estado_id) return ciudadOptions || [];
     return (ciudadOptions || []).filter((c) => c?.id_estado === local.estado_id);
@@ -282,7 +280,6 @@ const attachProps = {
       ...p,
       ciudad_id: first.value,
       estado_id: p.estado_id ?? first.id_estado ?? null,
-      location: (first.label || p.location) ?? null,
     }));
   }, [open, local, ciudadOptions, filteredCiudadOptions]);
 
@@ -373,13 +370,11 @@ const attachProps = {
   // ===== Ciudad normal (como siempre), pero además sincroniza estado_id si existe id_estado
   const onPickCiudad = (id) => {
     if (!local) return;
-    const label = ciudadLabelById(id);
     const c = ciudadById.get(id);
     setLocal((p) => ({
       ...p,
       ciudad_id: id,
       estado_id: p.estado_id ?? c?.id_estado ?? null,
-      location: label || p.location,
     }));
   };
 
@@ -429,6 +424,8 @@ const attachProps = {
       return;
     }
 
+    const venueTrim = (local.venue || "").trim();
+
     const payload = {
       // *** CLAVE: mandar LOCAL NAIVE para que 08:00 se guarde 08:00 ***
       start_at: asLocalNaive(local.start),
@@ -436,7 +433,7 @@ const attachProps = {
       title: titleTrim,
       all_day: local.allDay ? 1 : 0,
       status: "active",
-      location: local.location || null,
+      location: venueTrim || null,
       description: local.description || null,
       ciudad_id: local.ciudad_id || null,
       reminder: local.reminder || "15m",
@@ -740,6 +737,15 @@ onSave(payload, files);
                   showSearch
                   optionFilterProp="label"
                   status={ciudadInvalid ? "error" : undefined}
+                />
+              </div>
+
+              <div className="ol-field">
+                <div className="ol-fieldLabel">Lugar</div>
+                <Input
+                  placeholder="Ej: Salón XYZ, Rancho Los Pinos..."
+                  value={local.venue || ""}
+                  onChange={(e) => setLocal((p) => ({ ...p, venue: e.target.value }))}
                 />
               </div>
 

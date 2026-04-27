@@ -104,7 +104,7 @@ def get_estadisticas(
 
             contratos_count = int(_scalar(cur,
                 "SELECT COUNT(*) AS cnt FROM contratos "
-                "WHERE active = 1 AND DATE(datetime) BETWEEN %s AND %s",
+                "WHERE active = 1 AND DATE(fecha_evento) BETWEEN %s AND %s",
                 (p_from, p_to),
             ))
 
@@ -125,7 +125,7 @@ def get_estadisticas(
             ticket_promedio = float(_scalar(cur,
                 "SELECT COALESCE(AVG(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS avg_i "
                 "FROM contratos WHERE active=1 AND importe IS NOT NULL AND importe != '' "
-                "AND DATE(datetime) BETWEEN %s AND %s",
+                "AND DATE(fecha_evento) BETWEEN %s AND %s",
                 (p_from, p_to),
             ))
 
@@ -182,7 +182,7 @@ def get_estadisticas(
                 "SELECT COALESCE(te.nombre, 'Sin tipo') AS tipo, COUNT(*) AS cantidad "
                 "FROM contratos c "
                 "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
-                "WHERE c.active = 1 AND DATE(c.datetime) BETWEEN %s AND %s "
+                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
                 "GROUP BY c.id_tipo_evento, te.nombre "
                 "ORDER BY cantidad DESC",
                 (p_from, p_to),
@@ -203,7 +203,7 @@ def get_estadisticas(
                 "FROM contratos c "
                 "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
                 "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
-                "AND DATE(c.datetime) BETWEEN %s AND %s "
+                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
                 f"HAVING saldo > 0 "
                 "ORDER BY c.fecha_evento ASC LIMIT 50",
                 (str(today), p_from, p_to),
@@ -231,8 +231,8 @@ def get_estadisticas(
                 f"({_SALDO_EXPR}) AS saldo_pendiente "
                 "FROM contratos c "
                 "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
-                "WHERE c.active = 1 AND DATE(c.datetime) BETWEEN %s AND %s "
-                "ORDER BY c.datetime DESC LIMIT 100",
+                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
+                "ORDER BY c.fecha_evento ASC LIMIT 100",
                 (p_from, p_to),
             )
             contratos_del_periodo = [

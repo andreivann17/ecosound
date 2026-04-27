@@ -63,15 +63,10 @@ export default function EventViewModal({
             {event.canceled ? <Tag color="default">Cancelado</Tag> : null}
           </div>
 
-          {event.location ? (
+          {(event.location || event.nombre_ciudad) ? (
             <div style={{ fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
-              <b>Ubicación:</b> {event.location}
-            </div>
-          ) : null}
-
-          {event.nombre_ciudad ? (
-            <div style={{ fontSize: 13, color: "rgba(0,0,0,0.7)" }}>
-              <b>Ciudad:</b> {event.nombre_ciudad}
+              <b>Ubicación:</b>{" "}
+              {[event.nombre_ciudad, event.location].filter(Boolean).join(" - ")}
             </div>
           ) : null}
 

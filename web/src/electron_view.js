@@ -150,23 +150,16 @@ const connectWS = useCallback(() => {
 
   const pathname = location.pathname || "/";
 
-  const isContratos =  pathname.startsWith("/contratos");
-  const isEstadisticas =  pathname.startsWith("/estadisticas");
+  const isEventos = pathname.startsWith("/eventos");
+  const isSesiones = pathname.startsWith("/sesiones");
+  const isEstadisticas = pathname.startsWith("/estadisticas");
   const isAgendaActive = pathname.startsWith("/agenda");
   const isHomeActive = pathname.startsWith("/home");
   const links = [
     { label: "Inicio", onClick: () => navigate("/home"), active: isHomeActive },
-    {
-      label: "Contratos",
-      onClick: () => navigate("/contratos"),
-      active: isContratos,
-    },
-  {
-      label: "Estadisticas",
-      onClick: () => navigate("/estadisticas"),
-      active: isEstadisticas,
-    },
- 
+    { label: "Eventos", onClick: () => navigate("/eventos"), active: isEventos },
+    { label: "Sesiones", onClick: () => navigate("/sesiones"), active: isSesiones },
+    { label: "Estadísticas", onClick: () => navigate("/estadisticas"), active: isEstadisticas },
     { label: "Agenda", onClick: () => navigate("/agenda"), active: isAgendaActive },
   ];
 
