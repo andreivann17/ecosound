@@ -13,7 +13,7 @@ router = APIRouter(prefix="/estadisticas", tags=["estadisticas"])
 MESES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
             "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
-# Saldo pendiente por contrato
+# Saldo pendiente = importe - anticipo - suma de abonos (nunca negativo)
 _SALDO_EXPR = """
     GREATEST(
         COALESCE(CAST(NULLIF(TRIM(c.importe), '') AS DECIMAL(12,2)), 0)
@@ -100,7 +100,7 @@ def get_estadisticas(
     try:
         with conn.cursor(dictionary=True) as cur:
 
-            # ── KPIs del período ─────────────────────────────────────────────
+            # ── KPIs — todos filtrados por fecha_evento del contrato ─────────
 
             contratos_count = int(_scalar(cur,
                 "SELECT COUNT(*) AS cnt FROM contratos "
@@ -108,35 +108,45 @@ def get_estadisticas(
                 (p_from, p_to),
             ))
 
+            # Anticipo cobrado de contratos con evento en el período
             ing_anticipo = float(_scalar(cur,
                 "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
-                "FROM contratos WHERE active=1 AND fecha_anticipo IS NOT NULL "
-                "AND DATE(fecha_anticipo) BETWEEN %s AND %s",
-                (p_from, p_to),
-            ))
-            ing_abonos = float(_scalar(cur,
-                "SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
-                "FROM contratos_abonos ca "
-                "WHERE ca.active=1 AND DATE(ca.fecha) BETWEEN %s AND %s",
-                (p_from, p_to),
-            ))
-            ingresos_cobrados = ing_anticipo + ing_abonos
-
-            ticket_promedio = float(_scalar(cur,
-                "SELECT COALESCE(AVG(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS avg_i "
-                "FROM contratos WHERE active=1 AND importe IS NOT NULL AND importe != '' "
+                "FROM contratos "
+                "WHERE active=1 AND fecha_anticipo IS NOT NULL "
                 "AND DATE(fecha_evento) BETWEEN %s AND %s",
                 (p_from, p_to),
             ))
 
-            # Saldo pendiente GLOBAL (no filtrado por periodo)
+            # Abonos de contratos con evento en el período
+            ing_abonos = float(_scalar(cur,
+                "SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
+                "FROM contratos_abonos ca "
+                "JOIN contratos c ON c.id_contrato = ca.id_contrato "
+                "WHERE ca.active=1 AND c.active=1 "
+                "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
+            ))
+            ingresos_cobrados = ing_anticipo + ing_abonos
+
+            # Promedio de importe de contratos con evento en el período
+            ticket_promedio = float(_scalar(cur,
+                "SELECT COALESCE(AVG(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS avg_i "
+                "FROM contratos "
+                "WHERE active=1 AND importe IS NOT NULL AND importe != '' "
+                "AND DATE(fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
+            ))
+
+            # Saldo pendiente de contratos con evento en el período
             saldo_pendiente_total = float(_scalar(cur,
                 f"SELECT COALESCE(SUM({_SALDO_EXPR}),0) AS t "
                 "FROM contratos c "
-                "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != ''",
+                "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
+                "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
             ))
 
-            # ── Ingresos por mes — últimos 12 meses ──────────────────────────
+            # ── Ingresos por mes — últimos 12 meses (por fecha_evento) ────────
 
             ingresos_por_mes = []
             for i in range(11, -1, -1):
@@ -147,16 +157,21 @@ def get_estadisticas(
                     y -= 1
                 mf, mt = _month_range(y, m)
 
+                # Anticipo cobrado de contratos con evento en ese mes
                 cob_ant = float(_scalar(cur,
                     "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
-                    "FROM contratos WHERE active=1 AND fecha_anticipo IS NOT NULL "
-                    "AND DATE(fecha_anticipo) BETWEEN %s AND %s",
+                    "FROM contratos "
+                    "WHERE active=1 AND fecha_anticipo IS NOT NULL "
+                    "AND DATE(fecha_evento) BETWEEN %s AND %s",
                     (mf, mt),
                 ))
+                # Abonos de contratos con evento en ese mes
                 cob_abo = float(_scalar(cur,
                     "SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
                     "FROM contratos_abonos ca "
-                    "WHERE ca.active=1 AND DATE(ca.fecha) BETWEEN %s AND %s",
+                    "JOIN contratos c ON c.id_contrato = ca.id_contrato "
+                    "WHERE ca.active=1 AND c.active=1 "
+                    "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
                     (mf, mt),
                 ))
                 cobrado = cob_ant + cob_abo
@@ -176,7 +191,7 @@ def get_estadisticas(
                     "pendiente": pendiente,
                 })
 
-            # ── Contratos por tipo de evento (filtrado por periodo) ──────────
+            # ── Contratos por tipo de evento en el período ───────────────────
 
             cur.execute(
                 "SELECT COALESCE(te.nombre, 'Sin tipo') AS tipo, COUNT(*) AS cantidad "
@@ -193,7 +208,6 @@ def get_estadisticas(
             ]
 
             # ── Contratos con saldo pendiente en el período ──────────────────
-            # (contratos cuyo evento cae en el período y tienen saldo > 0)
 
             cur.execute(
                 f"SELECT c.id_contrato, c.cliente_nombre, c.fecha_evento, "
@@ -216,12 +230,11 @@ def get_estadisticas(
                     "tipo_evento": r["tipo_evento"],
                     "saldo": float(r["saldo"]),
                     "dias_diff": int(r["dias_diff"] or 0),
-                    # dias_diff > 0 = evento ya pasó (vencido), <= 0 = aún no llega
                 }
                 for r in cur.fetchall()
             ]
 
-            # ── Contratos del período (todos, para lista derecha) ─────────────
+            # ── Todos los contratos del período ──────────────────────────────
 
             cur.execute(
                 f"SELECT c.id_contrato, c.cliente_nombre, c.fecha_evento, "

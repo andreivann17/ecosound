@@ -293,7 +293,7 @@ export default function EstadisticasPage() {
                   <p className="est-kpi-value est-kpi-red">
                     {fmtMoney(data.kpis.saldo_pendiente_total)}
                   </p>
-                  <span className="est-kpi-sub">total en todos los contratos</span>
+                  <span className="est-kpi-sub">pendiente en el período</span>
                 </div>
 
                 <div className="est-kpi-card">

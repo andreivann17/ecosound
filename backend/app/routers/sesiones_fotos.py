@@ -246,36 +246,44 @@ async def actualizar_sesion(
 
             sesion_model.update_sesion(id_sesion=id_sesion, data=payload_dict, conn=conn)
 
-            if fecha_sesion:
-                nombre_cliente = payload_dict.get("nombre_cliente") or row.get("nombre_cliente") or ""
-                lugar = payload_dict.get("lugar") or row.get("lugar")
-                id_ciudad = payload_dict.get("id_ciudad") if "id_ciudad" in payload_dict else row.get("id_ciudad")
-                agenda_payload = _build_agenda_payload(
-                    nombre_cliente=nombre_cliente,
-                    lugar=lugar,
-                    fecha_sesion=fecha_sesion,
-                    id_sesion=id_sesion,
-                    id_ciudad=id_ciudad,
-                )
+            _AGENDA_RELEVANT_SESION = {"fecha_sesion", "id_ciudad", "lugar"}
+            if _AGENDA_RELEVANT_SESION & set(payload_dict.keys()):
+                if fecha_sesion:
+                    eff_fecha = fecha_sesion
+                else:
+                    raw_fecha = row.get("fecha_sesion")
+                    eff_fecha = raw_fecha if isinstance(raw_fecha, dt.datetime) else _parse_dt(raw_fecha)
 
-                existing = _find_agenda_sesion_conn(conn, id_sesion)
-                if existing:
-                    old_id_agenda = existing["id_agenda"]
-                    old_row = agenda_model.get_agenda_raw_by_id_conn(
-                        conn, int(existing["id_user"]), old_id_agenda
+                if eff_fecha:
+                    nombre_cliente = payload_dict.get("nombre_cliente") or row.get("nombre_cliente") or ""
+                    lugar = payload_dict.get("lugar") if "lugar" in payload_dict else row.get("lugar")
+                    id_ciudad = payload_dict.get("id_ciudad") if "id_ciudad" in payload_dict else row.get("id_ciudad")
+                    agenda_payload = _build_agenda_payload(
+                        nombre_cliente=nombre_cliente,
+                        lugar=lugar,
+                        fecha_sesion=eff_fecha,
+                        id_sesion=id_sesion,
+                        id_ciudad=id_ciudad,
                     )
-                    changed = agenda_model._agenda_changed_db(old_row, agenda_payload) if old_row else True
-                    if changed:
-                        agenda_model.disable_agenda_conn(conn, old_id_agenda, int(user_id))
+
+                    existing = _find_agenda_sesion_conn(conn, id_sesion)
+                    if existing:
+                        old_id_agenda = existing["id_agenda"]
+                        old_row = agenda_model.get_agenda_raw_by_id_conn(
+                            conn, int(existing["id_user"]), old_id_agenda
+                        )
+                        changed = agenda_model._agenda_changed_db(old_row, agenda_payload) if old_row else True
+                        if changed:
+                            agenda_model.disable_agenda_conn(conn, old_id_agenda, int(user_id))
+                            agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
+                            new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
+                            should_ws = True
+                        else:
+                            new_id_agenda = old_id_agenda
+                    else:
                         agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
                         new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
                         should_ws = True
-                    else:
-                        new_id_agenda = old_id_agenda
-                else:
-                    agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
-                    new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
-                    should_ws = True
 
             conn.commit()
         except HTTPException:

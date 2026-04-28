@@ -134,6 +134,7 @@ export default function EventosPage() {
         ? dayjs(dateRange[1]).format("YYYY-MM-DD")
         : undefined,
       id_tipo_evento: tipoFilter !== "todos" ? tipoFilter : undefined,
+      active: 1,
       limit: 500,
     }),
     [searchDebounced, dateRange, tipoFilter]
@@ -180,7 +181,7 @@ export default function EventosPage() {
       base = base.filter((r) => {
         if (!r.fecha_evento) return false;
         const d = dayjs(r.fecha_evento);
-        return d.isAfter(from) && d.isBefore(to);
+        return !d.isBefore(from) && !d.isAfter(to);
       });
     }
 

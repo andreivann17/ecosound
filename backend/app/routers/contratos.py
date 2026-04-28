@@ -629,19 +629,27 @@ async def actualizar_contrato(
             with conn.cursor() as cur:
                 cur.execute("START TRANSACTION")
 
-            # Combinar fecha+hora ANTES de actualizar para que la BD reciba datetime completo
-            fecha_base = payload_dict.get("fecha_evento") or row.get("fecha_evento")
-            start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
-            end_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_final"))
-            if start_dt:
-                payload_dict["hora_inicio"] = start_dt
-                if not end_dt:
-                    end_dt = _cap_end_same_day(start_dt)
-                elif end_dt <= start_dt:
-                    end_dt += dt.timedelta(days=1)
-                payload_dict["hora_final"] = end_dt
+            _AGENDA_RELEVANT = {"fecha_evento", "hora_inicio", "hora_final", "id_ciudad", "lugar_evento"}
+            agenda_fields_in_payload = bool(_AGENDA_RELEVANT & set(payload_dict.keys()))
 
-            # hora_misa: combinar con fecha_evento para obtener datetime completo
+            fecha_base = payload_dict.get("fecha_evento") or row.get("fecha_evento")
+            start_dt = None
+            end_dt = None
+
+            if {"fecha_evento", "hora_inicio", "hora_final"} & set(payload_dict.keys()):
+                start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
+                end_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_final"))
+                if start_dt:
+                    payload_dict["hora_inicio"] = start_dt
+                    if not end_dt:
+                        end_dt = _cap_end_same_day(start_dt)
+                    elif end_dt <= start_dt:
+                        end_dt += dt.timedelta(days=1)
+                    payload_dict["hora_final"] = end_dt
+                else:
+                    start_dt = None
+                    end_dt = None
+
             if payload_dict.get("hora_misa"):
                 payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
 
@@ -650,27 +658,30 @@ async def actualizar_contrato(
                 data=payload_dict,
                 conn=conn,
             )
-            if affected == 1:
-                #raise HTTPException(status_code=404, detail="Contrato no encontrado o sin cambios")
-
-                # agenda: recalcular si cambió fecha/hora
+            if affected == 1 and agenda_fields_in_payload:
                 if start_dt:
-                    if not end_dt:
-                        end_dt = _cap_end_same_day(start_dt)
+                    eff_start = start_dt
+                    eff_end = end_dt
+                else:
+                    raw_start = row.get("hora_inicio")
+                    raw_end = row.get("hora_final")
+                    eff_start = raw_start if isinstance(raw_start, dt.datetime) else _parse_dt(raw_start)
+                    eff_end = raw_end if isinstance(raw_end, dt.datetime) else _parse_dt(raw_end)
 
+                if eff_start and eff_end:
                     lugar = (payload_dict.get("lugar_evento") or row.get("lugar_evento") or "").strip()
                     cliente = (payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip()
                     title = f"Contrato {cliente}".strip() if cliente else "Contrato"
                     desc = (
                         f"Contrato {code} para {cliente}. "
-                        f"Evento el {start_dt.strftime('%Y-%m-%d')} de {start_dt.strftime('%H:%M')} "
-                        f"a {end_dt.strftime('%H:%M')}. Lugar: {lugar}."
+                        f"Evento el {eff_start.strftime('%Y-%m-%d')} de {eff_start.strftime('%H:%M')} "
+                        f"a {eff_end.strftime('%H:%M')}. Lugar: {lugar}."
                     )
 
-                    id_ciudad = payload_dict.get("id_ciudad") or row.get("id_ciudad")
+                    id_ciudad = payload_dict.get("id_ciudad") if "id_ciudad" in payload_dict else row.get("id_ciudad")
                     agenda_payload = {
-                        "start_at": start_dt,
-                        "end_at": end_dt,
+                        "start_at": eff_start,
+                        "end_at": eff_end,
                         "title": title,
                         "source_table": "contratos",
                         "all_day": 0,
