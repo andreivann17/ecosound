@@ -27,6 +27,7 @@ import {
 } from "@ant-design/icons";
 
 import "./TrabajadoresPage.css";
+import { PATH as API_BASE } from "../../redux/utils";
 
 dayjs.locale("es");
 
@@ -74,8 +75,6 @@ export default function TrabajadoresPage() {
     }
     return base;
   }, [items, puestoFilter]);
-
-  const API_BASE = `http://${window.location.hostname}:8000`;
 
   const getInitials = (nombre, apellido) => {
     const a = (nombre || " ")[0] || "";

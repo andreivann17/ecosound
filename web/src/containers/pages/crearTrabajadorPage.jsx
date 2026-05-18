@@ -28,6 +28,7 @@ import {
 
 import "./TrabajadoresPage.css";
 import dayjs from "dayjs";
+import { PATH as API_BASE } from "../../redux/utils";
 
 const { Title, Text } = Typography;
 
@@ -49,8 +50,6 @@ export default function CrearTrabajadorPage() {
   const [fotoPreview, setFotoPreview] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fotoInputRef = useRef(null);
-
-  const API_BASE = `http://${window.location.hostname}:8000`;
 
   useEffect(() => {
     dispatch(actionPuestosGet());

@@ -11,9 +11,9 @@ import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import "./ContratosPage.css";
 import "./UsuariosPage.css";
 
-const { Title, Text } = Typography;
+import { PATH as API_BASE } from "../../redux/utils";
 
-const API_BASE = `http://${window.location.hostname}:8000`;
+const { Title, Text } = Typography;
 const PAGE_SIZE = 20;
 
 export default function UsuariosPage() {

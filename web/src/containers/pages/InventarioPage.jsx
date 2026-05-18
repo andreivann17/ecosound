@@ -5,6 +5,7 @@ import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { actionInventarioGet, actionCategoriasGet } from "../../redux/actions/inventario/inventario";
+import { PATH as API_BASE } from "../../redux/utils";
 
 import {
   Card,
@@ -301,8 +302,6 @@ export default function InventarioPage() {
                   const estadoInfo = ESTADO_MAP[eq.estado] || { label: eq.estado, cls: "equipo-status-activo" };
                   const cantidad = parseInt(eq.cantidad_disponible ?? 0, 10);
                   const cantidadCls = cantidad === 0 ? "cero" : cantidad > 0 ? "positivo" : "cero";
-
-                  const API_BASE = `http://${window.location.hostname}:8000`;
 
                   return (
                     <div key={eq.id_equipo} className="equipo-card">

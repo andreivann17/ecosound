@@ -21,10 +21,9 @@ import { ArrowLeftOutlined, EyeInvisibleOutlined, EyeTwoTone } from "@ant-design
 
 import "./ContratosPage.css";
 import "./UsuariosPage.css";
+import { PATH as API_BASE } from "../../redux/utils";
 
 const { Title, Text } = Typography;
-
-const API_BASE = `http://${window.location.hostname}:8000`;
 
 export default function CrearUsuarioPage() {
   const navigate = useNavigate();
