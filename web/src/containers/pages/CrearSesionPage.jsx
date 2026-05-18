@@ -165,65 +165,67 @@ export default function CrearSesionPage() {
         <Form form={form} layout="vertical">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-            <div className="cc-section-card">
-              <div className="cc-section-header">
-                <span className="cc-section-icon"><UserOutlined /></span>
-                Datos del cliente
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+              <div className="cc-section-card" style={{ flex: 1 }}>
+                <div className="cc-section-header">
+                  <span className="cc-section-icon"><UserOutlined /></span>
+                  Datos del cliente
+                </div>
+                <Form.Item
+                  name="nombre_cliente"
+                  label={<span className="eventos-field-label">Nombre del cliente</span>}
+                  rules={[{ required: true, message: "Requerido" }]}
+                >
+                  <Input placeholder="Nombre completo del cliente" maxLength={100} autoComplete="off" />
+                </Form.Item>
               </div>
-              <Form.Item
-                name="nombre_cliente"
-                label={<span className="eventos-field-label">Nombre del cliente</span>}
-                rules={[{ required: true, message: "Requerido" }]}
-              >
-                <Input placeholder="Nombre completo del cliente" maxLength={100} autoComplete="off" />
-              </Form.Item>
-            </div>
 
-            <div className="cc-section-card">
-              <div className="cc-section-header">
-                <span className="cc-section-icon"><CalendarOutlined /></span>
-                Datos de la sesión
+              <div className="cc-section-card" style={{ flex: 1 }}>
+                <div className="cc-section-header">
+                  <span className="cc-section-icon"><CalendarOutlined /></span>
+                  Datos de la sesión
+                </div>
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="id_ciudad"
+                      label={<span className="eventos-field-label">Ciudad</span>}
+                      rules={[{ required: true, message: "Requerido" }]}
+                    >
+                      <Select placeholder="Selecciona la ciudad" options={CIUDADES} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={16}>
+                    <Form.Item
+                      name="lugar"
+                      label={<span className="eventos-field-label">Lugar</span>}
+                      rules={[{ required: true, message: "Requerido" }]}
+                    >
+                      <Input placeholder="Dirección o lugar de la sesión" maxLength={100} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="fecha"
+                      label={<span className="eventos-field-label">Fecha</span>}
+                      rules={[{ required: true, message: "Requerido" }]}
+                    >
+                      <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="Selecciona fecha" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="hora"
+                      label={<span className="eventos-field-label">Hora</span>}
+                      rules={[{ required: true, message: "Requerido" }]}
+                    >
+                      <TimePicker style={{ width: "100%" }} format="HH:mm" placeholder="--:--" minuteStep={15} />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </div>
-              <Row gutter={16}>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="id_ciudad"
-                    label={<span className="eventos-field-label">Ciudad</span>}
-                    rules={[{ required: true, message: "Requerido" }]}
-                  >
-                    <Select placeholder="Selecciona la ciudad" options={CIUDADES} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={16}>
-                  <Form.Item
-                    name="lugar"
-                    label={<span className="eventos-field-label">Lugar</span>}
-                    rules={[{ required: true, message: "Requerido" }]}
-                  >
-                    <Input placeholder="Dirección o lugar de la sesión" maxLength={100} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="fecha"
-                    label={<span className="eventos-field-label">Fecha</span>}
-                    rules={[{ required: true, message: "Requerido" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="Selecciona fecha" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="hora"
-                    label={<span className="eventos-field-label">Hora</span>}
-                    rules={[{ required: true, message: "Requerido" }]}
-                  >
-                    <TimePicker style={{ width: "100%" }} format="HH:mm" placeholder="--:--" minuteStep={15} />
-                  </Form.Item>
-                </Col>
-              </Row>
             </div>
 
             <div className="cc-section-card">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { actionEventosGet } from "../../redux/actions/eventos/eventos";
@@ -16,6 +17,7 @@ import {
   Row,
   Col,
   Pagination,
+  Modal,
 } from "antd";
 import {
   PlusOutlined,
@@ -25,14 +27,14 @@ import {
   StopOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
-  UploadOutlined,
+  DownloadOutlined,
   EnvironmentOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
 
-import ImportarExcelModal from "./utils/ImportarExcelModal.jsx";
+import { previewEventosReportPdf, printEventosReportPdf } from "../../components/utils/printEventosReportPdf";
 import "./EventosPage.css";
 
 dayjs.locale("es");
@@ -108,11 +110,15 @@ export default function EventosPage() {
   const [activoSubFilter, setActivoSubFilter] = useState("todo");
   const [concluidoSubFilter, setConcluidoSubFilter] = useState("todo");
 
-  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [exportPreviewHtml, setExportPreviewHtml] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
 
   const navigate = useNavigate();
+  const { perm } = usePermisos() || { perm: () => true };
+  const canConsultar = perm("eventos", "consultar");
+  const canInsertar  = perm("eventos", "insertar");
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -259,6 +265,22 @@ export default function EventosPage() {
     );
     return { totalImporte, totalAnticipo, totalResta: totalImporte - totalAnticipo };
   }, [items]);
+
+  const TIPO_LABEL_MAP = {
+    todos: "Todos",
+    1: "Bodas", 2: "XV", 3: "Graduación", 4: "Corporativo", 5: "Cumpleaños", 6: "Otro",
+  };
+
+  const handleExportNow = () => {
+    const html = previewEventosReportPdf({
+      items: filteredItems,
+      periodFrom: dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined,
+      periodTo: dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined,
+      tipoLabel: TIPO_LABEL_MAP[tipoFilter] || "Todos",
+    });
+    setExportPreviewHtml(html);
+    setExportPreviewOpen(true);
+  };
 
   const handleOpenCreate = () => navigate("/eventos/crear");
 
@@ -556,20 +578,22 @@ export default function EventosPage() {
             </div>
             <div className="eventos-toolbar-right">
               <Button
-                icon={<UploadOutlined />}
-                onClick={() => setImportModalOpen(true)}
+                icon={<DownloadOutlined />}
+                onClick={handleExportNow}
                 className="laboral-btn-import laboral-btn-create"
               >
-                Importar Excel
+                Exportar
               </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleOpenCreate}
-                className="laboral-btn-create custom-button"
-              >
-                Nuevo evento
-              </Button>
+              {canInsertar && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleOpenCreate}
+                  className="laboral-btn-create custom-button"
+                >
+                  Nuevo evento
+                </Button>
+              )}
             </div>
           </div>
 
@@ -653,7 +677,9 @@ export default function EventosPage() {
                       </div>
                       <button
                         className="evento-btn-details"
-                        onClick={() => navigate(`/eventos/${row.id_evento}`)}
+                        onClick={() => canConsultar ? navigate(`/eventos/${row.id_evento}`) : undefined}
+                        style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
+                        title={!canConsultar ? "Sin permiso de consulta" : undefined}
                       >
                         VER DETALLES
                         <ArrowRightOutlined />
@@ -694,17 +720,41 @@ export default function EventosPage() {
         </section>
       </div>
 
-      <ImportarExcelModal
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        onSuccess={() => {
-          lastFetchKey.current = "";
-          dispatch(actionEventosGet(fetchParams));
-        }}
-        context={{}}
-        endpoint="eventos/importar-excel"
-        title="Importar eventos desde Excel"
-      />
+      <Modal
+        open={exportPreviewOpen}
+        onCancel={() => setExportPreviewOpen(false)}
+        title="Previsualización — Reporte de Eventos"
+        width={1020}
+        centered
+        destroyOnClose
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button onClick={() => setExportPreviewOpen(false)}>Cerrar</Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={() => {
+                printEventosReportPdf({
+                  items: filteredItems,
+                  periodFrom: dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined,
+                  periodTo: dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined,
+                  tipoLabel: TIPO_LABEL_MAP[tipoFilter] || "Todos",
+                });
+              }}
+            >
+              Exportar PDF
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <iframe
+            title="preview-eventos"
+            style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+            srcDoc={exportPreviewHtml}
+          />
+        </div>
+      </Modal>
     </main>
   );
 }

@@ -2,35 +2,32 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { usePermisos } from "../../context/PermisosContext";
 import { actionUsuariosGet } from "../../redux/actions/usuarios/usuarios";
 
-import {
-  Card,
-  Button,
-  Input,
-  Space,
-  Tag,
-  Typography,
-  Pagination,
-} from "antd";
-import { PlusOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons";
+import { Button, Input, Space, Typography, Pagination } from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 
 import "./ContratosPage.css";
+import "./UsuariosPage.css";
 
 const { Title, Text } = Typography;
 
+const API_BASE = `http://${window.location.hostname}:8000`;
 const PAGE_SIZE = 20;
 
 export default function UsuariosPage() {
   const dispatch = useDispatch();
   const { items = [] } = useSelector((state) => state.usuarios);
   const navigate = useNavigate();
+  const { perm } = usePermisos() || { perm: () => true };
+  const canConsultar = perm("usuarios", "consultar");
+  const canInsertar  = perm("usuarios", "insertar");
 
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // debounce
   useEffect(() => {
     const t = setTimeout(() => {
       setSearchDebounced(search);
@@ -126,77 +123,70 @@ export default function UsuariosPage() {
               <Text type="secondary">{filteredItems.length} encontrados</Text>
             </div>
             <div className="contratos-toolbar-right">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate("/usuarios/crear")}
-                className="laboral-btn-create custom-button"
-              >
-                Crear Usuario
-              </Button>
+              {canInsertar && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigate("/usuarios/crear")}
+                  className="laboral-btn-create custom-button"
+                >
+                  Crear Usuario
+                </Button>
+              )}
             </div>
           </div>
 
           {/* CARDS */}
           <div className="contratos-expedientes-card">
-            <div className="contratos-grid">
-              {paginatedItems.map((user) => (
-                <Card
-                  key={user.id_user || user.code}
-                  hoverable
-                  className="contrato-card"
-                  bodyStyle={{
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "100%",
-                    minHeight:"220px"
-                  }}
-                >
-                  <div className="contrato-card-content">
-                    <div className="contrato-card-head">
-                      <div className="contrato-card-title">
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>
-                          <UserOutlined style={{ marginRight: 6, color: "#6b7280" }} />
-                          {user.name || "—"}
-                        </span>
-                      </div>
-                      <Tag color={user.active ? "blue" : "default"}>
-                        {user.active ? "Activo" : "Inactivo"}
-                      </Tag>
-                    </div>
-                    <div className="contrato-card-lines">
-                      <Text type="secondary">
-                        <strong>Correo:</strong> {user.email || "—"}
-                      </Text>
-                      {user.date && (
-                        <Text type="secondary">
-                          <strong>Creado:</strong> {user.date}
-                        </Text>
+            <div className="usr-grid">
+              {paginatedItems.map((user) => {
+                const initials = (user.name || "?")
+                  .split(" ")
+                  .map((w) => w[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase();
+                return (
+                  <div key={user.id_user || user.code} className="usr-card">
+                    <div className="usr-card-image">
+                      {user.path ? (
+                        <img
+                          src={`${API_BASE}/${user.path}`}
+                          alt={user.name}
+                          className="usr-card-img"
+                        />
+                      ) : (
+                        <div className="usr-card-avatar">
+                          <span className="usr-card-initials">{initials}</span>
+                        </div>
                       )}
                     </div>
+                    <div className="usr-card-body">
+                      <div className="usr-card-name">{user.name || "—"}</div>
+                      <div className="usr-card-email">{user.email || "—"}</div>
+                      <div className="usr-card-badges">
+                        <span className={`usr-badge ${user.active ? "usr-badge-active" : "usr-badge-inactive"}`}>
+                          {user.active ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="usr-card-footer">
+                      <button
+                        className="usr-btn-detail"
+                        onClick={() => canConsultar ? navigate(`/usuarios/${user.code}`) : undefined}
+                        style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
+                        title={!canConsultar ? "Sin permiso de consulta" : undefined}
+                      >
+                        VER DETALLES
+                      </button>
+                    </div>
                   </div>
-                  <div className="contrato-card-footer">
-                    <Button
-                      className="contrato-btn-dark"
-                      style={{ color: "#fff" }}
-                      onClick={() => navigate(`/usuarios/${user.code}`)}
-                    >
-                      VER DETALLES
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                );
+              })}
             </div>
 
             {paginatedItems.length === 0 && (
-              <div
-                style={{
-                  padding: "36px 12px",
-                  textAlign: "center",
-                  color: "rgba(0,0,0,0.55)",
-                }}
-              >
+              <div style={{ padding: "36px 12px", textAlign: "center", color: "rgba(0,0,0,0.55)" }}>
                 <div style={{ fontSize: 16, fontWeight: 500 }}>
                   Sin usuarios que coincidan con los filtros
                 </div>

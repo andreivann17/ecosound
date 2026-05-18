@@ -1,5 +1,5 @@
 // src/containers/pages/crearUsuarioPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   apiUsuariosInstance,
@@ -20,8 +20,11 @@ import {
 import { ArrowLeftOutlined, EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
 
 import "./ContratosPage.css";
+import "./UsuariosPage.css";
 
 const { Title, Text } = Typography;
+
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 export default function CrearUsuarioPage() {
   const navigate = useNavigate();
@@ -33,6 +36,14 @@ export default function CrearUsuarioPage() {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
 
+  // foto state
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(
+    isEditing && usuarioEditar?.path ? `${API_BASE}/${usuarioEditar.path}` : null
+  );
+  const [dragging, setDragging] = useState(false);
+  const fotoInputRef = useRef(null);
+
   useEffect(() => {
     if (usuarioEditar) {
       form.setFieldsValue({
@@ -41,6 +52,26 @@ export default function CrearUsuarioPage() {
       });
     }
   }, [usuarioEditar, form]);
+
+  const handleFotoSelect = (file) => {
+    if (!file) return;
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => setDragging(false);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFotoSelect(file);
+  };
 
   const handleSave = async () => {
     let values;
@@ -60,6 +91,8 @@ export default function CrearUsuarioPage() {
 
     setSaving(true);
     try {
+      let savedCode;
+
       if (isEditing) {
         const payload = { name: values.name.trim(), email: values.email.trim() };
         if (values.password) {
@@ -75,8 +108,8 @@ export default function CrearUsuarioPage() {
           payload,
           { headers: authHeaderUsuarios() }
         );
+        savedCode = usuarioEditar.code;
         notification.success({ message: "Usuario actualizado correctamente" });
-        navigate(`/usuarios/${usuarioEditar.code}`);
       } else {
         const payload = {
           name: values.name.trim(),
@@ -86,10 +119,22 @@ export default function CrearUsuarioPage() {
         const res = await apiUsuariosInstance.post("/users", payload, {
           headers: authHeaderUsuarios(),
         });
-        const code = res.data?.code;
+        savedCode = res.data?.code;
         notification.success({ message: "Usuario creado exitosamente" });
-        navigate(`/usuarios/${code}`);
       }
+
+      if (fotoFile && savedCode) {
+        const fd = new FormData();
+        fd.append("file", fotoFile);
+        await apiUsuariosInstance.post(`/users/${savedCode}/imagen`, fd, {
+          headers: {
+            ...authHeaderUsuarios(),
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      }
+
+      navigate(`/usuarios/${savedCode}`);
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -147,89 +192,140 @@ export default function CrearUsuarioPage() {
         </section>
 
         {/* FORMULARIO */}
-        <div className="contratos-filters-panel" style={{ marginTop: 0 }}>
-          <Form form={form} layout="vertical">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, marginTop: 0 }}>
 
-            <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
-              Datos del usuario
+          {/* COLUMNA IZQUIERDA – datos */}
+          <div className="contratos-filters-panel">
+            <Form form={form} layout="vertical">
+
+              <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
+                Datos del usuario
+              </Title>
+
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="name"
+                    label={<span className="contratos-field-label">Nombre completo</span>}
+                    rules={[{ required: true, message: "Requerido" }]}
+                  >
+                    <Input placeholder="Nombre del usuario" autoComplete="off" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="email"
+                    label={<span className="contratos-field-label">Correo electrónico</span>}
+                    rules={[
+                      { required: true, message: "Requerido" },
+                      { type: "email", message: "Correo inválido" },
+                    ]}
+                  >
+                    <Input placeholder="correo@ejemplo.com" autoComplete="off" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: "4px 0 20px" }} />
+
+              <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
+                {isEditing ? "Cambiar contraseña (opcional)" : "Contraseña"}
+              </Title>
+
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="password"
+                    label={<span className="contratos-field-label">Contraseña</span>}
+                    rules={
+                      !isEditing
+                        ? [
+                            { required: true, message: "Requerido" },
+                            { min: 6, message: "Mínimo 6 caracteres" },
+                          ]
+                        : [{ min: 6, message: "Mínimo 6 caracteres" }]
+                    }
+                  >
+                    <Input.Password
+                      placeholder="Contraseña"
+                      autoComplete="new-password"
+                      iconRender={(visible) =>
+                        visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+                      }
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="confirm_password"
+                    label={<span className="contratos-field-label">Confirmar contraseña</span>}
+                    rules={
+                      !isEditing
+                        ? [{ required: true, message: "Requerido" }]
+                        : []
+                    }
+                    dependencies={["password"]}
+                  >
+                    <Input.Password
+                      placeholder="Repite la contraseña"
+                      autoComplete="new-password"
+                      iconRender={(visible) =>
+                        visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+                      }
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+            </Form>
+          </div>
+
+          {/* COLUMNA DERECHA – foto */}
+          <div className="contratos-filters-panel" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Title level={5} style={{ marginBottom: 4, color: "#374151" }}>
+              Foto de perfil <span style={{ fontWeight: 400, color: "#9ca3af", fontSize: 12 }}>(opcional)</span>
             </Title>
 
-            <Row gutter={16}>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="name"
-                  label={<span className="contratos-field-label">Nombre completo</span>}
-                  rules={[{ required: true, message: "Requerido" }]}
-                >
-                  <Input placeholder="Nombre del usuario" autoComplete="off" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="email"
-                  label={<span className="contratos-field-label">Correo electrónico</span>}
-                  rules={[
-                    { required: true, message: "Requerido" },
-                    { type: "email", message: "Correo inválido" },
-                  ]}
-                >
-                  <Input placeholder="correo@ejemplo.com" autoComplete="off" />
-                </Form.Item>
-              </Col>
-            </Row>
+            <input
+              ref={fotoInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleFotoSelect(e.target.files?.[0])}
+            />
 
-            <Divider style={{ margin: "4px 0 20px" }} />
+            <div
+              className={`usr-dragger${dragging ? " usr-dragger-over" : ""}${fotoPreview ? " usr-dragger-filled" : ""}`}
+              onClick={() => !fotoPreview && fotoInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {fotoPreview ? (
+                <div className="usr-dragger-preview">
+                  <img src={fotoPreview} alt="preview" className="usr-dragger-img" />
+                  <button
+                    className="usr-dragger-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFotoFile(null);
+                      setFotoPreview(null);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className="usr-dragger-placeholder">
+                  <span className="usr-dragger-placeholder-icon">📷</span>
+                  <span className="usr-dragger-placeholder-text">
+                    Arrastra una imagen aquí<br />o haz clic para seleccionar
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
 
-            <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
-              {isEditing ? "Cambiar contraseña (opcional)" : "Contraseña"}
-            </Title>
-
-            <Row gutter={16}>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="password"
-                  label={<span className="contratos-field-label">Contraseña</span>}
-                  rules={
-                    !isEditing
-                      ? [
-                          { required: true, message: "Requerido" },
-                          { min: 6, message: "Mínimo 6 caracteres" },
-                        ]
-                      : [{ min: 6, message: "Mínimo 6 caracteres" }]
-                  }
-                >
-                  <Input.Password
-                    placeholder="Contraseña"
-                    autoComplete="new-password"
-                    iconRender={(visible) =>
-                      visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                    }
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="confirm_password"
-                  label={<span className="contratos-field-label">Confirmar contraseña</span>}
-                  rules={
-                    !isEditing
-                      ? [{ required: true, message: "Requerido" }]
-                      : []
-                  }
-                  dependencies={["password"]}
-                >
-                  <Input.Password
-                    placeholder="Repite la contraseña"
-                    autoComplete="new-password"
-                    iconRender={(visible) =>
-                      visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                    }
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-          </Form>
         </div>
 
       </div>

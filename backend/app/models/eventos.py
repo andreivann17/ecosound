@@ -45,11 +45,18 @@ def create_evento(
             comentarios,
             direccion_misa,
             hora_misa,
+            id_paquete_sonido,
+            id_paquete_fotografia,
+            id_ciudad_fotografia,
+            lugar_fotografia,
+            datetime_fotografia,
+            comentarios_fotografia,
+            fecha_creacion_contrato,
             datetime,
             code,
             active
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
         )
     """
     with conn.cursor() as cur:
@@ -58,18 +65,25 @@ def create_evento(
             data.get("id_tipo_evento"),
             data.get("cliente_nombre", ""),
             data.get("domicilio") or None,
-            data.get("celular", ""),
+            data.get("celular") or "",
             data.get("fecha_evento"),
-            data.get("lugar_evento", ""),
+            data.get("lugar_evento") or "",
             data.get("hora_inicio"),
             data.get("hora_final"),
             data.get("importe", ""),
-            data.get("id_ciudad", ""),
+            data.get("id_ciudad") or None,
             data.get("fecha_anticipo"),
             data.get("importe_anticipo", ""),
             data.get("comentarios") or None,
             data.get("direccion_misa") or None,
             data.get("hora_misa") or None,
+            data.get("id_paquete_sonido") or None,
+            data.get("id_paquete_fotografia") or None,
+            data.get("id_ciudad_fotografia") or None,
+            data.get("lugar_fotografia") or None,
+            data.get("datetime_fotografia") or None,
+            data.get("comentarios_fotografia") or None,
+            data.get("fecha_creacion_contrato") or None,
             now,
             "",
         ))
@@ -93,10 +107,14 @@ def get_evento_by_id(id_evento) -> Optional[Dict[str, Any]]:
                 """
                 SELECT e.*, e.id_contrato AS id_evento,
                        u.name AS created_by_nombre,
-                       c.nombre AS nombre_ciudad
+                       c.nombre AS nombre_ciudad,
+                       ps.nombre AS nombre_paquete_sonido,
+                       pf.nombre AS nombre_paquete_fotografia
                 FROM contratos e
                 LEFT JOIN users u ON u.id_user = e.id_user
                 LEFT JOIN ciudades c ON c.id_ciudad = e.id_ciudad
+                LEFT JOIN paquetes_sonido ps ON ps.id_paquete_sonido = e.id_paquete_sonido
+                LEFT JOIN paquetes_fotografia pf ON pf.id_paquete_fotografia = e.id_paquete_fotografia
                 WHERE e.id_contrato = %s
                 LIMIT 1
                 """,
@@ -180,6 +198,9 @@ def update_evento(
         "hora_inicio", "hora_final", "importe", "fecha_anticipo",
         "importe_anticipo", "id_tipo_evento", "id_ciudad", "comentarios",
         "direccion_misa", "hora_misa",
+        "id_paquete_sonido", "id_paquete_fotografia",
+        "id_ciudad_fotografia", "lugar_fotografia", "datetime_fotografia", "comentarios_fotografia",
+        "fecha_creacion_contrato",
     }
     updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
@@ -288,3 +309,161 @@ def cards_evento(
         active=active,
         search=search,
     )
+
+
+# ================== EVENTO EQUIPO ==================
+
+def list_evento_equipo(id_evento: int) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT
+                    ee.id_contrato_equipo,
+                    ee.id_contrato,
+                    ee.id_equipo,
+                    ee.cantidad,
+                    ee.fecha_salida,
+                    ee.fecha_regreso,
+                    ee.regreso_confirmado,
+                    ee.descripcion,
+                    e.nombre  AS nombre_equipo,
+                    e.estado  AS estado_equipo,
+                    e.path    AS path_equipo,
+                    c.nombre  AS nombre_categoria
+                FROM contratos_equipos ee
+                JOIN equipo e ON e.id_equipo = ee.id_equipo
+                LEFT JOIN categorias_equipo c ON c.id_categoria_equipo = e.id_categoria_equipo
+                WHERE ee.id_contrato = %s
+                ORDER BY c.nombre ASC, e.nombre ASC
+                """,
+                (id_evento,),
+            )
+            rows = cur.fetchall() or []
+        for r in rows:
+            for k in ("fecha_salida", "fecha_regreso", "datetime"):
+                if hasattr(r.get(k), "isoformat"):
+                    r[k] = r[k].isoformat()
+        return rows
+    finally:
+        conn.close()
+
+
+def get_catalogo_con_disponibilidad(id_evento: int, fecha_salida: str) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT
+                    e.id_equipo,
+                    e.nombre,
+                    e.estado,
+                    e.id_categoria_equipo,
+                    c.nombre AS nombre_categoria,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN em.tipo='entrada' THEN em.cantidad ELSE 0 END) -
+                               SUM(CASE WHEN em.tipo='baja'    THEN em.cantidad ELSE 0 END)
+                        FROM equipo_movimientos em WHERE em.id_equipo = e.id_equipo
+                    ), 0) AS cantidad_stock,
+                    COALESCE((
+                        SELECT SUM(ee.cantidad)
+                        FROM contratos_equipos ee
+                        WHERE ee.id_equipo  = e.id_equipo
+                          AND ee.id_contrato != %s
+                          AND ee.fecha_salida <= %s
+                          AND ee.fecha_regreso >= %s
+                    ), 0) AS cantidad_comprometida
+                FROM equipo e
+                LEFT JOIN categorias_equipo c ON c.id_categoria_equipo = e.id_categoria_equipo
+                WHERE e.active = 1 AND e.estado = 'activo'
+                ORDER BY c.nombre ASC, e.nombre ASC
+                """,
+                (id_evento, fecha_salida, fecha_salida),
+            )
+            rows = cur.fetchall() or []
+        for r in rows:
+            stock = int(r.get("cantidad_stock") or 0)
+            comprometido = int(r.get("cantidad_comprometida") or 0)
+            r["cantidad_disponible"] = max(0, stock - comprometido)
+        return rows
+    finally:
+        conn.close()
+
+
+def get_disponibilidad_equipo(id_equipo: int, fecha_salida: str, id_evento: int) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT COALESCE(
+                    SUM(CASE WHEN tipo='entrada' THEN cantidad ELSE 0 END) -
+                    SUM(CASE WHEN tipo='baja'    THEN cantidad ELSE 0 END), 0
+                ) AS stock
+                FROM equipo_movimientos WHERE id_equipo = %s
+                """,
+                (id_equipo,),
+            )
+            stock = int((cur.fetchone() or {}).get("stock", 0))
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(cantidad), 0) AS comprometido
+                FROM contratos_equipos
+                WHERE id_equipo   = %s
+                  AND id_contrato != %s
+                  AND fecha_salida <= %s
+                  AND fecha_regreso >= %s
+                """,
+                (id_equipo, id_evento, fecha_salida, fecha_salida),
+            )
+            comprometido = int((cur.fetchone() or {}).get("comprometido", 0))
+        return max(0, stock - comprometido)
+    finally:
+        conn.close()
+
+
+def add_evento_equipo(id_evento: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    now = dt.datetime.now()
+    fecha_salida = data.get("fecha_salida") or now
+    fecha_regreso = data.get("fecha_regreso") or fecha_salida
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO contratos_equipos
+                    (id_contrato, id_equipo, cantidad, fecha_salida, fecha_regreso, descripcion, datetime)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    id_evento,
+                    data["id_equipo"],
+                    data.get("cantidad", 1),
+                    fecha_salida,
+                    fecha_regreso,
+                    data.get("descripcion") or None,
+                    now,
+                ),
+            )
+            new_id = cur.lastrowid
+        conn.commit()
+        return {"id_contrato_equipo": new_id}
+    finally:
+        conn.close()
+
+
+def delete_evento_equipo(id_contrato_equipo: int) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM contratos_equipos WHERE id_contrato_equipo = %s",
+                (id_contrato_equipo,),
+            )
+            affected = cur.rowcount
+        conn.commit()
+        return affected
+    finally:
+        conn.close()

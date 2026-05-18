@@ -7,8 +7,7 @@ import { Spin, Empty, Select, DatePicker, Pagination } from "antd";
 import {
   DollarOutlined,
   FileTextOutlined,
-  RiseOutlined,
-  CalendarOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import {
   Chart as ChartJS,
@@ -61,12 +60,6 @@ const fmtFechaCorta = (v) => {
   return d.isValid() ? d.format("D MMM YYYY") : "—";
 };
 
-const fmtFechaMed = (v) => {
-  if (!v) return "—";
-  const d = dayjs(v);
-  return d.isValid() ? d.format("D [de] MMMM [del] YYYY") : "—";
-};
-
 function periodLabel(tipo, dateFrom, dateTo) {
   if (!dateFrom) return "";
   const df = dayjs(dateFrom);
@@ -78,10 +71,35 @@ function periodLabel(tipo, dateFrom, dateTo) {
   return "";
 }
 
+// ── Opciones base para barras horizontales ────────────────────────────────
+function makeHbarOptions(tooltipSuffix = "contratos") {
+  return {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => `  ${ctx.raw} ${tooltipSuffix}` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: "#f1f5f9" },
+        ticks: { font: { size: 11 }, stepSize: 1 },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { size: 11 } },
+      },
+    },
+  };
+}
+
 export default function EstadisticasPage() {
   const navigate = useNavigate();
   const [periodo, setPeriodo] = useState("mes");
-  const [customRange, setCustomRange] = useState(null); // [dayjs, dayjs] | null
+  const [customRange, setCustomRange] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -108,7 +126,7 @@ export default function EstadisticasPage() {
   }, []);
 
   useEffect(() => {
-    if (periodo === "custom" && !customRange) return; // wait for range
+    if (periodo === "custom" && !customRange) return;
     fetchStats(periodo, customRange);
   }, [periodo, customRange, fetchStats]);
 
@@ -118,12 +136,10 @@ export default function EstadisticasPage() {
   };
 
   const handleRangeChange = (dates) => {
-    if (dates && dates[0] && dates[1]) {
-      setCustomRange(dates);
-    }
+    if (dates && dates[0] && dates[1]) setCustomRange(dates);
   };
 
-  // ── Paginación contratos del periodo ────────────────────────────────────
+  // ── Paginación ────────────────────────────────────────────────────────────
   const contratosPaginados = useMemo(() => {
     if (!data?.contratos_del_periodo) return [];
     const start = (page - 1) * PAGE_SIZE;
@@ -142,7 +158,7 @@ export default function EstadisticasPage() {
     (data?.cobranza?.contratos_pendientes ?? []).reduce((s, c) => s + (c.saldo || 0), 0),
   [data]);
 
-  // ── Chart: bar ──────────────────────────────────────────────────────────
+  // ── Chart: bar ingresos por mes ───────────────────────────────────────────
   const barData = data ? {
     labels: data.ingresos_por_mes.map((m) => m.mes),
     datasets: [
@@ -190,7 +206,7 @@ export default function EstadisticasPage() {
     },
   };
 
-  // ── Chart: donut ────────────────────────────────────────────────────────
+  // ── Chart: donut tipo evento ──────────────────────────────────────────────
   const donutData = data?.por_tipo_evento?.length ? {
     labels: data.por_tipo_evento.map((t) => t.tipo),
     datasets: [{
@@ -216,21 +232,103 @@ export default function EstadisticasPage() {
     },
   };
 
+  // ── Chart: contratos por ciudad ───────────────────────────────────────────
+  const ciudadData = data?.por_ciudad?.length ? {
+    labels: data.por_ciudad.map((c) => c.ciudad),
+    datasets: [{
+      label: "Contratos",
+      data: data.por_ciudad.map((c) => c.cantidad),
+      backgroundColor: DONUT_COLORS.slice(0, data.por_ciudad.length),
+      borderRadius: 6,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  const ciudadOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => `  ${ctx.raw} contratos` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12 } },
+      },
+      y: {
+        grid: { color: "#f1f5f9" },
+        ticks: { font: { size: 11 }, stepSize: 1 },
+      },
+    },
+  };
+
+  // ── Chart: tipo paquete donut ─────────────────────────────────────────────
+  const tipoPaqueteData =
+    data?.por_tipo_paquete?.some((t) => t.cantidad > 0)
+      ? {
+          labels: data.por_tipo_paquete.map((t) => t.tipo),
+          datasets: [{
+            data: data.por_tipo_paquete.map((t) => t.cantidad),
+            backgroundColor: ["#6366f1", "#10b981"],
+            borderWidth: 0,
+            hoverOffset: 6,
+          }],
+        }
+      : null;
+
+  // ── Chart: top paquetes fotografía (hbar) ─────────────────────────────────
+  const topFotoData = data?.top_paquetes_foto?.length ? {
+    labels: data.top_paquetes_foto.map((p) => p.nombre),
+    datasets: [{
+      label: "Contratos",
+      data: data.top_paquetes_foto.map((p) => p.cantidad),
+      backgroundColor: "#6366f1",
+      borderRadius: 4,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  // ── Chart: top paquetes sonido (hbar) ─────────────────────────────────────
+  const topSonidoData = data?.top_paquetes_sonido?.length ? {
+    labels: data.top_paquetes_sonido.map((p) => p.nombre),
+    datasets: [{
+      label: "Contratos",
+      data: data.top_paquetes_sonido.map((p) => p.cantidad),
+      backgroundColor: "#10b981",
+      borderRadius: 4,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  // ── Chart: trabajadores (hbar) ────────────────────────────────────────────
+  const trabajadoresData = data?.trabajadores_stats?.length ? {
+    labels: data.trabajadores_stats.map((t) => t.nombre),
+    datasets: [{
+      label: "Contratos",
+      data: data.trabajadores_stats.map((t) => t.contratos_count),
+      backgroundColor: "#f59e0b",
+      borderRadius: 4,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  const hbarOpts = makeHbarOptions("contratos");
+
   const periodoDescripcion = data
     ? periodLabel(data.periodo.tipo, data.periodo.date_from, data.periodo.date_to)
     : "";
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="est-main">
       <div className="est-content">
 
         {/* ── TITLE ── */}
         <div className="est-page-header">
-          <div>
-            <h1 className="est-page-title">Estadísticas</h1>
-          </div>
+          <h1 className="est-page-title">Estadísticas</h1>
         </div>
 
         {/* ── RESUMEN ── */}
@@ -265,37 +363,50 @@ export default function EstadisticasPage() {
           </div>
 
           {loading ? (
-            <div className="est-loading-wrap">
-              <Spin size="large" />
-            </div>
+            <div className="est-loading-wrap"><Spin size="large" /></div>
           ) : !data ? (
             <Empty description="No se pudieron cargar las estadísticas" style={{ margin: "40px 0" }} />
           ) : (
             <>
               {/* KPIs */}
               <div className="est-kpi-grid">
+                {/* Card 1: Pagos recibidos */}
                 <div className="est-kpi-card">
                   <span className="est-kpi-icon-wrap est-kpi-icon-green">
                     <DollarOutlined />
                   </span>
-                  <span className="est-kpi-label">INGRESOS COBRADOS</span>
+                  <span className="est-kpi-label">PAGOS RECIBIDOS</span>
                   <p className="est-kpi-value est-kpi-green">
                     {fmtMoney(data.kpis.ingresos_cobrados)}
                   </p>
-                  <span className="est-kpi-sub">en el período</span>
+                  <span className="est-kpi-sub">anticipos y abonos cobrados</span>
                 </div>
 
+                {/* Card 2: Por cobrar */}
                 <div className="est-kpi-card">
                   <span className="est-kpi-icon-wrap est-kpi-icon-red">
                     <ExclamationIcon />
                   </span>
-                  <span className="est-kpi-label">SALDO PENDIENTE</span>
+                  <span className="est-kpi-label">POR COBRAR</span>
                   <p className="est-kpi-value est-kpi-red">
                     {fmtMoney(data.kpis.saldo_pendiente_total)}
                   </p>
-                  <span className="est-kpi-sub">pendiente en el período</span>
+                  <span className="est-kpi-sub">saldo pendiente en el período</span>
                 </div>
 
+                {/* Card 3: Valor total contratos */}
+                <div className="est-kpi-card">
+                  <span className="est-kpi-icon-wrap est-kpi-icon-indigo">
+                    <WalletOutlined />
+                  </span>
+                  <span className="est-kpi-label">VALOR TOTAL</span>
+                  <p className="est-kpi-value est-kpi-indigo">
+                    {fmtMoney(data.kpis.importe_total)}
+                  </p>
+                  <span className="est-kpi-sub">suma de todos los contratos</span>
+                </div>
+
+                {/* Card 4: Contratos */}
                 <div className="est-kpi-card">
                   <span className="est-kpi-icon-wrap est-kpi-icon-blue">
                     <FileTextOutlined />
@@ -304,18 +415,9 @@ export default function EstadisticasPage() {
                   <p className="est-kpi-value">{data.kpis.contratos_count}</p>
                   <span className="est-kpi-sub">con evento en el período</span>
                 </div>
-
-                <div className="est-kpi-card">
-                  <span className="est-kpi-icon-wrap est-kpi-icon-amber">
-                    <RiseOutlined />
-                  </span>
-                  <span className="est-kpi-label">VALOR PROMEDIO</span>
-                  <p className="est-kpi-value">{fmtMoney(data.kpis.ticket_promedio)}</p>
-                  <span className="est-kpi-sub">ingreso esperado por contrato</span>
-                </div>
               </div>
 
-              {/* Charts */}
+              {/* Charts: ingresos por mes + tipo evento */}
               <div className="est-charts-wrap">
                 <div className="est-chart-main">
                   <p className="est-chart-title">Ingresos cobrados por mes</p>
@@ -338,11 +440,109 @@ export default function EstadisticasPage() {
           )}
         </div>
 
+        {/* ── ANÁLISIS DE NEGOCIO ── */}
+        {!loading && data && (
+          <div className="est-section-card">
+            <div className="est-section-header est-section-header-sm">
+              <div className="est-header-left">
+                <span className="est-section-label">ANÁLISIS DEL PERÍODO</span>
+                {periodoDescripcion && (
+                  <span className="est-period-display">{periodoDescripcion}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Fila 1: Ciudad + Tipo paquete */}
+            <div className="est-analysis-row">
+              <div className="est-chart-inner est-chart-inner-wide">
+                <p className="est-chart-title">Contratos por ciudad</p>
+                <div className="est-bar-wrap-md">
+                  {ciudadData ? (
+                    <Bar data={ciudadData} options={ciudadOptions} />
+                  ) : (
+                    <Empty description="Sin datos de ciudad" style={{ margin: "24px 0" }} />
+                  )}
+                </div>
+              </div>
+              <div className="est-chart-inner">
+                <p className="est-chart-title">Sesiones contratadas</p>
+                <div className="est-donut-wrap-md">
+                  {tipoPaqueteData ? (
+                    <Doughnut data={tipoPaqueteData} options={{
+                      ...donutOptions,
+                      plugins: {
+                        ...donutOptions.plugins,
+                        legend: {
+                          position: "bottom",
+                          labels: { font: { size: 12 }, padding: 12, usePointStyle: true },
+                        },
+                        tooltip: {
+                          callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} contratos` },
+                        },
+                      },
+                    }} />
+                  ) : (
+                    <Empty description="Sin paquetes asignados" style={{ margin: "24px 0" }} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 2: Top paquetes foto + sonido */}
+            <div className="est-analysis-row est-analysis-row-mt">
+              <div className="est-chart-inner">
+                <p className="est-chart-title">
+                  <span className="est-chart-dot" style={{ background: "#6366f1" }} />
+                  Paquetes de fotografía más vendidos
+                </p>
+                <div className="est-hbar-wrap">
+                  {topFotoData ? (
+                    <Bar data={topFotoData} options={hbarOpts} />
+                  ) : (
+                    <Empty description="Sin paquetes de fotografía en el período" style={{ margin: "24px 0" }} />
+                  )}
+                </div>
+              </div>
+              <div className="est-chart-inner">
+                <p className="est-chart-title">
+                  <span className="est-chart-dot" style={{ background: "#10b981" }} />
+                  Paquetes de sonido más vendidos
+                </p>
+                <div className="est-hbar-wrap">
+                  {topSonidoData ? (
+                    <Bar data={topSonidoData} options={hbarOpts} />
+                  ) : (
+                    <Empty description="Sin paquetes de sonido en el período" style={{ margin: "24px 0" }} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 3: Trabajadores (full width) */}
+            <div className="est-analysis-row est-analysis-row-mt">
+              <div className="est-chart-inner est-chart-inner-full">
+                <p className="est-chart-title">
+                  <span className="est-chart-dot" style={{ background: "#f59e0b" }} />
+                  Trabajadores por cantidad de contratos
+                </p>
+                <div className="est-hbar-wrap-xl">
+                  {trabajadoresData ? (
+                    <Bar data={trabajadoresData} options={hbarOpts} />
+                  ) : (
+                    <Empty description="Sin trabajadores asignados en el período" style={{ margin: "32px 0" }} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* ── BOTTOM ROW ── */}
         {!loading && data && (
           <div className="est-bottom-row">
 
-            {/* Contratos pendientes en el período */}
+            {/* Contratos pendientes */}
             <div className="est-section-card">
               <div className="est-section-header est-section-header-sm">
                 <div className="est-header-left">
@@ -353,9 +553,7 @@ export default function EstadisticasPage() {
 
               {data.cobranza.contratos_pendientes.length > 0 ? (
                 <>
-                  <p className="est-list-heading">
-                    Contratos con saldo por cobrar en el período
-                  </p>
+                  <p className="est-list-heading">Contratos con saldo por cobrar en el período</p>
                   <div className="est-vencidos-list">
                     {data.cobranza.contratos_pendientes.map((c) => {
                       const vencido = c.dias_diff > 0;
@@ -367,11 +565,9 @@ export default function EstadisticasPage() {
                         >
                           <div className="est-vencido-left">
                             <span className={`est-dot ${
-                              vencido && c.dias_diff > 30
-                                ? "est-dot-red"
-                                : vencido
-                                ? "est-dot-orange"
-                                : "est-dot-green"
+                              vencido && c.dias_diff > 30 ? "est-dot-red"
+                              : vencido ? "est-dot-orange"
+                              : "est-dot-green"
                             }`} />
                             <div>
                               <p className="est-vencido-nombre">{c.cliente_nombre}</p>
@@ -383,9 +579,7 @@ export default function EstadisticasPage() {
                           <div className="est-vencido-right">
                             <span className="est-vencido-monto">{fmtMoney(c.saldo)}</span>
                             {vencido ? (
-                              <span className={`est-badge-tag ${
-                                c.dias_diff > 30 ? "est-badge-red" : "est-badge-orange"
-                              }`}>
+                              <span className={`est-badge-tag ${c.dias_diff > 30 ? "est-badge-red" : "est-badge-orange"}`}>
                                 {c.dias_diff} días vencido
                               </span>
                             ) : (
@@ -396,7 +590,6 @@ export default function EstadisticasPage() {
                       );
                     })}
                   </div>
-                  {/* Total cobranza */}
                   <div className="est-cobranza-total-row">
                     <span className="est-total-label">
                       Total por cobrar ({data.cobranza.contratos_pendientes.length} contratos)
@@ -423,7 +616,6 @@ export default function EstadisticasPage() {
 
               {data.contratos_del_periodo.length > 0 ? (
                 <>
-                  {/* Encabezado tabla */}
                   <div className="est-contratos-head">
                     <span>Cliente</span>
                     <span>Tipo</span>
@@ -431,8 +623,6 @@ export default function EstadisticasPage() {
                     <span style={{ textAlign: "right" }}>Importe</span>
                     <span style={{ textAlign: "right" }}>Pendiente</span>
                   </div>
-
-                  {/* Lista paginada */}
                   <div className="est-contratos-list">
                     {contratosPaginados.map((c) => (
                       <div
@@ -445,28 +635,20 @@ export default function EstadisticasPage() {
                           <span>{c.cliente_nombre}</span>
                         </div>
                         <span className="est-contrato-tipo">{c.tipo_evento}</span>
-                        <span className="est-contrato-fecha">
-                          {fmtFechaCorta(c.fecha_evento)}
-                        </span>
-                        <span className="est-contrato-importe">
-                          {fmtMoney(c.importe)}
-                        </span>
+                        <span className="est-contrato-fecha">{fmtFechaCorta(c.fecha_evento)}</span>
+                        <span className="est-contrato-importe">{fmtMoney(c.importe)}</span>
                         <span className={`est-contrato-saldo ${c.saldo_pendiente > 0 ? "est-saldo-pending" : "est-saldo-ok"}`}>
                           {c.saldo_pendiente > 0 ? fmtMoney(c.saldo_pendiente) : "Liquidado"}
                         </span>
                       </div>
                     ))}
                   </div>
-
-                  {/* Fila de totales */}
                   <div className="est-contratos-total-row">
                     <span className="est-total-label">Total ({data.contratos_del_periodo.length} contratos)</span>
-                    <span />
-                    <span />
+                    <span /><span />
                     <span className="est-total-importe">{fmtMoney(totalImporte)}</span>
                     <span className="est-total-saldo">{totalSaldoPendiente > 0 ? fmtMoney(totalSaldoPendiente) : "Liquidado"}</span>
                   </div>
-
                   {data.contratos_del_periodo.length > PAGE_SIZE && (
                     <div className="est-pagination">
                       <Pagination
@@ -492,7 +674,6 @@ export default function EstadisticasPage() {
   );
 }
 
-// Icono inline para no importar más íconos
 function ExclamationIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">

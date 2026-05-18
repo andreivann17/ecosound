@@ -15,13 +15,27 @@ import { actionScroll } from "./redux/actions/utils/utils";
 import Eventos from "./containers/pages/EventosPage.jsx"
 import CrearEventoPage from "./containers/pages/crearEventoPage.jsx"
 import EventoDetallePage from "./containers/pages/EventoDetallePage.jsx"
-import SesionesPage from "./containers/pages/SesionesPage.jsx"
+import InventarioPage from "./containers/pages/InventarioPage.jsx"
+import CrearEquipoPage from "./containers/pages/crearEquipoPage.jsx"
+import EquipoDetallePage from "./containers/pages/EquipoDetallePage.jsx"
+import NuevoConteoPage from "./containers/pages/NuevoConteoPage.jsx"
+import ConteosPage from "./containers/pages/ConteosPage.jsx"
+import ConteoDetallePage from "./containers/pages/ConteoDetallePage.jsx"
+
 import CrearSesionPage from "./containers/pages/CrearSesionPage.jsx"
 import SesionDetallePage from "./containers/pages/SesionDetallePage.jsx"
 import UsuariosPage from "./containers/pages/UsuariosPage.jsx"
 import CrearUsuarioPage from "./containers/pages/crearUsuarioPage.jsx"
 import UsuarioDetallePage from "./containers/pages/UsuarioDetallePage.jsx"
 import EstadisticasPage from "./containers/pages/EstadisticasPage.jsx"
+import TrabajadoresPage from "./containers/pages/TrabajadoresPage.jsx"
+import CrearTrabajadorPage from "./containers/pages/crearTrabajadorPage.jsx"
+import TrabajadorDetallePage from "./containers/pages/TrabajadorDetallePage.jsx"
+import ConfiguracionPage from "./containers/pages/ConfiguracionPage.jsx"
+import PerfilPage from "./containers/pages/PerfilPage.jsx"
+import PaquetesPage from "./containers/pages/PaquetesPage.jsx"
+import CrearPaquetePage from "./containers/pages/crearPaquetePage.jsx"
+import PaqueteDetallePage from "./containers/pages/PaqueteDetallePage.jsx"
 import { actionUserMeGet } from "./redux/actions/login/login";
 import Login from "./containers/pages/login";
 import Materias from "./containers/pages/materias";
@@ -56,6 +70,7 @@ import "../src/assets/css/header.css";
 import store from "./store";
 import { Provider, useDispatch } from "react-redux";
 import ElectronView from "./electron_view";
+import { PermisosProvider } from "./context/PermisosContext";
 
 const routes = [
   {
@@ -115,37 +130,62 @@ const routes = [
     className: "EventosEditar",
   },
   {
-    path: "/sesiones",
-    value: "sesiones",
-    name: "Sesiones",
-    element: <SesionesPage />,
+    path: "/inventario",
+    value: "inventario",
+    name: "Inventario",
+    element: <InventarioPage />,
     nodeRef: createRef(),
-    className: "Sesiones",
+    className: "Inventario",
   },
   {
-    path: "/sesiones/crear",
-    value: "sesiones-crear",
-    name: "Sesiones-Crear",
-    element: <CrearSesionPage />,
+    path: "/inventario/equipo/crear",
+    value: "inventario-equipo-crear",
+    name: "Inventario-Equipo-Crear",
+    element: <CrearEquipoPage />,
     nodeRef: createRef(),
-    className: "SesionesCrear",
+    className: "InventarioEquipoCrear",
   },
   {
-    path: "/sesiones/:idSesion",
-    value: "sesiones-detalle",
-    name: "Sesiones-Detalle",
-    element: <SesionDetallePage />,
+    path: "/inventario/equipo/:idEquipo",
+    value: "inventario-equipo-detalle",
+    name: "Inventario-Equipo-Detalle",
+    element: <EquipoDetallePage />,
     nodeRef: createRef(),
-    className: "SesionesDetalle",
+    className: "InventarioEquipoDetalle",
   },
   {
-    path: "/sesiones/:idSesion/editar",
-    value: "sesiones-editar",
-    name: "Sesiones-Editar",
-    element: <CrearSesionPage />,
+    path: "/inventario/equipo/:idEquipo/editar",
+    value: "inventario-equipo-editar",
+    name: "Inventario-Equipo-Editar",
+    element: <CrearEquipoPage />,
     nodeRef: createRef(),
-    className: "SesionesEditar",
+    className: "InventarioEquipoEditar",
   },
+  {
+    path: "/inventario/conteos",
+    value: "inventario-conteos",
+    name: "Inventario-Conteos",
+    element: <ConteosPage />,
+    nodeRef: createRef(),
+    className: "InventarioConteos",
+  },
+  {
+    path: "/inventario/conteos/nuevo",
+    value: "inventario-conteos-nuevo",
+    name: "Inventario-Conteos-Nuevo",
+    element: <NuevoConteoPage />,
+    nodeRef: createRef(),
+    className: "InventarioConteosNuevo",
+  },
+  {
+    path: "/inventario/conteos/:idConteo",
+    value: "inventario-conteo-detalle",
+    name: "Inventario-Conteo-Detalle",
+    element: <ConteoDetallePage />,
+    nodeRef: createRef(),
+    className: "InventarioConteoDetalle",
+  },
+  
    {
     path: "/notificaciones",
     value: "notificaciones",
@@ -377,6 +417,86 @@ const routes = [
     className: "UsuariosDetalle",
   },
   {
+    path: "/trabajadores",
+    value: "trabajadores",
+    name: "Trabajadores",
+    element: <TrabajadoresPage />,
+    nodeRef: createRef(),
+    className: "Trabajadores",
+  },
+  {
+    path: "/trabajadores/crear",
+    value: "trabajadores-crear",
+    name: "Trabajadores-Crear",
+    element: <CrearTrabajadorPage />,
+    nodeRef: createRef(),
+    className: "TrabajadoresCrear",
+  },
+  {
+    path: "/trabajadores/:idTrabajador",
+    value: "trabajadores-detalle",
+    name: "Trabajadores-Detalle",
+    element: <TrabajadorDetallePage />,
+    nodeRef: createRef(),
+    className: "TrabajadoresDetalle",
+  },
+  {
+    path: "/trabajadores/:idTrabajador/editar",
+    value: "trabajadores-editar",
+    name: "Trabajadores-Editar",
+    element: <CrearTrabajadorPage />,
+    nodeRef: createRef(),
+    className: "TrabajadoresEditar",
+  },
+  {
+    path: "/configuracion",
+    value: "configuracion",
+    name: "Configuracion",
+    element: <ConfiguracionPage />,
+    nodeRef: createRef(),
+    className: "Configuracion",
+  },
+  {
+    path: "/perfil",
+    value: "perfil",
+    name: "Perfil",
+    element: <PerfilPage />,
+    nodeRef: createRef(),
+    className: "Perfil",
+  },
+  {
+    path: "/paquetes",
+    value: "paquetes",
+    name: "Paquetes",
+    element: <PaquetesPage />,
+    nodeRef: createRef(),
+    className: "Paquetes",
+  },
+  {
+    path: "/paquetes/crear",
+    value: "paquetes-crear",
+    name: "Paquetes-Crear",
+    element: <CrearPaquetePage />,
+    nodeRef: createRef(),
+    className: "PaquetesCrear",
+  },
+  {
+    path: "/paquetes/:idPaquete",
+    value: "paquetes-detalle",
+    name: "Paquetes-Detalle",
+    element: <PaqueteDetallePage />,
+    nodeRef: createRef(),
+    className: "PaquetesDetalle",
+  },
+  {
+    path: "/paquetes/:idPaquete/editar",
+    value: "paquetes-editar",
+    name: "Paquetes-Editar",
+    element: <CrearPaquetePage />,
+    nodeRef: createRef(),
+    className: "PaquetesEditar",
+  },
+  {
     path: "*",
     value: "NotFound",
     name: "NotFound",
@@ -535,6 +655,8 @@ const container = document.getElementById("root");
 const root = createRoot(container);
 root.render(
   <Provider store={store}>
-    <RouterProvider router={router} />
+    <PermisosProvider>
+      <RouterProvider router={router} />
+    </PermisosProvider>
   </Provider>
 );

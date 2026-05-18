@@ -1,0 +1,207 @@
+/* ===== USUARIOS GRID ===== */
+.usr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.usr-card {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.18s;
+}
+
+.usr-card:hover {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.13);
+}
+
+.usr-card-image {
+  height: 150px;
+  overflow: hidden;
+  position: relative;
+}
+
+.usr-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.22s;
+}
+
+.usr-card:hover .usr-card-img {
+  transform: scale(1.04);
+}
+
+.usr-card-avatar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usr-card-initials {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.usr-card-body {
+  flex: 1;
+  padding: 14px 14px 8px;
+}
+
+.usr-card-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #111;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.usr-card-email {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+
+.usr-card-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.usr-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.usr-badge-active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.usr-badge-inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.usr-card-footer {
+  padding: 10px 14px 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.usr-btn-detail {
+  width: 100%;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.usr-btn-detail:hover {
+  background: #374151;
+}
+
+/* ===== CREAR USUARIO – DRAGGER ===== */
+.usr-dragger {
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fafafa;
+  position: relative;
+}
+
+.usr-dragger:hover {
+  border-color: #6b7280;
+  background: #f3f4f6;
+}
+
+.usr-dragger-over {
+  border-color: #111;
+  background: #f0f0f0;
+}
+
+.usr-dragger-filled {
+  border-style: solid;
+  border-color: #111;
+  min-height: 200px;
+}
+
+.usr-dragger-preview {
+  width: 100%;
+  position: relative;
+}
+
+.usr-dragger-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.usr-dragger-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usr-dragger-remove:hover {
+  background: #dc2626;
+}
+
+.usr-dragger-placeholder {
+  text-align: center;
+  color: #9ca3af;
+  padding: 16px;
+}
+
+.usr-dragger-placeholder-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.usr-dragger-placeholder-text {
+  font-size: 13px;
+  line-height: 1.5;
+}

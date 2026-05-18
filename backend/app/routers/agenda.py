@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 import json
-from pydantic import BaseModel, field_validator,Field
+from pydantic import BaseModel, field_validator, Field, ConfigDict
 from typing import Optional, List, Literal, Dict, Any
 
 from ..deps import get_current_user
@@ -134,6 +134,160 @@ class AgendaFilterBody(BaseModel):
     include_other_cities: bool = False
     event_type_ids: List[int] = []
     contrato_tipo_ids: List[int] = []
+
+# ── CONFIG: tipos de agenda ────────────────────────────────────────────────
+
+class TipoAgendaCreate(BaseModel):
+    nombre: str
+
+
+@router.get("/config/tipos")
+def list_tipos_agenda(current_user: Dict[str, Any] = Depends(get_current_user)):
+    from ..db import get_connection
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 ORDER BY nombre"
+            )
+            return cur.fetchall()
+    finally:
+        conn.close()
+
+
+@router.post("/config/tipos", status_code=201)
+def create_tipo_agenda(
+    payload: TipoAgendaCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    from ..db import get_connection
+    nombre = payload.nombre.strip()
+    if not nombre:
+        raise HTTPException(status_code=422, detail="nombre requerido")
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO agenda_evento (nombre, active) VALUES (%s, 1)", (nombre,)
+            )
+            conn.commit()
+            new_id = cur.lastrowid
+        return {"id_agenda_evento": new_id, "nombre": nombre}
+    finally:
+        conn.close()
+
+
+@router.delete("/config/tipos/{id_tipo}")
+def delete_tipo_agenda(
+    id_tipo: int,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    from ..db import get_connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE agenda_evento SET active = 0 WHERE id_agenda_evento = %s", (id_tipo,)
+            )
+            conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
+
+
+# ── CONFIG: correo ─────────────────────────────────────────────────────────
+
+_CFG_AGENDA_DDL = """
+CREATE TABLE IF NOT EXISTS configuracion_agenda (
+    id_configuracion_agenda INT        AUTO_INCREMENT PRIMARY KEY,
+    correo_crear_agenda     TINYINT(1) NOT NULL DEFAULT 0,
+    id_user                 INT        NOT NULL DEFAULT 0,
+    active                  TINYINT(1) NOT NULL DEFAULT 1,
+    datetime                DATETIME   NOT NULL
+)
+"""
+
+
+def _ensure_cfg_agenda(conn):
+    with conn.cursor() as cur:
+        cur.execute(_CFG_AGENDA_DDL)
+    conn.commit()
+
+
+_AGENDA_CORREO_DEFAULTS = {"correo_crear_agenda": False}
+
+
+class ConfigCorreoAgenda(BaseModel):
+    correo_crear_agenda: bool = False
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.get("/config/correo")
+def get_config_correo_agenda(current_user: Dict[str, Any] = Depends(get_current_user)):
+    from ..db import get_connection
+    conn = get_connection()
+    try:
+        _ensure_cfg_agenda(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT correo_crear_agenda FROM configuracion_agenda
+                WHERE active = 1 ORDER BY id_configuracion_agenda DESC LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+        if not row:
+            return _AGENDA_CORREO_DEFAULTS.copy()
+        return {k: bool(v) for k, v in row.items()}
+    finally:
+        conn.close()
+
+
+@router.put("/config/correo", status_code=200)
+def save_config_correo_agenda(
+    payload: ConfigCorreoAgenda,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    from ..db import get_connection
+    import datetime as _dt
+    user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    now = _dt.datetime.now()
+    conn = get_connection()
+    try:
+        _ensure_cfg_agenda(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT id_configuracion_agenda FROM configuracion_agenda
+                WHERE active = 1 ORDER BY id_configuracion_agenda DESC LIMIT 1
+                """
+            )
+            existing = cur.fetchone()
+        if existing:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE configuracion_agenda
+                    SET correo_crear_agenda = %s, datetime = %s
+                    WHERE id_configuracion_agenda = %s
+                    """,
+                    (int(payload.correo_crear_agenda), now, existing["id_configuracion_agenda"]),
+                )
+        else:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO configuracion_agenda
+                        (correo_crear_agenda, id_user, active, datetime)
+                    VALUES (%s, %s, 1, %s)
+                    """,
+                    (int(payload.correo_crear_agenda), user_id, now),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
+
 
 @router.post("/filter", status_code=200)
 def agenda_filter(

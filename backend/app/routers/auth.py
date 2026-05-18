@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, status, Response, Request
 from pydantic import BaseModel
 
 from ..models.auth import authenticate
+from ..models import users as users_model
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -79,6 +80,11 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
         if str(exc) == "invalid_password":
             raise HTTPException(status_code=401, detail="Contraseña incorrecta")
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    try:
+        users_model.update_ultima_sesion(user_id)
+    except Exception:
+        pass
 
     access_token = _create_access_token(user_id=user_id, role=role)
     refresh_token = _create_refresh_token(user_id=user_id, role=role)

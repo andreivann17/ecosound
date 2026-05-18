@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import {
@@ -45,6 +46,9 @@ import {
   FileExcelOutlined,
   FileUnknownOutlined,
   LoadingOutlined,
+  AppstoreOutlined,
+  MinusOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
@@ -147,6 +151,9 @@ const getActionConfig = (action) =>
 export default function EventoDetallePage() {
   const { idEvento } = useParams();
   const navigate = useNavigate();
+  const { perm } = usePermisos() || { perm: () => true };
+  const canEditar   = perm("eventos", "editar");
+  const canEliminar = perm("eventos", "eliminar");
 
   const [evento, setEvento] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +167,25 @@ export default function EventoDetallePage() {
   const [actividad, setActividad] = useState([]);
   const [loadingActividad, setLoadingActividad] = useState(false);
 
+  const [equipoEvento, setEquipoEvento] = useState([]);
+  const [loadingEquipo, setLoadingEquipo] = useState(false);
+  const [catalogoEquipo, setCatalogoEquipo] = useState([]);
+  const [loadingCatalogo, setLoadingCatalogo] = useState(false);
+  const [equipoModalOpen, setEquipoModalOpen] = useState(false);
+  const [equipoSearch, setEquipoSearch] = useState("");
+  const [equipoCantidades, setEquipoCantidades] = useState({});
+  const [savingEquipoId, setSavingEquipoId] = useState(null);
+
+  const [trabajadoresEvento, setTrabajadoresEvento] = useState([]);
+  const [loadingTrabajadores, setLoadingTrabajadores] = useState(false);
+  const [catalogoTrabajadores, setCatalogoTrabajadores] = useState([]);
+  const [puestosEvento, setPuestosEvento] = useState([]);
+  const [trabajadoresModalOpen, setTrabajadoresModalOpen] = useState(false);
+  const [trabSearch, setTrabSearch] = useState("");
+  const [trabSelectedId, setTrabSelectedId] = useState(null);
+  const [trabSelectedPuesto, setTrabSelectedPuesto] = useState(null);
+  const [savingTrab, setSavingTrab] = useState(false);
+
   const [eventoPdfs, setEventoPdfs] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
@@ -167,15 +193,27 @@ export default function EventoDetallePage() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [viewerDoc, setViewerDoc] = useState(null);
 
+  const [paquetesSonido, setPaquetesSonido] = useState([]);
+  const [paquetesFoto, setPaquetesFoto] = useState([]);
+
   const pdfInputRef = useRef(null);
   const docInputRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    apiEventosInstance
-      .get(`/eventos/${idEvento}`, { headers: authHeaderEventos() })
-      .then(({ data }) => { if (mounted) setEvento(data); })
+    Promise.all([
+      apiEventosInstance.get(`/eventos/${idEvento}`, { headers: authHeaderEventos() }),
+      apiEventosInstance.get("/eventos/config/paquetes-sonido", { headers: authHeaderEventos() }),
+      apiEventosInstance.get("/eventos/config/paquetes-fotografia", { headers: authHeaderEventos() }),
+    ])
+      .then(([evRes, psRes, pfRes]) => {
+        if (mounted) {
+          setEvento(evRes.data);
+          setPaquetesSonido(Array.isArray(psRes.data) ? psRes.data : []);
+          setPaquetesFoto(Array.isArray(pfRes.data) ? pfRes.data : []);
+        }
+      })
       .catch(() => notification.error({ message: "No se pudo cargar el evento" }))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
@@ -228,10 +266,71 @@ export default function EventoDetallePage() {
     }
   }, [idEvento]);
 
+  const fetchEquipoEvento = useCallback(async () => {
+    setLoadingEquipo(true);
+    try {
+      const { data } = await apiEventosInstance.get(
+        `/eventos/${idEvento}/equipo`,
+        { headers: authHeaderEventos() }
+      );
+      setEquipoEvento(Array.isArray(data) ? data : []);
+    } catch {
+      setEquipoEvento([]);
+    } finally {
+      setLoadingEquipo(false);
+    }
+  }, [idEvento]);
+
+  const fetchCatalogo = useCallback(async () => {
+    setLoadingCatalogo(true);
+    try {
+      const { data } = await apiEventosInstance.get(
+        `/eventos/${idEvento}/equipo-catalogo`,
+        { headers: authHeaderEventos() }
+      );
+      setCatalogoEquipo(Array.isArray(data) ? data : []);
+    } catch {
+      setCatalogoEquipo([]);
+    } finally {
+      setLoadingCatalogo(false);
+    }
+  }, [idEvento]);
+
+  const fetchTrabajadoresEvento = useCallback(async () => {
+    setLoadingTrabajadores(true);
+    try {
+      const { data } = await apiEventosInstance.get(
+        `/eventos/${idEvento}/trabajadores`,
+        { headers: authHeaderEventos() }
+      );
+      setTrabajadoresEvento(Array.isArray(data) ? data : []);
+    } catch {
+      setTrabajadoresEvento([]);
+    } finally {
+      setLoadingTrabajadores(false);
+    }
+  }, [idEvento]);
+
+  const fetchCatalogoTrabajadores = useCallback(async () => {
+    try {
+      const [resTrab, resPuestos] = await Promise.all([
+        apiEventosInstance.get("/trabajadores", { headers: authHeaderEventos() }),
+        apiEventosInstance.get("/trabajadores/puestos", { headers: authHeaderEventos() }),
+      ]);
+      setCatalogoTrabajadores(Array.isArray(resTrab.data) ? resTrab.data : []);
+      setPuestosEvento(Array.isArray(resPuestos.data) ? resPuestos.data : []);
+    } catch {
+      setCatalogoTrabajadores([]);
+      setPuestosEvento([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === "actividad") fetchActividad();
     if (activeTab === "evento-pdf" || activeTab === "documentos") fetchDocumentos();
-  }, [activeTab, fetchActividad, fetchDocumentos]);
+    if (activeTab === "equipo") fetchEquipoEvento();
+    if (activeTab === "trabajadores") fetchTrabajadoresEvento();
+  }, [activeTab, fetchActividad, fetchDocumentos, fetchEquipoEvento, fetchTrabajadoresEvento]);
 
   const handleDelete = () => {
     Modal.confirm({
@@ -511,25 +610,29 @@ export default function EventoDetallePage() {
             </div>
 
             <div className="cd-header-actions">
-              <Button
-                icon={<EditOutlined />}
-                className="cd-btn-edit"
-                onClick={() =>
-                  navigate(`/eventos/${evento.id_evento}/editar`, {
-                    state: { evento },
-                  })
-                }
-              >
-                Editar
-              </Button>
-              <Button
-                icon={<DeleteOutlined />}
-                className="cd-btn-delete"
-                loading={deleting}
-                onClick={handleDelete}
-              >
-                Eliminar
-              </Button>
+              {canEditar && (
+                <Button
+                  icon={<EditOutlined />}
+                  className="cd-btn-edit"
+                  onClick={() =>
+                    navigate(`/eventos/${evento.id_evento}/editar`, {
+                      state: { evento },
+                    })
+                  }
+                >
+                  Editar
+                </Button>
+              )}
+              {canEliminar && (
+                <Button
+                  icon={<DeleteOutlined />}
+                  className="cd-btn-delete"
+                  loading={deleting}
+                  onClick={handleDelete}
+                >
+                  Eliminar
+                </Button>
+              )}
             </div>
           </div>
 
@@ -548,6 +651,27 @@ export default function EventoDetallePage() {
               <FilePdfOutlined />
               Evento Visor
             </button>
+             <button
+              className={`cd-tab-btn ${activeTab === "pagos" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("pagos")}
+            >
+              <DollarOutlined />
+              Abonos y Pagos
+            </button>
+              <button
+              className={`cd-tab-btn ${activeTab === "equipo" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("equipo")}
+            >
+              <AppstoreOutlined />
+              Equipo
+            </button>
+            <button
+              className={`cd-tab-btn ${activeTab === "trabajadores" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("trabajadores")}
+            >
+              <TeamOutlined />
+              Trabajadores
+            </button>
             <button
               className={`cd-tab-btn ${activeTab === "historial" ? "cd-tab-btn-active" : ""}`}
               onClick={() => setActiveTab("historial")}
@@ -555,13 +679,7 @@ export default function EventoDetallePage() {
               <ClockCircleOutlined />
               Historial
             </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "pagos" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("pagos")}
-            >
-              <DollarOutlined />
-              Abonos y Pagos
-            </button>
+           
             <button
               className={`cd-tab-btn ${activeTab === "documentos" ? "cd-tab-btn-active" : ""}`}
               onClick={() => setActiveTab("documentos")}
@@ -576,6 +694,7 @@ export default function EventoDetallePage() {
               <HistoryOutlined />
               Actividad
             </button>
+          
           </div>
         </div>
 
@@ -692,6 +811,33 @@ export default function EventoDetallePage() {
                   </div>
                 )}
               </div>
+
+              {(evento.id_paquete_sonido || evento.id_paquete_fotografia) && (
+                <div className="cd-misa-block">
+                  <div className="cd-misa-title">
+                    <GiftOutlined style={{ fontSize: 13, color: "#6b7280" }} />
+                    Paquetes contratados
+                  </div>
+                  <div className="cd-misa-fields">
+                    {evento.id_paquete_sonido && (
+                      <div>
+                        <span className="cd-field-label">Paquete Sonido</span>
+                        <span className="cd-field-value">
+                          {paquetesSonido.find(p => p.id_paquete_sonido === evento.id_paquete_sonido)?.nombre || `Paquete #${evento.id_paquete_sonido}`}
+                        </span>
+                      </div>
+                    )}
+                    {evento.id_paquete_fotografia && (
+                      <div>
+                        <span className="cd-field-label">Paquete Fotografía</span>
+                        <span className="cd-field-value">
+                          {paquetesFoto.find(p => p.id_paquete_fotografia === evento.id_paquete_fotografia)?.nombre || `Paquete #${evento.id_paquete_fotografia}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="cd-card cd-card-financial">
@@ -1094,6 +1240,185 @@ export default function EventoDetallePage() {
             )}
           </div>
         )}
+        {/* Tab 7: Equipo */}
+        {activeTab === "equipo" && (
+          <div className="cd-card">
+            <div className="cd-pagos-header">
+              <div className="cd-pagos-header-left">
+                <div className="cd-card-icon-wrap"><AppstoreOutlined /></div>
+                <h2 className="cd-card-title">Equipo del evento</h2>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className="cd-btn-add-pago"
+                onClick={() => {
+                  setEquipoSearch("");
+                  setEquipoCantidades({});
+                  fetchCatalogo();
+                  setEquipoModalOpen(true);
+                }}
+              >
+                Agregar equipo
+              </Button>
+            </div>
+
+            {loadingEquipo ? (
+              <div className="cd-loading-wrap"><Spin size="large" /></div>
+            ) : equipoEvento.length === 0 ? (
+              <Empty description="Sin equipo asignado a este evento" style={{ margin: "32px 0" }} />
+            ) : (
+              <div className="cd-ev-card-grid">
+                {equipoEvento.map((ee) => (
+                  <div key={ee.id_contrato_equipo} className="cd-ev-card">
+                    <div className="cd-ev-card-image">
+                      {ee.path_equipo ? (
+                        <img src={`${API_BASE}/${ee.path_equipo}`} alt={ee.nombre_equipo} className="cd-ev-card-img" />
+                      ) : (
+                        <div className="cd-ev-card-no-img">
+                          <span className="cd-ev-no-img-icon">📷</span>
+                          <span className="cd-ev-no-img-text">Sin imagen</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="cd-ev-card-body">
+                      <div className="cd-ev-card-name">{ee.nombre_equipo || "—"}</div>
+                      {ee.nombre_categoria && (
+                        <span className="cd-ev-badge">{ee.nombre_categoria}</span>
+                      )}
+                      <div className="cd-ev-card-meta">
+                        <span className="cd-ev-meta-label">Cantidad</span>
+                        <span className="cd-ev-meta-val cd-ev-meta-qty">{ee.cantidad}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="cd-ev-card-remove"
+                      title="Quitar del evento"
+                      onClick={() => {
+                        Modal.confirm({
+                          title: "Quitar equipo",
+                          content: `¿Quitar "${ee.nombre_equipo}" del evento?`,
+                          okText: "Quitar",
+                          okType: "danger",
+                          cancelText: "Cancelar",
+                          centered: true,
+                          onOk: async () => {
+                            try {
+                              await apiEventosInstance.delete(
+                                `/eventos/${idEvento}/equipo/${ee.id_contrato_equipo}`,
+                                { headers: authHeaderEventos() }
+                              );
+                              notification.success({ message: "Equipo quitado del evento" });
+                              fetchEquipoEvento();
+                            } catch (err) {
+                              notification.error({
+                                message: "Error al quitar equipo",
+                                description: err?.response?.data?.detail || err.message,
+                              });
+                            }
+                          },
+                        });
+                      }}
+                    >
+                      <MinusOutlined />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 8: Trabajadores */}
+        {activeTab === "trabajadores" && (
+          <div className="cd-card">
+            <div className="cd-pagos-header">
+              <div className="cd-pagos-header-left">
+                <div className="cd-card-icon-wrap"><TeamOutlined /></div>
+                <h2 className="cd-card-title">Trabajadores del evento</h2>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className="cd-btn-add-pago"
+                onClick={() => {
+                  setTrabSearch("");
+                  setTrabSelectedId(null);
+                  setTrabSelectedPuesto(null);
+                  fetchCatalogoTrabajadores();
+                  setTrabajadoresModalOpen(true);
+                }}
+              >
+                Agregar trabajador
+              </Button>
+            </div>
+
+            {loadingTrabajadores ? (
+              <div className="cd-loading-wrap"><Spin size="large" /></div>
+            ) : trabajadoresEvento.length === 0 ? (
+              <Empty description="Sin trabajadores asignados a este evento" style={{ margin: "32px 0" }} />
+            ) : (
+              <div className="cd-ev-card-grid">
+                {trabajadoresEvento.map((ct) => (
+                  <div key={ct.id_contrato_trabajador} className="cd-ev-card">
+                    <div className="cd-ev-card-image">
+                      {ct.path_trabajador ? (
+                        <img src={`${API_BASE}/${ct.path_trabajador}`} alt={ct.nombre_trabajador} className="cd-ev-card-img" />
+                      ) : (
+                        <div className="cd-ev-card-no-img">
+                          <div className="cd-ev-avatar">
+                            {((ct.nombre_trabajador || " ")[0] || "").toUpperCase()}
+                            {((ct.apellido_trabajador || " ")[0] || "").toUpperCase()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="cd-ev-card-body">
+                      <div className="cd-ev-card-name" style={{ textTransform: "capitalize" }}>
+                        {ct.nombre_trabajador} {ct.apellido_trabajador}
+                      </div>
+                      {ct.nombre_puesto && (
+                        <span className="cd-ev-badge">{ct.nombre_puesto}</span>
+                      )}
+                    </div>
+                    <button
+                      className="cd-ev-card-remove"
+                      title="Quitar del evento"
+                      onClick={() => {
+                        Modal.confirm({
+                          title: "Quitar trabajador",
+                          content: `¿Quitar a "${ct.nombre_trabajador} ${ct.apellido_trabajador}" del evento?`,
+                          okText: "Quitar",
+                          okType: "danger",
+                          cancelText: "Cancelar",
+                          centered: true,
+                          onOk: async () => {
+                            try {
+                              await apiEventosInstance.delete(
+                                `/eventos/${idEvento}/trabajadores/${ct.id_contrato_trabajador}`,
+                                { headers: authHeaderEventos() }
+                              );
+                              notification.success({ message: "Trabajador quitado del evento" });
+                              fetchTrabajadoresEvento();
+                            } catch (err) {
+                              notification.error({
+                                message: "Error al quitar trabajador",
+                                description: err?.response?.data?.detail || err.message,
+                              });
+                            }
+                          },
+                        });
+                      }}
+                    >
+                      <MinusOutlined />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* Modal: Agregar abono */}
@@ -1130,6 +1455,395 @@ export default function EventoDetallePage() {
             <Input placeholder="Ej: Abono por transferencia bancaria" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal: Agregar equipo */}
+      <Modal
+        open={equipoModalOpen}
+        onCancel={() => setEquipoModalOpen(false)}
+        footer={null}
+        title={
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
+            Agregar equipo al evento
+          </div>
+        }
+        centered
+        width={700}
+        destroyOnClose
+        styles={{ body: { padding: "20px 24px 24px" } }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          <Input
+            placeholder="Buscar por nombre o categoría..."
+            value={equipoSearch}
+            onChange={(e) => setEquipoSearch(e.target.value)}
+            allowClear
+            style={{ borderRadius: 10, height: 40 }}
+          />
+
+          {loadingCatalogo ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+              <Spin size="large" />
+            </div>
+          ) : (() => {
+            const busqueda = equipoSearch.trim().toLowerCase();
+            const filtrado = catalogoEquipo.filter((eq) =>
+              !busqueda ||
+              eq.nombre.toLowerCase().includes(busqueda) ||
+              (eq.nombre_categoria || "").toLowerCase().includes(busqueda)
+            );
+
+            const grupos = {};
+            for (const eq of filtrado) {
+              const cat = eq.nombre_categoria || "Sin categoría";
+              if (!grupos[cat]) grupos[cat] = [];
+              grupos[cat].push(eq);
+            }
+
+            if (filtrado.length === 0) {
+              return <Empty description="Sin resultados" style={{ margin: "32px 0" }} />;
+            }
+
+            return (
+              <div style={{
+                maxHeight: 460,
+                overflowY: "auto",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                background: "#fafbfc",
+              }}>
+                {Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b)).map(([cat, items]) => (
+                  <div key={cat}>
+                    {/* Category header */}
+                    <div style={{
+                      position: "sticky", top: 0, zIndex: 1,
+                      fontSize: 10, fontWeight: 800, textTransform: "uppercase",
+                      letterSpacing: "0.09em", color: "#94a3b8",
+                      padding: "10px 16px 8px",
+                      background: "#f1f5f9",
+                      borderBottom: "1px solid #e2e8f0",
+                    }}>
+                      {cat}
+                    </div>
+
+                    {items.map((eq, idx) => {
+                      const disponible = eq.cantidad_disponible ?? 0;
+                      const cantVal = equipoCantidades[eq.id_equipo] ?? 1;
+                      const sinStock = disponible <= 0;
+                      const excede = cantVal > disponible;
+
+                      return (
+                        <div
+                          key={eq.id_equipo}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr auto auto",
+                            alignItems: "center",
+                            gap: 14,
+                            padding: "12px 16px",
+                            borderBottom: idx < items.length - 1 ? "1px solid #f1f5f9" : "none",
+                            opacity: sinStock ? 0.5 : 1,
+                            background: "transparent",
+                          }}
+                        >
+                          {/* Thumbnail */}
+                          <div style={{
+                            width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                            overflow: "hidden", background: "#e2e8f0",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>
+                            {eq.path ? (
+                              <img
+                                src={`${API_BASE}/${eq.path}`}
+                                alt={eq.nombre}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            ) : (
+                              <AppstoreOutlined style={{ fontSize: 18, color: "#94a3b8" }} />
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", textTransform: "capitalize" }}>
+                              {eq.nombre}
+                            </div>
+                            <div style={{ marginTop: 3 }}>
+                              {sinStock ? (
+                                <span style={{
+                                  display: "inline-block", fontSize: 11, fontWeight: 700,
+                                  color: "#b91c1c", background: "#fee2e2",
+                                  borderRadius: 6, padding: "1px 8px",
+                                }}>
+                                  Sin stock
+                                </span>
+                              ) : (
+                                <span style={{
+                                  display: "inline-block", fontSize: 11, fontWeight: 700,
+                                  color: "#15803d", background: "#dcfce7",
+                                  borderRadius: 6, padding: "1px 8px",
+                                }}>
+                                  {disponible} disponible{disponible !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quantity input */}
+                          <Input
+                            type="number"
+                            min={1}
+                            max={disponible}
+                            value={cantVal}
+                            disabled={sinStock}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setEquipoCantidades((prev) => ({
+                                ...prev,
+                                [eq.id_equipo]: isNaN(v) ? 1 : Math.max(1, v),
+                              }));
+                            }}
+                            style={{
+                              width: 72, textAlign: "center",
+                              borderRadius: 8, height: 36,
+                            }}
+                          />
+
+                          {/* Add button */}
+                          <Button
+                            type="primary"
+                            disabled={sinStock || excede}
+                            loading={savingEquipoId === eq.id_equipo}
+                            style={
+                              sinStock || excede
+                                ? { borderRadius: 8, height: 36, minWidth: 80 }
+                                : { background: "#05060a", borderColor: "#05060a", borderRadius: 8, height: 36, minWidth: 80, fontWeight: 700 }
+                            }
+                            onClick={async () => {
+                              setSavingEquipoId(eq.id_equipo);
+                              try {
+                                await apiEventosInstance.post(
+                                  `/eventos/${idEvento}/equipo`,
+                                  { id_equipo: eq.id_equipo, cantidad: cantVal },
+                                  { headers: authHeaderEventos() }
+                                );
+                                notification.success({ message: `${eq.nombre} agregado al evento` });
+                                fetchEquipoEvento();
+                                fetchCatalogo();
+                              } catch (err) {
+                                notification.error({
+                                  message: "No se pudo agregar",
+                                  description: err?.response?.data?.detail || err.message,
+                                });
+                              } finally {
+                                setSavingEquipoId(null);
+                              }
+                            }}
+                          >
+                            Agregar
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      </Modal>
+
+      {/* Modal: Agregar trabajador */}
+      <Modal
+        open={trabajadoresModalOpen}
+        onCancel={() => setTrabajadoresModalOpen(false)}
+        footer={null}
+        title={
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
+            Agregar trabajador al evento
+          </div>
+        }
+        centered
+        width={660}
+        destroyOnClose
+        styles={{ body: { padding: "20px 24px 24px" } }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* Search */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b", marginBottom: 8 }}>
+              Selecciona un trabajador
+            </div>
+            <Input
+              placeholder="Buscar por nombre, apellido o puesto..."
+              value={trabSearch}
+              onChange={(e) => setTrabSearch(e.target.value)}
+              allowClear
+              style={{ marginBottom: 10, borderRadius: 10 }}
+            />
+            <div style={{
+              maxHeight: 260,
+              overflowY: "auto",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              background: "#fafbfc",
+            }}>
+              {(() => {
+                const q = trabSearch.trim().toLowerCase();
+                const filtered = catalogoTrabajadores.filter((t) =>
+                  !q ||
+                  (t.nombre || "").toLowerCase().includes(q) ||
+                  (t.apellido || "").toLowerCase().includes(q) ||
+                  (t.nombre_puesto || "").toLowerCase().includes(q)
+                );
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ padding: "28px 16px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                      Sin resultados
+                    </div>
+                  );
+                }
+                const asignadosIds = new Set(trabajadoresEvento.map((ct) => ct.id_trabajador));
+                return filtered.map((t, idx) => {
+                  const isSelected = trabSelectedId === t.id_trabajador;
+                  const yaAsignado = asignadosIds.has(t.id_trabajador);
+                  return (
+                    <div
+                      key={t.id_trabajador}
+                      onClick={() => !yaAsignado && setTrabSelectedId(t.id_trabajador)}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: yaAsignado ? "not-allowed" : "pointer",
+                        background: yaAsignado ? "#f8fafc" : isSelected ? "#f0f9ff" : "transparent",
+                        borderBottom: idx < filtered.length - 1 ? "1px solid #f1f5f9" : "none",
+                        borderLeft: isSelected ? "3px solid #0ea5e9" : "3px solid transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        opacity: yaAsignado ? 0.5 : 1,
+                        transition: "background 0.12s",
+                      }}
+                    >
+                      {/* Avatar or photo */}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: "50%",
+                        background: t.path
+                          ? `url(${API_BASE}/${t.path}) center/cover no-repeat`
+                          : "linear-gradient(140deg,#1e293b,#475569)",
+                        color: "#fff", display: "flex", alignItems: "center",
+                        justifyContent: "center", fontWeight: 800, fontSize: 13,
+                        flexShrink: 0, border: isSelected ? "2px solid #0ea5e9" : "2px solid transparent",
+                      }}>
+                        {!t.path && (
+                          <>
+                            {((t.nombre || " ")[0] || "").toUpperCase()}
+                            {((t.apellido || " ")[0] || "").toUpperCase()}
+                          </>
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", textTransform: "capitalize" }}>
+                          {t.nombre} {t.apellido}
+                        </div>
+                        {yaAsignado ? (
+                          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginTop: 1 }}>
+                            Ya asignado al evento
+                          </div>
+                        ) : t.nombre_puesto && (
+                          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                            {t.nombre_puesto}
+                          </div>
+                        )}
+                      </div>
+
+                      {isSelected && (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: "50%",
+                          background: "#0ea5e9", display: "flex",
+                          alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          <CheckCircleOutlined style={{ color: "#fff", fontSize: 12 }} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+              {catalogoTrabajadores.length === 0 && (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                  Sin trabajadores registrados
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Puesto */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b", marginBottom: 8 }}>
+              Puesto en este evento
+            </div>
+            <select
+              value={trabSelectedPuesto ?? ""}
+              onChange={(e) => setTrabSelectedPuesto(e.target.value ? Number(e.target.value) : null)}
+              style={{
+                width: "100%", padding: "10px 14px", borderRadius: 10,
+                border: "1px solid #e2e8f0", fontSize: 14, background: "#f8fafc",
+                outline: "none", color: "#0f172a", appearance: "auto",
+              }}
+            >
+              <option value="">Sin puesto específico</option>
+              {puestosEvento.map((p) => (
+                <option key={p.id_puesto} value={p.id_puesto}>{p.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action button */}
+          <Button
+            type="primary"
+            block
+            loading={savingTrab}
+            style={{
+              background: "#05060a",
+              borderColor: "#05060a",
+              height: 44,
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: 14,
+              color: "#fff",
+            }}
+            onClick={async () => {
+              if (!trabSelectedId) {
+                notification.warning({ message: "Selecciona un trabajador primero" });
+                return;
+              }
+              setSavingTrab(true);
+              try {
+                await apiEventosInstance.post(
+                  `/eventos/${idEvento}/trabajadores`,
+                  { id_trabajador: trabSelectedId, id_puesto: trabSelectedPuesto },
+                  { headers: authHeaderEventos() }
+                );
+                const selected = catalogoTrabajadores.find((t) => t.id_trabajador === trabSelectedId);
+                notification.success({ message: `${selected?.nombre || "Trabajador"} agregado al evento` });
+                fetchTrabajadoresEvento();
+                setTrabajadoresModalOpen(false);
+              } catch (err) {
+                notification.error({
+                  message: "No se pudo agregar",
+                  description: err?.response?.data?.detail || err.message,
+                });
+              } finally {
+                setSavingTrab(false);
+              }
+            }}
+          >
+            Agregar al evento
+          </Button>
+        </div>
       </Modal>
 
       {/* Modal: Visor de documento */}

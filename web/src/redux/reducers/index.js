@@ -18,7 +18,10 @@ import login from "./login"
 import agenda from "./agenda"
 import eventos from "./eventos"
 import sesiones_fotos from "./sesiones_fotos"
+import inventario from "./inventario"
 import usuarios from "./usuarios"
+import trabajadores from "./trabajadores"
+import paquetes from "./paquetes"
 export default combineReducers({
     materias,
     convenios,
@@ -38,6 +41,9 @@ export default combineReducers({
     agenda,
     eventos,
     sesiones_fotos,
+    inventario,
     usuarios,
+    trabajadores,
+    paquetes,
     login
 })

@@ -7,9 +7,16 @@ import {
   FolderOpenOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
+  AppstoreOutlined,
+  CalendarFilled,
+  BarChartOutlined,
+  TeamOutlined,
+  UserOutlined,
+  SettingFilled,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { usePermisos } from "./context/PermisosContext";
 import BuscarExpedienteModal from "./containers/pages/buscar.jsx";
 import logoPng from "./assets/img/logo2.png";
 import "./styles.css";
@@ -27,7 +34,10 @@ export default function ElectronHeader({ hideUserPopover }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [isBuscarOpen, setIsBuscarOpen] = useState(false);
+  const [appMenuOpen, setAppMenuOpen] = useState(false);
 
+  const appMenuRef = useRef(null);
+  const userMenuRef = useRef(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const lastToastAtRef = useRef(0);
@@ -48,6 +58,14 @@ export default function ElectronHeader({ hideUserPopover }) {
     const a = parts[0]?.[0] || "J";
     const b = parts[0]?.[1] || "D";
     return (a + b).toUpperCase();
+  }, []);
+
+  const [userAvatar, setUserAvatar] = useState(() => localStorage.getItem("userAvatar") || "");
+
+  useEffect(() => {
+    const handler = (e) => setUserAvatar(e.detail || "");
+    window.addEventListener("avatar-updated", handler);
+    return () => window.removeEventListener("avatar-updated", handler);
   }, []);
 
   useEffect(() => {
@@ -148,20 +166,53 @@ const connectWS = useCallback(() => {
     };
   }, [connectWS, isLoginPage]);
 
+  useEffect(() => {
+    if (!appMenuOpen) return;
+    const handler = (e) => {
+      if (appMenuRef.current && !appMenuRef.current.contains(e.target)) {
+        setAppMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [appMenuOpen]);
+
+  useEffect(() => {
+    if (!userOpen) return;
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [userOpen]);
+
+  const { perm } = usePermisos() || { perm: () => true };
+
   const pathname = location.pathname || "/";
 
   const isEventos = pathname.startsWith("/eventos");
-  const isSesiones = pathname.startsWith("/sesiones");
-  const isEstadisticas = pathname.startsWith("/estadisticas");
-  const isAgendaActive = pathname.startsWith("/agenda");
+  const isPaquetes = pathname.startsWith("/paquetes");
+  const isInventario = pathname.startsWith("/inventario");
+
   const isHomeActive = pathname.startsWith("/home");
   const links = [
     { label: "Inicio", onClick: () => navigate("/home"), active: isHomeActive },
-    { label: "Eventos", onClick: () => navigate("/eventos"), active: isEventos },
-    { label: "Sesiones", onClick: () => navigate("/sesiones"), active: isSesiones },
-    { label: "Estadísticas", onClick: () => navigate("/estadisticas"), active: isEstadisticas },
-    { label: "Agenda", onClick: () => navigate("/agenda"), active: isAgendaActive },
+    ...(perm("eventos", "modulo")    ? [{ label: "Eventos",    onClick: () => navigate("/eventos"),    active: isEventos    }] : []),
+    ...(perm("paquetes", "modulo")   ? [{ label: "Paquetes",   onClick: () => navigate("/paquetes"),   active: isPaquetes   }] : []),
+    ...(perm("inventario", "modulo") ? [{ label: "Inventario", onClick: () => navigate("/inventario"), active: isInventario }] : []),
   ];
+
+  const appItems = [
+    ...(perm("agenda",        "modulo") ? [{ key: "agenda",        label: "Agenda",        icon: <CalendarFilled />,   iconCls: "eh-app-icon-agenda",        path: "/agenda"        }] : []),
+    ...(perm("estadisticas",  "modulo") ? [{ key: "estadisticas",  label: "Estadísticas",  icon: <BarChartOutlined />, iconCls: "eh-app-icon-estadisticas",  path: "/estadisticas"  }] : []),
+    ...(perm("trabajadores",  "modulo") ? [{ key: "trabajadores",  label: "Trabajadores",  icon: <TeamOutlined />,     iconCls: "eh-app-icon-trabajadores",  path: "/trabajadores"  }] : []),
+    ...(perm("usuarios",      "modulo") ? [{ key: "usuarios",      label: "Usuarios",      icon: <UserOutlined />,     iconCls: "eh-app-icon-usuarios",      path: "/usuarios"      }] : []),
+    ...(perm("configuracion", "modulo") ? [{ key: "configuracion", label: "Configuración", icon: <SettingFilled />,    iconCls: "eh-app-icon-configuracion", path: "/configuracion" }] : []),
+  ];
+
+  const hasActiveApp = appItems.some((i) => pathname.startsWith(i.path));
 
   const notifications = (concSlice?.data?.items || []).map((item) => {
     let type = "info";
@@ -265,51 +316,6 @@ const connectWS = useCallback(() => {
     </div>
   );
 
-  const userCard = (
-    <div className="eh-user-pop">
-      <div className="eh-user-avatar">{userInitials}</div>
-      <div className="eh-user-email">
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {userEmail}
-        </Text>
-      </div>
-
-      <div className="eh-user-actions">
-        <Button
-          block
-          disabled
-          onClick={() => {
-            setUserOpen(false);
-            navigate("/settings");
-          }}
-        >
-          Settings
-        </Button>
-
-        <Button
-          block
-          onClick={() => {
-            setUserOpen(false);
-            navigate("/usuarios");
-          }}
-        >
-          Usuarios
-        </Button>
-
-        <Button
-          block
-          danger
-          onClick={() => {
-            localStorage.removeItem("token");
-            setUserOpen(false);
-            navigate("/login");
-          }}
-        >
-          Cerrar Sesion
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -355,26 +361,93 @@ const connectWS = useCallback(() => {
                   }}
                   overlayClassName="eh-popover"
                 >
-                  
+
                 </Popover>
                 </div>
 
-                {canShowUser && (
-                  <Popover
-                    content={userCard}
-                    trigger="click"
-                    placement="bottomRight"
-                    open={userOpen}
-                    onOpenChange={(v) => {
-                      setUserOpen(v);
-                      if (v) setNotifOpen(false);
+                <div className="eh-app-menu-wrapper electron-no-drag" ref={appMenuRef}>
+                  <button
+                    type="button"
+                    className={`eh-app-trigger eh-app-icon-btn${appMenuOpen ? " open" : ""}${hasActiveApp && !appMenuOpen ? " has-active" : ""}`}
+                    aria-label="Acceso rápido"
+                    onClick={() => {
+                      setAppMenuOpen((v) => !v);
+                      setUserOpen(false);
                     }}
-                    overlayClassName="eh-popover"
                   >
-                    <button type="button" className="eh-avatar" aria-label="Usuario">
-                      {userInitials}
+                    <AppstoreOutlined />
+                  </button>
+
+                  {appMenuOpen && (
+                    <div className="eh-app-dropdown">
+                      <span className="eh-app-dropdown-label">Acceso rápido</span>
+                      <div className="eh-app-items">
+                        {appItems.map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            className={`eh-app-item${pathname.startsWith(item.path) ? " active" : ""}`}
+                            onClick={() => {
+                              setAppMenuOpen(false);
+                              navigate(item.path);
+                            }}
+                          >
+                            <span className={`eh-app-item-icon ${item.iconCls}`}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {canShowUser && (
+                  <div className="eh-user-menu-wrapper electron-no-drag" ref={userMenuRef}>
+                    <button
+                      type="button"
+                      className="eh-avatar"
+                      aria-label="Usuario"
+                      onClick={() => {
+                        setUserOpen((v) => !v);
+                        setAppMenuOpen(false);
+                      }}
+                    >
+                      {userAvatar ? <img src={userAvatar} alt="avatar" /> : userInitials}
                     </button>
-                  </Popover>
+
+                    {userOpen && (
+                      <div className="eh-user-dropdown">
+                        <div className="eh-user-pop">
+                          <div className="eh-user-avatar">
+                            {userAvatar ? <img src={userAvatar} alt="avatar" /> : userInitials}
+                          </div>
+                          <div className="eh-user-email">{userEmail}</div>
+                          <div className="eh-user-actions">
+                            <button
+                              type="button"
+                              className="eh-user-btn"
+                              onClick={() => { setUserOpen(false); navigate("/perfil"); }}
+                            >
+                              Perfil
+                            </button>
+                            <button
+                              type="button"
+                              className="eh-user-btn danger"
+                              onClick={() => {
+                                localStorage.removeItem("token");
+                                setUserOpen(false);
+                                navigate("/login");
+                              }}
+                            >
+                              Cerrar sesión
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

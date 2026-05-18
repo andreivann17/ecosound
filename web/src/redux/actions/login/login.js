@@ -101,6 +101,7 @@ export const actionLogin = (params, onSuccess, onError) => {
       localStorage.setItem("tokenadmin", token);
       localStorage.setItem("token", token);
       localStorage.setItem("email", params.email);
+      localStorage.setItem("last_login", new Date().toISOString());
 
       // ====== NUEVO: historial de correos (por PC) ======
       try {
@@ -127,6 +128,7 @@ export const actionLogin = (params, onSuccess, onError) => {
       }
 
       dispatch(fetchLoginSuccess({ role: data.role }));
+      window.dispatchEvent(new Event("permisos-refresh"));
       onSuccess({ role: data.role });
     } catch (err) {
       const msg =

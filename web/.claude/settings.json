@@ -1,9 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(venv/Scripts/pip install:*)",
-      "Bash(./venv/Scripts/pip install:*)",
-      "Bash(del \"f:\\\\proyectos\\\\ecosound\\\\web\\\\src\\\\containers\\\\pages\\\\SesionesFotosPage.css\")"
+      "Bash(*)",
+      "Write(*)",
+      "Read(*)",
+      "Edit(*)"
     ],
     "additionalDirectories": [
       "f:\\proyectos\\ecosound\\backend"

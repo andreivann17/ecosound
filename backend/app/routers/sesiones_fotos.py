@@ -12,6 +12,213 @@ import datetime as dt
 router = APIRouter(prefix="/sesiones-fotos", tags=["sesiones-fotos"])
 
 
+# ================== CONFIG: TIPOS DE SESIÓN ==================
+
+class TipoSesionCreate(BaseModel):
+    nombre: str
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.get("/config/tipos")
+def list_tipos_sesion(
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_tipo_sesion, nombre FROM tipo_sesion WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+@router.post("/config/tipos", status_code=201)
+def create_tipo_sesion(
+    payload: TipoSesionCreate,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    nombre = (payload.nombre or "").strip()
+    if not nombre:
+        raise HTTPException(status_code=400, detail="Nombre requerido")
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_tipo_sesion FROM tipo_sesion WHERE nombre = %s AND active = 1 LIMIT 1",
+                (nombre,),
+            )
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail="Ya existe un tipo con ese nombre")
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tipo_sesion (nombre, active) VALUES (%s, 1)",
+                (nombre,),
+            )
+            new_id = cur.lastrowid
+        conn.commit()
+        return {"id_tipo_sesion": new_id, "nombre": nombre}
+    finally:
+        conn.close()
+
+
+@router.delete("/config/tipos/{id_tipo}", status_code=200)
+def delete_tipo_sesion(
+    id_tipo: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE tipo_sesion SET active = 0 WHERE id_tipo_sesion = %s AND active = 1",
+                (id_tipo,),
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Tipo no encontrado")
+        conn.commit()
+    finally:
+        conn.close()
+    return {"deleted": 1, "id_tipo_sesion": id_tipo}
+
+
+# ================== CONFIG: CORREO ==================
+
+_CFG_SES_DDL = """
+CREATE TABLE IF NOT EXISTS configuracion_sesiones (
+    id_configuracion_sesion INT        AUTO_INCREMENT PRIMARY KEY,
+    correo_crear_sesion     TINYINT(1) NOT NULL DEFAULT 0,
+    correo_hora_antes       TINYINT(1) NOT NULL DEFAULT 0,
+    correo_dia_antes        TINYINT(1) NOT NULL DEFAULT 0,
+    correo_semana_antes     TINYINT(1) NOT NULL DEFAULT 0,
+    correo_mes_antes        TINYINT(1) NOT NULL DEFAULT 0,
+    id_user                 INT        NOT NULL DEFAULT 0,
+    active                  TINYINT(1) NOT NULL DEFAULT 1,
+    datetime                DATETIME   NOT NULL
+)
+"""
+
+def _ensure_cfg_sesiones(conn):
+    with conn.cursor() as cur:
+        cur.execute(_CFG_SES_DDL)
+    conn.commit()
+
+
+_SES_CORREO_DEFAULTS = {
+    "correo_crear_sesion": False,
+    "correo_hora_antes":   False,
+    "correo_dia_antes":    False,
+    "correo_semana_antes": False,
+    "correo_mes_antes":    False,
+}
+
+
+@router.get("/config/correo")
+def get_config_correo_sesiones(
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        _ensure_cfg_sesiones(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT correo_crear_sesion, correo_hora_antes, correo_dia_antes,
+                       correo_semana_antes, correo_mes_antes
+                FROM configuracion_sesiones
+                WHERE active = 1
+                ORDER BY id_configuracion_sesion DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+        if not row:
+            return _SES_CORREO_DEFAULTS.copy()
+        return {k: bool(v) for k, v in row.items()}
+    finally:
+        conn.close()
+
+
+class ConfigCorreoSesiones(BaseModel):
+    correo_crear_sesion: bool = False
+    correo_hora_antes:   bool = False
+    correo_dia_antes:    bool = False
+    correo_semana_antes: bool = False
+    correo_mes_antes:    bool = False
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.put("/config/correo", status_code=200)
+def save_config_correo_sesiones(
+    payload: ConfigCorreoSesiones,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = int(_cu.get("id") or _cu.get("id_user") or 0)
+    now = dt.datetime.now()
+    conn = get_connection()
+    try:
+        _ensure_cfg_sesiones(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT id_configuracion_sesion
+                FROM configuracion_sesiones
+                WHERE active = 1
+                ORDER BY id_configuracion_sesion DESC
+                LIMIT 1
+                """
+            )
+            existing = cur.fetchone()
+
+        if existing:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE configuracion_sesiones SET
+                        correo_crear_sesion = %s,
+                        correo_hora_antes   = %s,
+                        correo_dia_antes    = %s,
+                        correo_semana_antes = %s,
+                        correo_mes_antes    = %s,
+                        datetime            = %s
+                    WHERE id_configuracion_sesion = %s
+                    """,
+                    (
+                        int(payload.correo_crear_sesion),
+                        int(payload.correo_hora_antes),
+                        int(payload.correo_dia_antes),
+                        int(payload.correo_semana_antes),
+                        int(payload.correo_mes_antes),
+                        now,
+                        existing["id_configuracion_sesion"],
+                    ),
+                )
+        else:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO configuracion_sesiones
+                        (correo_crear_sesion, correo_hora_antes, correo_dia_antes,
+                         correo_semana_antes, correo_mes_antes, id_user, active, datetime)
+                    VALUES (%s, %s, %s, %s, %s, %s, 1, %s)
+                    """,
+                    (
+                        int(payload.correo_crear_sesion),
+                        int(payload.correo_hora_antes),
+                        int(payload.correo_dia_antes),
+                        int(payload.correo_semana_antes),
+                        int(payload.correo_mes_antes),
+                        user_id,
+                        now,
+                    ),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
 # ================== MODELOS ==================
 
 class SesionCreate(BaseModel):
@@ -314,13 +521,17 @@ def eliminar_sesion(
 ):
     conn = get_connection()
     try:
-        with conn.cursor() as cur:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_sesion FROM sesiones WHERE id_sesion = %s LIMIT 1",
+                (id_sesion,),
+            )
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Sesión no encontrada")
             cur.execute(
                 "UPDATE sesiones SET active = 0 WHERE id_sesion = %s",
                 (id_sesion,),
             )
-            if cur.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Sesión no encontrada")
         conn.commit()
     finally:
         conn.close()

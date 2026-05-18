@@ -14,6 +14,7 @@ import {
   SmileOutlined,
 } from "@ant-design/icons";
 import { actionAgendaPost } from "../../redux/actions/agenda/agenda";
+import { usePermisos } from "../../context/PermisosContext";
 
 dayjs.extend(isoWeek);
 dayjs.locale("es");
@@ -45,23 +46,6 @@ const mapItem = (it) => ({
 
 const DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-function getGreeting() {
-  const h = dayjs().hour();
-  if (h >= 6 && h < 12) return "Buenos días";
-  if (h >= 12 && h < 19) return "Buenas tardes";
-  return "Buenas noches";
-}
-
-function getFirstName(me) {
-  const full =
-    me?.nombre ||
-    me?.first_name ||
-    me?.name ||
-    me?.username ||
-    "";
-  return full.split(" ")[0] || "";
-}
-
 // ─── componente ─────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -69,15 +53,16 @@ export default function Home() {
   const dispatch = useDispatch();
   const [isBuscarOpen, setIsBuscarOpen] = useState(false);
 
-  const me = useSelector((s) => s.login?.me ?? null);
-  const firstName = getFirstName(me);
+  const { perm } = usePermisos() || { perm: () => true };
+  const canAgenda = perm("agenda", "modulo");
 
   const today = useMemo(() => dayjs(), []);
   const weekStart = useMemo(() => today.startOf("isoWeek"), [today]);
   const weekEnd = useMemo(() => today.endOf("isoWeek"), [today]);
 
-  // fetch agenda semana actual
+  // fetch agenda semana actual solo si tiene permiso
   useEffect(() => {
+    if (!canAgenda) return;
     dispatch(
       actionAgendaPost({
         from: weekStart.toISOString(),
@@ -86,7 +71,7 @@ export default function Home() {
         event_type_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       })
     );
-  }, [dispatch, weekStart.toISOString(), weekEnd.toISOString()]);
+  }, [dispatch, canAgenda, weekStart.toISOString(), weekEnd.toISOString()]);
 
   const agendaSlice = useSelector((s) => s.agenda || {});
   const loading = agendaSlice?.loading ?? false;
@@ -137,29 +122,33 @@ export default function Home() {
           <section className="hm-welcome">
             <div className="hm-welcome-left">
               <div className="hm-greeting">
-                {getGreeting()}{firstName ? `, ${firstName}` : ""}.
+                Panel de Inicio
               </div>
               <div className="hm-date">
                 {today.format("dddd, D [de] MMMM [de] YYYY")}
               </div>
-              <div className="hm-subtitle">
-                {upcomingWeekEvents.length === 0
-                  ? "No tienes eventos próximos esta semana."
-                  : `Tienes ${upcomingWeekEvents.length} evento${upcomingWeekEvents.length !== 1 ? "s" : ""} próximo${upcomingWeekEvents.length !== 1 ? "s" : ""} esta semana.`}
-              </div>
+              {canAgenda && (
+                <div className="hm-subtitle">
+                  {upcomingWeekEvents.length === 0
+                    ? "No tienes eventos próximos esta semana."
+                    : `Tienes ${upcomingWeekEvents.length} evento${upcomingWeekEvents.length !== 1 ? "s" : ""} próximo${upcomingWeekEvents.length !== 1 ? "s" : ""} esta semana.`}
+                </div>
+              )}
             </div>
-            <Button
-              type="primary"
-              icon={<CalendarOutlined />}
-              onClick={() => navigate("/agenda")}
-              className="hm-open-agenda-btn"
-            >
-              Abrir agenda
-            </Button>
+            {canAgenda && (
+              <Button
+                type="primary"
+                icon={<CalendarOutlined />}
+                onClick={() => navigate("/agenda")}
+                className="hm-open-agenda-btn"
+              >
+                Abrir agenda
+              </Button>
+            )}
           </section>
 
           {/* ── CUERPO ─────────────────────────────────── */}
-          <div className="hm-body">
+          {canAgenda && <div className="hm-body">
 
             {/* ── Card HOY ──────────────────────── */}
             <div className="hm-card hm-today-card">
@@ -272,7 +261,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </div>
+          </div>}
         </div>
       </main>
 
@@ -318,13 +307,16 @@ const CSS = `
   background: #eef1f5;
   min-height: calc(100vh - 56px);
   padding: 32px 40px;
-}
-.hm-content {
-
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+}
+.hm-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── bienvenida ── */
@@ -336,7 +328,6 @@ const CSS = `
   background: linear-gradient(120deg, #05060a 0%, #191b24 100%);
   border-radius: 20px;
   padding: 32px 36px;
-  margin-bottom:40px;
   box-shadow: 0 6px 24px rgba(37, 45, 53, 0.18);
 }
 .hm-greeting {
@@ -375,9 +366,11 @@ const CSS = `
 /* ── cuerpo: dos cards lado a lado ── */
 .hm-body {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 60px;
-  align-items: start;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── card genérico ── */
@@ -387,6 +380,8 @@ const CSS = `
   border: 1px solid #e4e8f0;
   box-shadow: 0 3px 14px rgba(15,34,58,0.07);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .hm-card-header {
   display: flex;
@@ -421,6 +416,10 @@ const CSS = `
 .hm-event-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d4dae8 transparent;
 }
 .hm-today-row {
   display: flex;
@@ -477,10 +476,12 @@ const CSS = `
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 36px 20px;
   color: #b0b8c6;
   font-size: 13px;
+  flex: 1;
 }
 .hm-empty-icon {
   font-size: 28px;
@@ -491,15 +492,18 @@ const CSS = `
   align-items: center;
   justify-content: center;
   padding: 40px;
+  flex: 1;
 }
 
 /* ── semana: grid de días ── */
 .hm-week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0;
+  grid-auto-rows: 1fr;
   padding: 12px 16px 16px;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 .hm-day-col {
   display: flex;
@@ -509,7 +513,7 @@ const CSS = `
   padding: 8px 6px;
   background: #f9fafc;
   border: 1px solid #edf0f5;
-  min-height: 100px;
+  min-height: 160px;
 }
 .hm-day-col--today {
   background: #eef4ff;
@@ -562,7 +566,8 @@ const CSS = `
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 300px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #d4dae8 transparent;

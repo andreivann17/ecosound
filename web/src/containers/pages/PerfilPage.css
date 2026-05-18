@@ -1,0 +1,344 @@
+/* PerfilPage.css */
+
+.perf-main {
+  background-color: #f5f7f9;
+  min-height: calc(100vh - 56px);
+  padding: 24px;
+}
+
+.perf-content {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.perf-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 0;
+}
+
+/* ── Header card ─────────────────────────────────────── */
+
+.perf-header-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
+  margin-bottom: 20px;
+}
+
+.perf-header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+/* Avatar */
+.perf-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.perf-avatar-circle {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #05060a 0%, #2d3142 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.perf-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.perf-avatar-initials {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+.perf-avatar-camera {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #05060a;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.perf-avatar-camera:hover {
+  background: #374151;
+}
+
+/* Header info */
+.perf-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.perf-header-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  text-transform: capitalize;
+  line-height: 1.2;
+}
+
+.perf-header-email,
+.perf-header-since {
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+/* Tabs */
+.perf-tabs {
+  display: flex;
+  gap: 4px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+}
+
+.perf-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.perf-tab-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.perf-tab-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ── Tab body ────────────────────────────────────────── */
+
+.perf-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+
+.perf-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
+}
+
+.perf-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.perf-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.perf-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.perf-card-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 20px;
+  margin-top: -8px;
+}
+
+/* ── Fields grid ─────────────────────────────────────── */
+
+.perf-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 24px;
+}
+
+.perf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perf-field-full {
+  grid-column: 1 / -1;
+}
+
+.perf-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.perf-value {
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perf-value-muted {
+  color: #64748b;
+}
+
+.perf-value-pre {
+  white-space: pre-wrap;
+  align-items: flex-start;
+}
+
+.perf-readonly-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.perf-badge-sangre {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.perf-input {
+  font-size: 14px !important;
+}
+
+.perf-field-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+/* ── Actions ─────────────────────────────────────────── */
+
+.perf-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.perf-btn-edit {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.perf-btn-edit:hover {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+}
+
+.perf-btn-save {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.perf-btn-save:hover {
+  background: #1e293b !important;
+  border-color: #1e293b !important;
+}
+
+/* ── Password form ───────────────────────────────────── */
+
+.perf-pwd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 420px;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .perf-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .perf-field-full {
+    grid-column: 1;
+  }
+
+  .perf-header-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .perf-header-info {
+    align-items: center;
+  }
+}

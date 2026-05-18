@@ -1,20 +1,19 @@
-// src/containers/pages/UsuarioDetallePage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
 import {
   apiUsuariosInstance,
   authHeaderUsuarios,
 } from "../../redux/actions/usuarios/usuarios";
+import { usePermisos } from "../../context/PermisosContext";
 
 import {
   Button,
   Modal,
-  Tag,
+  Switch,
   notification,
   Spin,
-  Typography,
-  Space,
-  Divider,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -23,27 +22,80 @@ import {
   UserOutlined,
   MailOutlined,
   CalendarOutlined,
-  ExclamationCircleOutlined,
+  SafetyOutlined,
+  TeamOutlined,
+  AppstoreOutlined,
+  SaveOutlined,
+  ScheduleOutlined,
+  BarChartOutlined,
+  SettingOutlined,
+  GiftOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
+  CloseOutlined,
 } from "@ant-design/icons";
 
-import "./ContratosPage.css";
+import "./EventoDetallePage.css";
 
-const { Title, Text } = Typography;
+dayjs.locale("es");
+
+const fmtFecha = (v) => {
+  if (!v) return "—";
+  const d = dayjs(v);
+  return d.isValid() ? d.format("D [de] MMMM [del] YYYY") : "—";
+};
+
+const fmtFechaCorta = (v) => {
+  if (!v) return "—";
+  const d = dayjs(v);
+  return d.isValid() ? d.format("D MMM YYYY") : "—";
+};
+
+const MODULES = [
+  { key: "eventos",        label: "Eventos",        icon: <CalendarOutlined /> },
+  { key: "trabajadores",   label: "Trabajadores",    icon: <TeamOutlined /> },
+  { key: "inventario",     label: "Inventario",      icon: <AppstoreOutlined /> },
+  { key: "usuarios",       label: "Usuarios",        icon: <UserOutlined /> },
+  { key: "agenda",         label: "Agenda",          icon: <ScheduleOutlined /> },
+  { key: "estadisticas",   label: "Estadísticas",    icon: <BarChartOutlined /> },
+  { key: "configuracion",  label: "Configuración",   icon: <SettingOutlined /> },
+  { key: "paquetes",       label: "Paquetes",        icon: <GiftOutlined /> },
+];
+
+const ACTIONS = [
+  { key: "modulo",    label: "Módulo"    },
+  { key: "consultar", label: "Consultar" },
+  { key: "insertar",  label: "Insertar"  },
+  { key: "editar",    label: "Editar"    },
+  { key: "eliminar",  label: "Eliminar"  },
+];
+
+const DEFAULT_PERMISOS = Object.fromEntries(
+  MODULES.map((m) => [m.key, Object.fromEntries(ACTIONS.map((a) => [a.key, false]))])
+);
 
 export default function UsuarioDetallePage() {
   const { code } = useParams();
   const navigate = useNavigate();
 
+  const { perm } = usePermisos() || { perm: () => true };
+  const canEditar   = perm("usuarios", "editar");
+  const canEliminar = perm("usuarios", "eliminar");
+
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState("datos");
   const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchUsuario();
-  }, [code]);
+  // Permisos state
+  const [permisos, setPermisos] = useState(DEFAULT_PERMISOS);
+  const [permisosOriginal, setPermisosOriginal] = useState(DEFAULT_PERMISOS);
+  const [permisosLoading, setPermisosLoading] = useState(false);
+  const [savingPermisos, setSavingPermisos] = useState(false);
+  const [editingPermisos, setEditingPermisos] = useState(false);
 
-  const fetchUsuario = async () => {
+  const fetchUsuario = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiUsuariosInstance.get(`/users/${code}`, {
@@ -58,6 +110,65 @@ export default function UsuarioDetallePage() {
     } finally {
       setLoading(false);
     }
+  }, [code]);
+
+  useEffect(() => { fetchUsuario(); }, [fetchUsuario]);
+
+  const fetchPermisos = useCallback(async () => {
+    setPermisosLoading(true);
+    try {
+      const { data } = await apiUsuariosInstance.get(`/users/${code}/permisos`, {
+        headers: authHeaderUsuarios(),
+      });
+      setPermisos(data);
+      setPermisosOriginal(data);
+    } catch {
+      setPermisos(DEFAULT_PERMISOS);
+      setPermisosOriginal(DEFAULT_PERMISOS);
+    } finally {
+      setPermisosLoading(false);
+    }
+  }, [code]);
+
+  useEffect(() => {
+    if (activeTab === "permisos") {
+      setEditingPermisos(false);
+      fetchPermisos();
+    }
+  }, [activeTab, fetchPermisos]);
+
+  const handleSavePermisos = async () => {
+    setSavingPermisos(true);
+    try {
+      await apiUsuariosInstance.put(
+        `/users/${code}/permisos`,
+        { permisos },
+        { headers: authHeaderUsuarios() }
+      );
+      setPermisosOriginal(permisos);
+      setEditingPermisos(false);
+      window.dispatchEvent(new Event("permisos-refresh"));
+      notification.success({ message: "Permisos guardados correctamente" });
+    } catch (err) {
+      notification.error({
+        message: "Error al guardar permisos",
+        description: err?.response?.data?.detail || err.message,
+      });
+    } finally {
+      setSavingPermisos(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setPermisos(permisosOriginal);
+    setEditingPermisos(false);
+  };
+
+  const togglePermiso = (module, action, value) => {
+    setPermisos((prev) => ({
+      ...prev,
+      [module]: { ...prev[module], [action]: value },
+    }));
   };
 
   const handleDelete = async () => {
@@ -81,170 +192,261 @@ export default function UsuarioDetallePage() {
     }
   };
 
+  const getInitials = (name) =>
+    (name || " ").split(" ").slice(0, 2).map((w) => w[0] || "").join("").toUpperCase();
+
   if (loading) {
     return (
-      <main className="contratos-main">
-        <div className="contratos-content" style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
-          <Spin size="large" />
-        </div>
-      </main>
-    );
-  }
-
-  if (!usuario) {
-    return (
-      <main className="contratos-main">
-        <div className="contratos-content">
-          <Text type="danger">No se encontró el usuario.</Text>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="contratos-main">
-      <div className="contratos-content">
-
-        {/* HEADER */}
-        <section className="contratos-header-section">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
-            <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/usuarios")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Usuarios
-              </Button>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Title level={2} className="contratos-title" style={{ marginBottom: 0 }}>
-                  {usuario.name || "—"}
-                </Title>
-                <Tag color={usuario.active ? "blue" : "default"}>
-                  {usuario.active ? "Activo" : "Inactivo"}
-                </Tag>
-              </div>
-            </Space>
-
-            <Space style={{ marginTop: 4 }}>
-              <Button
-                icon={<EditOutlined />}
-                onClick={() =>
-                  navigate(`/usuarios/${code}/editar`, { state: { usuario } })
-                }
-                style={{ borderColor: "#111", color: "#111" }}
-              >
-                Editar
-              </Button>
-              <Button
-                icon={<DeleteOutlined />}
-                danger
-                onClick={() => setDeleteModal(true)}
-              >
-                Eliminar
-              </Button>
-            </Space>
-          </div>
-        </section>
-
-        {/* DETALLE */}
-        <div className="contratos-filters-panel" style={{ marginTop: 0 }}>
-
-          <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
-            Información del usuario
-          </Title>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: "20px 32px",
-            }}
-          >
-            <div>
-              <div className="contratos-field-label" style={{ marginBottom: 4 }}>
-                <UserOutlined style={{ marginRight: 4 }} />
-                NOMBRE COMPLETO
-              </div>
-              <Text style={{ fontSize: 15, fontWeight: 500 }}>
-                {usuario.name || "—"}
-              </Text>
-            </div>
-
-            <div>
-              <div className="contratos-field-label" style={{ marginBottom: 4 }}>
-                <MailOutlined style={{ marginRight: 4 }} />
-                CORREO ELECTRÓNICO
-              </div>
-              <Text style={{ fontSize: 15, fontWeight: 500 }}>
-                {usuario.email || "—"}
-              </Text>
-            </div>
-
-            <div>
-              <div className="contratos-field-label" style={{ marginBottom: 4 }}>
-                CÓDIGO
-              </div>
-              <Text style={{ fontSize: 15, fontWeight: 500, fontFamily: "monospace" }}>
-                {usuario.code || "—"}
-              </Text>
-            </div>
-
-            <div>
-              <div className="contratos-field-label" style={{ marginBottom: 4 }}>
-                ESTADO
-              </div>
-              <Tag color={usuario.active ? "blue" : "default"} style={{ fontSize: 13 }}>
-                {usuario.active ? "Activo" : "Inactivo"}
-              </Tag>
-            </div>
-
-            {usuario.date && (
-              <div>
-                <div className="contratos-field-label" style={{ marginBottom: 4 }}>
-                  <CalendarOutlined style={{ marginRight: 4 }} />
-                  FECHA DE CREACIÓN
-                </div>
-                <Text style={{ fontSize: 15, fontWeight: 500 }}>
-                  {usuario.date}
-                </Text>
-              </div>
-            )}
-          </div>
-
+      <div className="cd-main">
+        <div className="cd-content">
+          <div className="cd-loading-wrap"><Spin size="large" /></div>
         </div>
       </div>
+    );
+  }
 
-      {/* MODAL ELIMINAR */}
+  if (!usuario) return null;
+
+  return (
+    <div className="cd-main">
+      <div className="cd-content">
+
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          className="cd-back-btn"
+          onClick={() => navigate("/usuarios")}
+        >
+          Volver a Usuarios
+        </Button>
+
+        <div className="cd-header-card">
+          <div className="cd-header-top">
+            <div>
+              <div className="cd-header-name-row">
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="trab-avatar" style={{ width: 48, height: 48, fontSize: 18, minWidth: 48 }}>
+                    {getInitials(usuario.name)}
+                  </div>
+                  <div>
+                    <h1 className="cd-client-name" style={{ textTransform: "capitalize", fontSize: 22 }}>
+                      {usuario.name || "—"}
+                    </h1>
+                    <span style={{ fontSize: 13, color: "#64748b" }}>{usuario.email || ""}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="cd-header-meta">
+                <span className="cd-meta-item">
+                  <MailOutlined />
+                  {usuario.email || "—"}
+                </span>
+                {usuario.datetime && (
+                  <span className="cd-meta-item">
+                    <CalendarOutlined />
+                    Registrado: {fmtFechaCorta(usuario.datetime)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="cd-header-actions">
+              {canEditar && (
+                <Button
+                  icon={<EditOutlined />}
+                  className="cd-btn-edit"
+                  onClick={() => navigate(`/usuarios/${code}/editar`, { state: { usuario } })}
+                >
+                  Editar
+                </Button>
+              )}
+              {canEliminar && (
+                <Button
+                  icon={<DeleteOutlined />}
+                  className="cd-btn-delete"
+                  loading={deleting}
+                  onClick={() => setDeleteModal(true)}
+                >
+                  Eliminar
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="cd-header-tabs">
+            <button
+              className={`cd-tab-btn ${activeTab === "datos" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("datos")}
+            >
+              <UserOutlined />
+              Datos del usuario
+            </button>
+            <button
+              className={`cd-tab-btn ${activeTab === "permisos" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("permisos")}
+            >
+              <SafetyOutlined />
+              Permisos
+            </button>
+          </div>
+        </div>
+
+        {activeTab === "datos" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="td-datos-grid">
+            <div className="cd-card">
+              <div className="cd-card-header">
+                <div className="cd-card-icon-wrap"><UserOutlined /></div>
+                <h2 className="cd-card-title">Información del usuario</h2>
+              </div>
+              <div className="cd-client-fields">
+                <div>
+                  <span className="cd-field-label">Nombre completo</span>
+                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{usuario.name || "—"}</span>
+                </div>
+                <div>
+                  <span className="cd-field-label">Correo electrónico</span>
+                  <span className="cd-field-value">{usuario.email || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="cd-card">
+              <div className="cd-card-header">
+                <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
+                <h2 className="cd-card-title">Registro</h2>
+              </div>
+              <div className="cd-client-fields">
+                <div>
+                  <span className="cd-field-label">Fecha de registro</span>
+                  <span className="cd-field-value">{fmtFecha(usuario.datetime)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "permisos" && (
+          <div className="cd-card">
+            <div className="cd-card-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div className="cd-card-icon-wrap"><SafetyOutlined /></div>
+                <h2 className="cd-card-title">Permisos del usuario</h2>
+              </div>
+              {!editingPermisos && !permisosLoading && (
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => setEditingPermisos(true)}
+                  style={{ background: "#05060a", borderColor: "#05060a", color: "#fff", fontWeight: 600 }}
+                >
+                  Editar permisos
+                </Button>
+              )}
+            </div>
+
+            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 20, marginTop: 4 }}>
+              {editingPermisos
+                ? "Activa o desactiva los permisos y guarda los cambios."
+                : "Define qué acciones puede realizar este usuario en cada módulo del sistema."}
+            </p>
+
+            {permisosLoading ? (
+              <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                <Spin size="large" />
+              </div>
+            ) : (
+              <>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #f1f5f9" }}>
+                        <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 700, fontSize: 11, letterSpacing: "0.07em", color: "#475569", textTransform: "uppercase", width: "30%" }}>
+                          Módulo
+                        </th>
+                        {ACTIONS.map((a) => (
+                          <th key={a.key} style={{ textAlign: "center", padding: "10px 16px", fontWeight: 700, fontSize: 11, letterSpacing: "0.07em", color: "#475569", textTransform: "uppercase" }}>
+                            {a.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {MODULES.map((m, idx) => (
+                        <tr
+                          key={m.key}
+                          style={{
+                            borderBottom: "1px solid #f1f5f9",
+                            background: idx % 2 === 0 ? "#fff" : "#fafbfc",
+                          }}
+                        >
+                          <td style={{ padding: "14px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "#0f172a" }}>
+                              <span style={{ color: "#64748b", fontSize: 15 }}>{m.icon}</span>
+                              {m.label}
+                            </div>
+                          </td>
+                          {ACTIONS.map((a) => (
+                            <td key={a.key} style={{ textAlign: "center", padding: "14px 16px" }}>
+                              {editingPermisos ? (
+                                <Switch
+                                  checked={permisos[m.key]?.[a.key] ?? false}
+                                  onChange={(val) => togglePermiso(m.key, a.key, val)}
+                                  size="small"
+                                  style={permisos[m.key]?.[a.key] ? { backgroundColor: "#05060a" } : {}}
+                                />
+                              ) : (
+                                permisos[m.key]?.[a.key]
+                                  ? <CheckCircleFilled style={{ color: "#22c55e", fontSize: 18 }} />
+                                  : <CloseCircleFilled style={{ color: "#ef4444", fontSize: 18 }} />
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {editingPermisos && (
+                  <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                    <Button
+                      icon={<CloseOutlined />}
+                      onClick={handleCancelEdit}
+                      disabled={savingPermisos}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      icon={<SaveOutlined />}
+                      loading={savingPermisos}
+                      onClick={handleSavePermisos}
+                      style={{ background: "#05060a", borderColor: "#05060a", color: "#fff", fontWeight: 600 }}
+                    >
+                      Guardar permisos
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+      </div>
+
       <Modal
+        title="Eliminar usuario"
         open={deleteModal}
-        title={
-          <Space>
-            <ExclamationCircleOutlined style={{ color: "#ef4444" }} />
-            Eliminar usuario
-          </Space>
-        }
         onCancel={() => setDeleteModal(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setDeleteModal(false)}>
-            Cancelar
-          </Button>,
-          <Button
-            key="delete"
-            danger
-            loading={deleting}
-            onClick={handleDelete}
-          >
-            Eliminar
-          </Button>,
-        ]}
+        onOk={handleDelete}
+        confirmLoading={deleting}
+        okText="Eliminar"
+        okButtonProps={{ danger: true }}
+        cancelText="Cancelar"
       >
         <p>
           ¿Estás seguro de que deseas eliminar al usuario{" "}
           <strong>{usuario.name}</strong>? Esta acción lo desactivará del sistema.
         </p>
       </Modal>
-    </main>
+    </div>
   );
 }

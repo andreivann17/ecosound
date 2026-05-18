@@ -14,6 +14,7 @@ from ..deps import get_current_user
 from ..models import eventos as evento_model
 from ..models import agenda as agenda_model
 from ..models import audit as audit_model
+from ..models import trabajadores as trab_model
 from ..db import get_connection
 import datetime as dt
 
@@ -58,6 +59,25 @@ router = APIRouter(prefix="/eventos", tags=["eventos"])
 BASE_UPLOADS_EVENTOS = FsPath("uploads/eventos")
 
 
+@router.post("/extraer-ai", status_code=status.HTTP_200_OK, summary="Extraer campos de contrato EcoSound con OCR")
+async def extraer_ai(
+    file: UploadFile = File(...),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> Dict[str, Any]:
+    from ..utils.ocr_ecosound import process_upload
+
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="El archivo está vacío.")
+
+    try:
+        resultados = process_upload(contents, file.filename or "archivo")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error en el pipeline OCR: {exc}")
+
+    return {"archivos": resultados, "total": len(resultados)}
+
+
 # ================== MODELOS ==================
 
 class EventoCreate(BaseModel):
@@ -76,6 +96,13 @@ class EventoCreate(BaseModel):
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
     hora_misa: Any = None
+    id_paquete_sonido: Optional[int] = None
+    id_paquete_fotografia: Optional[int] = None
+    id_ciudad_fotografia: Optional[int] = None
+    lugar_fotografia: Optional[str] = None
+    datetime_fotografia: Any = None
+    comentarios_fotografia: Optional[str] = None
+    fecha_creacion_contrato: Optional[str] = None
 
     model_config = ConfigDict(extra="ignore")
 
@@ -96,6 +123,13 @@ class EventoUpdate(BaseModel):
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
     hora_misa: Any = None
+    id_paquete_sonido: Optional[int] = None
+    id_paquete_fotografia: Optional[int] = None
+    id_ciudad_fotografia: Optional[int] = None
+    lugar_fotografia: Optional[str] = None
+    datetime_fotografia: Any = None
+    comentarios_fotografia: Optional[str] = None
+    fecha_creacion_contrato: Optional[str] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -258,10 +292,19 @@ async def crear_evento(
 
     payload_dict, _ = await _parse_payload_and_files(request)
 
+    # Parse datetime_fotografia if present
+    if payload_dict.get("datetime_fotografia"):
+        payload_dict["datetime_fotografia"] = _parse_dt(payload_dict["datetime_fotografia"])
+
+    # Use fecha_evento for sound event, fallback to datetime_fotografia for agenda
     fecha_base = payload_dict.get("fecha_evento")
+    fecha_agenda = fecha_base or payload_dict.get("datetime_fotografia")
+    if not fecha_agenda:
+        raise HTTPException(status_code=400, detail="Se requiere fecha_evento o datetime_fotografia")
+
     start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
     if not start_dt:
-        raise HTTPException(status_code=400, detail="fecha_evento es obligatorio")
+        start_dt = _parse_dt(fecha_agenda)
 
     end_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_final"))
     if not end_dt:
@@ -269,11 +312,15 @@ async def crear_evento(
     elif end_dt <= start_dt:
         end_dt += dt.timedelta(days=1)
 
-    payload_dict["hora_inicio"] = start_dt
-    payload_dict["hora_final"] = end_dt
+    if fecha_base:
+        payload_dict["hora_inicio"] = start_dt
+        payload_dict["hora_final"] = end_dt
+    else:
+        payload_dict["hora_inicio"] = None
+        payload_dict["hora_final"] = None
 
     if payload_dict.get("hora_misa"):
-        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
+        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base or fecha_agenda, payload_dict["hora_misa"])
 
     conn = get_connection()
 
@@ -559,6 +606,228 @@ async def importar_excel_eventos(
     }
 
 
+# ================== CONFIG: TIPOS DE EVENTO ==================
+
+class TipoEventoCreate(BaseModel):
+    nombre: str
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.get("/config/tipos")
+def list_tipos_evento(
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+@router.post("/config/tipos", status_code=201)
+def create_tipo_evento(
+    payload: TipoEventoCreate,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    nombre = (payload.nombre or "").strip()
+    if not nombre:
+        raise HTTPException(status_code=400, detail="Nombre requerido")
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_tipo_evento FROM tipo_eventos WHERE nombre = %s AND active = 1 LIMIT 1",
+                (nombre,),
+            )
+            if cur.fetchone():
+                raise HTTPException(status_code=409, detail="Ya existe un tipo con ese nombre")
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tipo_eventos (nombre, active) VALUES (%s, 1)",
+                (nombre,),
+            )
+            new_id = cur.lastrowid
+        conn.commit()
+        return {"id_tipo_evento": new_id, "nombre": nombre}
+    finally:
+        conn.close()
+
+
+@router.delete("/config/tipos/{id_tipo}", status_code=200)
+def delete_tipo_evento(
+    id_tipo: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE tipo_eventos SET active = 0 WHERE id_tipo_evento = %s AND active = 1",
+                (id_tipo,),
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Tipo no encontrado")
+        conn.commit()
+    finally:
+        conn.close()
+    return {"deleted": 1, "id_tipo_evento": id_tipo}
+
+
+# ================== CONFIG: CORREO ==================
+
+_CORREO_DEFAULTS = {
+    "correo_crear_evento": False,
+    "correo_hora_evento": False,
+    "correo_dia_evento": False,
+    "correo_mes_evento": False,
+    "correo_anual_evento": False,
+    "correo_hora_misa": False,
+}
+
+
+@router.get("/config/correo")
+def get_config_correo(
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT correo_crear_evento, correo_hora_evento, correo_dia_evento,
+                       correo_mes_evento, correo_anual_evento, correo_hora_misa
+                FROM configuracion_eventos
+                WHERE active = 1
+                ORDER BY id_configuracion_evento DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+        if not row:
+            return _CORREO_DEFAULTS.copy()
+        return {k: bool(v) for k, v in row.items()}
+    finally:
+        conn.close()
+
+
+class ConfigCorreoEvento(BaseModel):
+    correo_crear_evento: bool = False
+    correo_hora_evento: bool = False
+    correo_dia_evento: bool = False
+    correo_mes_evento: bool = False
+    correo_anual_evento: bool = False
+    correo_hora_misa: bool = False
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.put("/config/correo", status_code=200)
+def save_config_correo(
+    payload: ConfigCorreoEvento,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    import datetime as _dt
+    user_id = int(_cu.get("id") or _cu.get("id_user") or 0)
+    now = _dt.datetime.now()
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT id_configuracion_evento
+                FROM configuracion_eventos
+                WHERE active = 1
+                ORDER BY id_configuracion_evento DESC
+                LIMIT 1
+                """
+            )
+            existing = cur.fetchone()
+
+        if existing:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE configuracion_eventos SET
+                        correo_crear_evento = %s,
+                        correo_hora_evento  = %s,
+                        correo_dia_evento   = %s,
+                        correo_mes_evento   = %s,
+                        correo_anual_evento = %s,
+                        correo_hora_misa    = %s,
+                        datetime            = %s
+                    WHERE id_configuracion_evento = %s
+                    """,
+                    (
+                        int(payload.correo_crear_evento),
+                        int(payload.correo_hora_evento),
+                        int(payload.correo_dia_evento),
+                        int(payload.correo_mes_evento),
+                        int(payload.correo_anual_evento),
+                        int(payload.correo_hora_misa),
+                        now,
+                        existing["id_configuracion_evento"],
+                    ),
+                )
+        else:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO configuracion_eventos
+                        (correo_crear_evento, correo_hora_evento, correo_dia_evento,
+                         correo_mes_evento, correo_anual_evento, correo_hora_misa,
+                         id_user, active, datetime)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)
+                    """,
+                    (
+                        int(payload.correo_crear_evento),
+                        int(payload.correo_hora_evento),
+                        int(payload.correo_dia_evento),
+                        int(payload.correo_mes_evento),
+                        int(payload.correo_anual_evento),
+                        int(payload.correo_hora_misa),
+                        user_id,
+                        now,
+                    ),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
+# ================== CONFIG: PAQUETES ==================
+
+@router.get("/config/paquetes-sonido")
+def list_paquetes_sonido(_cu: Dict[str, Any] = Depends(get_current_user)):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_paquete_sonido, nombre FROM paquetes_sonido WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+@router.get("/config/paquetes-fotografia")
+def list_paquetes_fotografia(_cu: Dict[str, Any] = Depends(get_current_user)):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_paquete_fotografia, nombre FROM paquetes_fotografia WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+# ================== EVENTOS CRUD ==================
+
 @router.get("/{id_evento}")
 def get_evento(
     id_evento: int,
@@ -587,6 +856,13 @@ async def actualizar_evento(
     old_id_agenda = row.get("id_agenda")
 
     payload_dict, _ = await _parse_payload_and_files(request)
+
+    # Parse datetime_fotografia if present
+    if payload_dict.get("datetime_fotografia"):
+        try:
+            payload_dict["datetime_fotografia"] = _parse_dt(payload_dict["datetime_fotografia"])
+        except Exception:
+            pass
 
     conn = get_connection()
     new_id_agenda: Optional[int] = None
@@ -802,6 +1078,134 @@ def eliminar_abono(
     return {"deleted": 1, "id": id_abono}
 
 
+# ================== EVENTO EQUIPO ==================
+
+class EventoEquipoCreate(BaseModel):
+    id_equipo: int
+    cantidad: int = 1
+    descripcion: Optional[str] = None
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.get("/{id_evento}/equipo")
+def list_equipo_evento(
+    id_evento: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    row = evento_model.get_evento_by_id(id_evento)
+    if not row:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+    return evento_model.list_evento_equipo(id_evento)
+
+
+@router.get("/{id_evento}/equipo-catalogo")
+def get_equipo_catalogo(
+    id_evento: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    row = evento_model.get_evento_by_id(id_evento)
+    if not row:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+    fecha_salida = row.get("fecha_evento")
+    if hasattr(fecha_salida, "isoformat"):
+        fecha_salida = fecha_salida.isoformat()
+    fecha_salida = str(fecha_salida or dt.date.today().isoformat())[:10]
+    return evento_model.get_catalogo_con_disponibilidad(id_evento, fecha_salida)
+
+
+@router.post("/{id_evento}/equipo", status_code=201)
+def add_equipo_evento(
+    id_evento: int,
+    payload: EventoEquipoCreate,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    row = evento_model.get_evento_by_id(id_evento)
+    if not row:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+
+    fecha_salida = row.get("fecha_evento")
+    if hasattr(fecha_salida, "isoformat"):
+        fecha_salida = fecha_salida.isoformat()
+    fecha_salida_str = str(fecha_salida or dt.date.today().isoformat())[:10]
+
+    disponible = evento_model.get_disponibilidad_equipo(
+        payload.id_equipo, fecha_salida_str, id_evento
+    )
+    if disponible < payload.cantidad:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solo hay {disponible} unidad(es) disponible(s) para la fecha del evento.",
+        )
+
+    result = evento_model.add_evento_equipo(id_evento, {
+        "id_equipo": payload.id_equipo,
+        "cantidad": payload.cantidad,
+        "fecha_salida": fecha_salida_str,
+        "descripcion": payload.descripcion,
+    })
+    items = evento_model.list_evento_equipo(id_evento)
+    return {"id_contrato_equipo": result["id_contrato_equipo"], "items": items}
+
+
+@router.delete("/{id_evento}/equipo/{id_contrato_equipo}", status_code=200)
+def remove_equipo_evento(
+    id_evento: int,
+    id_contrato_equipo: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    affected = evento_model.delete_evento_equipo(id_contrato_equipo)
+    if not affected:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    return {"deleted": 1, "id_contrato_equipo": id_contrato_equipo}
+
+
+# ================== EVENTO TRABAJADORES ==================
+
+class EventoTrabajadorCreate(BaseModel):
+    id_trabajador: int
+    id_puesto: Optional[int] = None
+    model_config = ConfigDict(extra="ignore")
+
+
+@router.get("/{id_evento}/trabajadores", status_code=200)
+def get_trabajadores_evento(
+    id_evento: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    return trab_model.list_contrato_trabajadores(id_evento)
+
+
+@router.post("/{id_evento}/trabajadores", status_code=201)
+def add_trabajador_evento(
+    id_evento: int,
+    payload: EventoTrabajadorCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    if trab_model.is_trabajador_en_contrato(id_evento, payload.id_trabajador):
+        raise HTTPException(
+            status_code=409,
+            detail="Este trabajador ya está asignado a este evento",
+        )
+    user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    result = trab_model.add_contrato_trabajador(
+        id_evento, payload.id_trabajador, payload.id_puesto, user_id
+    )
+    items = trab_model.list_contrato_trabajadores(id_evento)
+    return {"id_contrato_trabajador": result["id_contrato_trabajador"], "items": items}
+
+
+@router.delete("/{id_evento}/trabajadores/{id_contrato_trabajador}", status_code=200)
+def remove_trabajador_evento(
+    id_evento: int,
+    id_contrato_trabajador: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    affected = trab_model.delete_contrato_trabajador(id_evento, id_contrato_trabajador)
+    if not affected:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    return {"deleted": 1, "id_contrato_trabajador": id_contrato_trabajador}
+
+
 @router.delete("/{id_evento}", status_code=200)
 def eliminar_evento(
     id_evento: int,
@@ -845,10 +1249,10 @@ def list_documentos(
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
                 """
-                SELECT id_contrato_documento AS id, filename, path, id_tipo_documento, active
+                SELECT id_contacto_documento AS id, filename, path, id_tipo_documento, active
                 FROM contratos_documentos
                 WHERE id_contrato = %s AND active = 1
-                ORDER BY id_contrato_documento DESC
+                ORDER BY id_contacto_documento DESC
                 """,
                 (id_evento,),
             )
@@ -931,7 +1335,7 @@ def eliminar_documento(
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT filename FROM contratos_documentos WHERE id_contrato_documento = %s AND id_contrato = %s LIMIT 1",
+                "SELECT filename FROM contratos_documentos WHERE id_contacto_documento = %s AND id_contrato = %s LIMIT 1",
                 (id_doc, id_evento),
             )
             doc_row = cur.fetchone()
@@ -939,7 +1343,7 @@ def eliminar_documento(
                 filename = doc_row.get("filename")
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE contratos_documentos SET active = 0 WHERE id_contrato_documento = %s AND id_contrato = %s",
+                "UPDATE contratos_documentos SET active = 0 WHERE id_contacto_documento = %s AND id_contrato = %s",
                 (id_doc, id_evento),
             )
             if cur.rowcount == 0:

@@ -20,11 +20,15 @@ from fastapi.staticfiles import StaticFiles
 from .db import init_pool 
 from .routers.audit import router as audit_log_router
 from .routers.agenda import router as agenda_router
+from .routers.general import router as general_router
 from .routers.notificaciones import router as notificaciones_router
 from .routers.ws import router as ws_router
 from .routers.eventos import router as eventos_router
 from .routers.sesiones_fotos import router as sesiones_fotos_router
 from .routers.estadisticas import router as estadisticas_router
+from .routers.inventario import router as inventario_router
+from .routers.trabajadores import router as trabajadores_router
+from .routers.paquetes import router as paquetes_router
 # Routers (solo los tuyos)
 from .routers import (
     auth,
@@ -99,3 +103,7 @@ app.include_router(notificaciones_router)
 app.include_router(eventos_router)
 app.include_router(sesiones_fotos_router)
 app.include_router(estadisticas_router)
+app.include_router(inventario_router)
+app.include_router(trabajadores_router)
+app.include_router(paquetes_router)
+app.include_router(general_router)

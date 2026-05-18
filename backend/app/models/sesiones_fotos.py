@@ -71,8 +71,8 @@ def list_sesiones(
     conditions = []
     params: List[Any] = []
 
-    if active is not None:
-        conditions.append("s.active = %s")
+    if True:
+        conditions.append("s.active = 1")
         params.append(active)
 
     if nombre_cliente:

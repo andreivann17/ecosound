@@ -46,7 +46,7 @@ def init_pool() -> None:
     port = int(os.getenv("DB_PORT", "3306"))
     database = os.getenv("DB_NAME", "ecosound")
     user = os.getenv("DB_USER", "root")
-    password = os.getenv("DB_PASSWORD", "fifolin123")
+    password = os.getenv("DB_PASSWORD", "")
     pool_size = int(os.getenv("DB_POOL_SIZE", "20"))
 
     _POOL = mysql.connector.pooling.MySQLConnectionPool(

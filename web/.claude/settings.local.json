@@ -4,7 +4,17 @@
       "Bash(ls -la /f/proyectos/ontiveros/backend/app/routers/*.py)",
       "Bash(npx react-scripts:*)",
       "Bash(node -e ':*)",
-      "Bash(node --input-type=module -e ':*)"
+      "Bash(node --input-type=module -e ':*)",
+      "Bash(Get-ChildItem -Path \"d:\\\\proyectos\\\\ecosound\\\\web\" -Recurse -Directory -Depth 2)",
+      "Bash(Select-Object FullName)",
+      "Bash(find D:/proyectos/ecosound/backend -maxdepth 1 -type d 2>/dev/null | head -20)",
+      "Read(//d/proyectos/ecosound/backend/**)",
+      "Bash(Get-ChildItem -Path \"D:\\\\proyectos\\\\ontiveros\" -Recurse -Directory -Name)",
+      "Bash(Select-Object -First 20)",
+      "Bash(dir \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\\\\containers\\\\pages\\\\ConfiguracionPage.jsx\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\proyectos\" -Recurse -Filter \"*onciliacion*\" -ErrorAction SilentlyContinue)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"from app.db import get_connection; conn = get_connection\\(\\); cur = conn.cursor\\(dictionary=True\\); cur.execute\\('SHOW TABLES'\\); rows = cur.fetchall\\(\\); print\\([list\\(r.values\\(\\)\\)[0] for r in rows]\\); conn.close\\(\\)\")"
     ]
   }
 }

@@ -128,21 +128,21 @@ def get_estadisticas(
             ))
             ingresos_cobrados = ing_anticipo + ing_abonos
 
-            # Promedio de importe de contratos con evento en el período
-            ticket_promedio = float(_scalar(cur,
-                "SELECT COALESCE(AVG(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS avg_i "
-                "FROM contratos "
-                "WHERE active=1 AND importe IS NOT NULL AND importe != '' "
-                "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
-            ))
-
             # Saldo pendiente de contratos con evento en el período
             saldo_pendiente_total = float(_scalar(cur,
                 f"SELECT COALESCE(SUM({_SALDO_EXPR}),0) AS t "
                 "FROM contratos c "
                 "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
                 "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
+            ))
+
+            # Importe total de contratos en el período (alcance máximo)
+            importe_total = float(_scalar(cur,
+                "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS t "
+                "FROM contratos "
+                "WHERE active=1 AND importe IS NOT NULL AND importe != '' "
+                "AND DATE(fecha_evento) BETWEEN %s AND %s",
                 (p_from, p_to),
             ))
 
@@ -204,6 +204,103 @@ def get_estadisticas(
             )
             por_tipo = [
                 {"tipo": r["tipo"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
+            # ── Contratos por ciudad ─────────────────────────────────────────
+
+            cur.execute(
+                "SELECT COALESCE(ci.nombre, 'Sin ciudad') AS ciudad, COUNT(*) AS cantidad "
+                "FROM contratos c "
+                "LEFT JOIN ciudades ci ON ci.id_ciudad = c.id_ciudad "
+                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
+                "GROUP BY c.id_ciudad, ci.nombre "
+                "ORDER BY cantidad DESC",
+                (p_from, p_to),
+            )
+            por_ciudad = [
+                {"ciudad": r["ciudad"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
+            # ── Paquetes: fotografía vs sonido ───────────────────────────────
+
+            count_foto = int(_scalar(cur,
+                "SELECT COUNT(*) AS cnt FROM contratos "
+                "WHERE active=1 AND id_paquete_fotografia IS NOT NULL "
+                "AND DATE(fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
+            ))
+            count_sonido = int(_scalar(cur,
+                "SELECT COUNT(*) AS cnt FROM contratos "
+                "WHERE active=1 AND id_paquete_sonido IS NOT NULL "
+                "AND DATE(fecha_evento) BETWEEN %s AND %s",
+                (p_from, p_to),
+            ))
+            por_tipo_paquete = [
+                {"tipo": "Fotografía", "cantidad": count_foto},
+                {"tipo": "Sonido", "cantidad": count_sonido},
+            ]
+
+            # ── Top paquetes fotografía ──────────────────────────────────────
+
+            cur.execute(
+                "SELECT pf.nombre, COUNT(*) AS cantidad "
+                "FROM contratos c "
+                "JOIN paquetes_fotografia pf ON pf.id_paquete_fotografia = c.id_paquete_fotografia "
+                "WHERE c.active = 1 AND c.id_paquete_fotografia IS NOT NULL "
+                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
+                "GROUP BY c.id_paquete_fotografia, pf.nombre "
+                "ORDER BY cantidad DESC LIMIT 10",
+                (p_from, p_to),
+            )
+            top_paquetes_foto = [
+                {"nombre": r["nombre"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
+            # ── Top paquetes sonido ──────────────────────────────────────────
+
+            cur.execute(
+                "SELECT ps.nombre, COUNT(*) AS cantidad "
+                "FROM contratos c "
+                "JOIN paquetes_sonido ps ON ps.id_paquete_sonido = c.id_paquete_sonido "
+                "WHERE c.active = 1 AND c.id_paquete_sonido IS NOT NULL "
+                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
+                "GROUP BY c.id_paquete_sonido, ps.nombre "
+                "ORDER BY cantidad DESC LIMIT 10",
+                (p_from, p_to),
+            )
+            top_paquetes_sonido = [
+                {"nombre": r["nombre"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
+            # ── Trabajadores por número de contratos ─────────────────────────
+
+            cur.execute(
+                """
+                SELECT CONCAT(t.nombre, ' ', t.apellido) AS nombre,
+                       COALESCE(p.nombre, 'Sin puesto') AS puesto,
+                       COUNT(*) AS contratos_count
+                FROM contratos_trabajadores ct
+                JOIN trabajadores t ON t.id_trabajador = ct.id_trabajador
+                LEFT JOIN puestos p ON p.id_puesto = ct.id_puesto
+                JOIN contratos c ON c.id_contrato = ct.id_contrato
+                WHERE ct.active = 1 AND c.active = 1
+                  AND DATE(c.fecha_evento) BETWEEN %s AND %s
+                GROUP BY ct.id_trabajador, t.nombre, t.apellido, p.nombre
+                ORDER BY contratos_count DESC
+                LIMIT 20
+                """,
+                (p_from, p_to),
+            )
+            trabajadores_stats = [
+                {
+                    "nombre": r["nombre"].strip(),
+                    "puesto": r["puesto"],
+                    "contratos_count": int(r["contratos_count"]),
+                }
                 for r in cur.fetchall()
             ]
 
@@ -270,11 +367,16 @@ def get_estadisticas(
                 "kpis": {
                     "ingresos_cobrados": ingresos_cobrados,
                     "saldo_pendiente_total": saldo_pendiente_total,
+                    "importe_total": importe_total,
                     "contratos_count": contratos_count,
-                    "ticket_promedio": ticket_promedio,
                 },
                 "ingresos_por_mes": ingresos_por_mes,
                 "por_tipo_evento": por_tipo,
+                "por_ciudad": por_ciudad,
+                "por_tipo_paquete": por_tipo_paquete,
+                "top_paquetes_foto": top_paquetes_foto,
+                "top_paquetes_sonido": top_paquetes_sonido,
+                "trabajadores_stats": trabajadores_stats,
                 "cobranza": {
                     "contratos_pendientes": contratos_pendientes,
                 },
