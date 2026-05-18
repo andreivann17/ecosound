@@ -52,10 +52,9 @@ import {
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
+import { PATH as API_BASE } from "../../redux/utils";
 
 dayjs.locale("es");
-
-const API_BASE = `http://${window.location.hostname}:8000`;
 
 const TIPO_EVENTO_MAP = {
   1: "Bodas",
