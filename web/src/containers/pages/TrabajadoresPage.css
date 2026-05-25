@@ -217,7 +217,7 @@
   height: 44px;
   min-width: 44px;
   border-radius: 50%;
-  background: linear-gradient(140deg, #1e293b 0%, #475569 100%);
+  background: linear-gradient(140deg, #0a2a7a 0%, #475569 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -239,7 +239,7 @@
   font-weight: 700 !important;
   font-size: 15px !important;
   line-height: 1.2 !important;
-  color: #0f172a !important;
+  color: #0d1b4b !important;
 }
 
 .trab-puesto-badge {
@@ -305,7 +305,7 @@
 .trab-btn-details {
   width: 100%;
   padding: 14px 16px;
-  background: #05060a;
+  background: #01369e;
   border: none;
   color: #ffffff;
   font-size: 11px;
@@ -321,7 +321,7 @@
   border-radius: 0 0 12px 12px;
 }
 
-.trab-btn-details:hover { background: #1e293b; }
+.trab-btn-details:hover { background: #0a2a7a; }
 
 .trab-empty {
   padding: 36px 12px;
@@ -459,10 +459,10 @@
   transition: background 0.14s, color 0.14s;
 }
 
-.td-tab-btn:hover { background: #f1f5f9; color: #1e293b; }
+.td-tab-btn:hover { background: #f1f5f9; color: #0a2a7a; }
 
 .td-tab-btn.active {
-  background: #05060a;
+  background: #01369e;
   color: #fff;
 }
 
@@ -492,7 +492,7 @@
 .td-field-value {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: #0d1b4b;
   text-transform: capitalize;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import {
   Layout,
   Popover,
@@ -77,14 +77,14 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
   const pathname = location.pathname || "/";
 
   const isCentroActive =
-    pathname.startsWith("/centro") || pathname.startsWith("/materias/laboral/centro-conciliacion");
-  const isAgendaActive = pathname.startsWith("/agenda");
-  const isTribunalActive = pathname.startsWith("/materias/laboral/tribunal");
-  const isDesvinculacionesActive = pathname.startsWith("/materias/laboral/desvinculaciones");
-  const isHomeActive = pathname.startsWith("/home");
-  const isEventosActive = pathname.startsWith("/eventos");
-  const isSesionesFotosActive = pathname.startsWith("/sesiones-fotos");
-  const isEstadisticasActive = pathname.startsWith("/estadisticas");
+    pathname.startsWith("/centro") || pathname.startsWith("/app/materias/laboral/centro-conciliacion");
+  const isAgendaActive = pathname.startsWith("/app/agenda");
+  const isTribunalActive = pathname.startsWith("/app/materias/laboral/tribunal");
+  const isDesvinculacionesActive = pathname.startsWith("/app/materias/laboral/desvinculaciones");
+  const isHomeActive = pathname.startsWith("/app/home");
+  const isEventosActive = pathname.startsWith("/app/eventos");
+  const isSesionesFotosActive = pathname.startsWith("/app/sesiones-fotos");
+  const isEstadisticasActive = pathname.startsWith("/app/estadisticas");
 
   // ---------- DROPDOWN MATERIA ----------
   const materiasList = Array.isArray(materias?.items) ? materias.items : [];
@@ -140,7 +140,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isHomeActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/app/home")}
             >
               Inicio
             </a>
@@ -157,7 +157,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isCentroActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/materias/laboral/centro-conciliacion")}
+              onClick={() => navigate("/app/materias/laboral/centro-conciliacion")}
             >
               Centro Conciliación
             </a>
@@ -166,7 +166,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isDesvinculacionesActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/materias/laboral/desvinculaciones")}
+              onClick={() => navigate("/app/materias/laboral/desvinculaciones")}
             >
               Desvinculaciones
             </a>
@@ -175,7 +175,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isTribunalActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/materias/laboral/tribunal")}
+              onClick={() => navigate("/app/materias/laboral/tribunal")}
             >
               Tribunal
             </a>
@@ -184,7 +184,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isAgendaActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/agenda")}
+              onClick={() => navigate("/app/agenda")}
             >
               Agenda
             </a>
@@ -193,7 +193,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isEventosActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/eventos")}
+              onClick={() => navigate("/app/eventos")}
             >
               Eventos
             </a>
@@ -202,7 +202,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isSesionesFotosActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/sesiones-fotos")}
+              onClick={() => navigate("/app/sesiones-fotos")}
             >
               Sesiones de Fotos
             </a>
@@ -211,7 +211,7 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               className={`styled-link nav-link text-light ${
                 isEstadisticasActive ? "nav-link--active" : ""
               }`}
-              onClick={() => navigate("/estadisticas")}
+              onClick={() => navigate("/app/estadisticas")}
             >
               Estadísticas
             </a>

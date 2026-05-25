@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
@@ -12,9 +12,14 @@ import {
   EnvironmentOutlined,
   RightOutlined,
   SmileOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import { actionAgendaPost } from "../../redux/actions/agenda/agenda";
 import { usePermisos } from "../../context/PermisosContext";
+import {
+  apiContratosInstance,
+  authHeaderContratos,
+} from "../../redux/actions/contratos/contratos";
 
 dayjs.extend(isoWeek);
 dayjs.locale("es");
@@ -55,6 +60,15 @@ export default function Home() {
 
   const { perm } = usePermisos() || { perm: () => true };
   const canAgenda = perm("agenda", "modulo");
+
+  const [avisos, setAvisos] = useState([]);
+
+  useEffect(() => {
+    apiContratosInstance
+      .get("/avisos", { headers: authHeaderContratos() })
+      .then((res) => setAvisos(res.data || []))
+      .catch(() => {});
+  }, []);
 
   const today = useMemo(() => dayjs(), []);
   const weekStart = useMemo(() => today.startOf("isoWeek"), [today]);
@@ -139,13 +153,34 @@ export default function Home() {
               <Button
                 type="primary"
                 icon={<CalendarOutlined />}
-                onClick={() => navigate("/agenda")}
+                onClick={() => navigate("/app/agenda")}
                 className="hm-open-agenda-btn"
               >
                 Abrir agenda
               </Button>
             )}
           </section>
+
+          {/* ── AVISOS ─────────────────────────────────── */}
+          {avisos.length > 0 && (
+            <div className="hm-avisos-list">
+              {avisos.map((av) => (
+                <div
+                  key={av.id_aviso}
+                  className={`hm-aviso${av.tipo === "app" ? " hm-aviso--app" : ""}`}
+                >
+                  <BellOutlined className="hm-aviso-icon" />
+                  <span className="hm-aviso-text">
+                    <strong className="hm-aviso-label">
+                      {av.tipo === "app" ? "Aviso" : "Sistema"}
+                    </strong>
+                    {" — "}
+                    {av.descripcion}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── CUERPO ─────────────────────────────────── */}
           {canAgenda && <div className="hm-body">
@@ -154,7 +189,7 @@ export default function Home() {
             <div className="hm-card hm-today-card">
               <div className="hm-card-header">
                 <div className="hm-card-title">
-                  <span className="hm-card-dot" style={{ background: "#05060a" }} />
+                  <span className="hm-card-dot" style={{ background: "#01369e" }} />
                   Hoy
                 </div>
                 <span className="hm-card-badge">
@@ -175,7 +210,7 @@ export default function Home() {
                     <TodayEventRow
                       key={ev.id}
                       ev={ev}
-                      onClick={() => navigate("/agenda", { state: { focusEventId: ev.id } })}
+                      onClick={() => navigate("/app/agenda", { state: { focusEventId: ev.id } })}
                     />
                   ))}
                 </div>
@@ -186,7 +221,7 @@ export default function Home() {
             <div className="hm-card hm-week-card">
               <div className="hm-card-header">
                 <div className="hm-card-title">
-                  <span className="hm-card-dot" style={{ background: "#05060a" }} />
+                  <span className="hm-card-dot" style={{ background: "#01369e" }} />
                   Esta semana
                 </div>
                 <span className="hm-card-badge">
@@ -234,10 +269,10 @@ export default function Home() {
                                 <div
                                   className="hm-chip"
                                   style={{ borderLeftColor: ev.color }}
-                                  onClick={() => navigate("/agenda", { state: { focusEventId: ev.id } })}
+                                  onClick={() => navigate("/app/agenda", { state: { focusEventId: ev.id } })}
                                   role="button"
                                   tabIndex={0}
-                                  onKeyDown={(e) => e.key === "Enter" && navigate("/agenda", { state: { focusEventId: ev.id } })}
+                                  onKeyDown={(e) => e.key === "Enter" && navigate("/app/agenda", { state: { focusEventId: ev.id } })}
                                 >
                                   {!ev.allDay && (
                                     <span className="hm-chip-time">
@@ -306,7 +341,7 @@ const CSS = `
 .hm-main {
   background: #eef1f5;
   min-height: calc(100vh - 56px);
-  padding: 32px 40px;
+  padding: 28px 20px;
   display: flex;
   flex-direction: column;
 }
@@ -325,7 +360,7 @@ const CSS = `
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  background: linear-gradient(120deg, #05060a 0%, #191b24 100%);
+  background: linear-gradient(120deg, #01369e 0%, #0a2a7a 100%);
   border-radius: 20px;
   padding: 32px 36px;
   box-shadow: 0 6px 24px rgba(37, 45, 53, 0.18);
@@ -396,7 +431,7 @@ const CSS = `
   gap: 8px;
   font-weight: 700;
   font-size: 15px;
-  color: #102a43;
+  color: #0d1b4b;
 }
 .hm-card-dot {
   width: 10px;
@@ -452,7 +487,7 @@ const CSS = `
 .hm-today-title {
   font-size: 13px;
   font-weight: 600;
-  color: #102a43;
+  color: #0d1b4b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -540,12 +575,12 @@ const CSS = `
 .hm-day-num {
   font-size: 17px;
   font-weight: 700;
-  color: #102a43;
+  color: #0d1b4b;
   line-height: 1;
 }
 .hm-day-num--today {
   color: #fff;
-  background: #05060a;
+  background: #01369e;
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -604,7 +639,7 @@ const CSS = `
 .hm-chip-title {
   font-size: 11px;
   font-weight: 600;
-  color: #102a43;
+  color: #0d1b4b;
   line-height: 1.3;
   word-break: break-word;
 }
@@ -614,6 +649,54 @@ const CSS = `
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+/* ── avisos ── */
+.hm-avisos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hm-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fffbeb;
+  border: 1px solid #f6d860;
+  border-left: 4px solid #d97706;
+  border-radius: 10px;
+  padding: 11px 14px;
+}
+.hm-aviso--app {
+  background: #f5f3ff;
+  border-color: #c4b5fd;
+  border-left-color: #6366f1;
+}
+.hm-aviso--app .hm-aviso-icon {
+  color: #4f46e5;
+}
+.hm-aviso--app .hm-aviso-text {
+  color: #1e1b4b;
+}
+.hm-aviso--app .hm-aviso-label {
+  color: #4f46e5;
+}
+.hm-aviso-icon {
+  color: #b45309;
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.hm-aviso-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3d2a00;
+  line-height: 1.5;
+}
+.hm-aviso-label {
+  font-weight: 700;
+  color: #b45309;
 }
 
 /* ── responsive ── */

@@ -111,7 +111,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<title>Reporte de Conteos — EcoSound</title>
+<title>Reporte de Conteos — HerrSoft Events</title>
 <style>${css}</style>
 </head>
 <body>
@@ -119,7 +119,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 
   <div class="header">
     <div>
-      <div class="header-brand">EcoSound</div>
+      <div class="header-brand">HerrSoft Events</div>
       <div class="header-sub">Producción de eventos</div>
     </div>
     <div class="header-right">

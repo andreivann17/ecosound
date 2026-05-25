@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -155,7 +155,7 @@ export default function TrabajadoresPage() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => navigate("/trabajadores/crear")}
+                  onClick={() => navigate("/app/trabajadores/crear")}
                   className="laboral-btn-create custom-button"
                 >
                   Nuevo trabajador
@@ -228,7 +228,7 @@ export default function TrabajadoresPage() {
                 <div className="trab-card-footer">
                   <button
                     className="trab-btn-details"
-                    onClick={() => canConsultar ? navigate(`/trabajadores/${t.id_trabajador}`) : undefined}
+                    onClick={() => canConsultar ? navigate(`/app/trabajadores/${t.id_trabajador}`) : undefined}
                     style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
                     title={!canConsultar ? "Sin permiso de consulta" : undefined}
                   >

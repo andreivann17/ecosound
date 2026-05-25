@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -107,7 +107,7 @@ export default function NuevoConteoPage() {
         )
       );
       notification.success({ message: "Conteo guardado correctamente" });
-      navigate("/inventario/conteos");
+      navigate("/app/inventario/conteos");
     } catch (err) {
       notification.error({
         message: "Error al guardar conteo",
@@ -138,7 +138,7 @@ export default function NuevoConteoPage() {
               <Button
                 type="link"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/inventario")}
+                onClick={() => navigate("/app/inventario")}
                 style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
               >
                 Volver a Inventario
@@ -155,7 +155,7 @@ export default function NuevoConteoPage() {
               <Space style={{ marginTop: 4 }}>
                 <Button
                   className="inv-btn-clean"
-                  onClick={() => navigate("/inventario")}
+                  onClick={() => navigate("/app/inventario")}
                   disabled={saving}
                 >
                   Cancelar

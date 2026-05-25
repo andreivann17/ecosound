@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
+﻿// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -762,7 +762,7 @@ const {
 });
 
 
-  const goBackToLaboralMenu = () => navigate("/home");
+  const goBackToLaboralMenu = () => navigate("/app/home");
 
   const handleCrearExpediente = () => {
     if (!selectedEstadoId || !selectedCiudadId || !selectedAutoridadId) {
@@ -776,7 +776,7 @@ const {
     const nombreIdent = selectedAutoridadData?.nombre_identificacion_ciudad || "";
 
 
-    navigate(`/materias/laboral/centro-conciliacion/crear`, {
+    navigate(`/app/materias/laboral/centro-conciliacion/crear`, {
       state: {
         estado: selectedEstadoId,
         ciudad: selectedCiudadId,

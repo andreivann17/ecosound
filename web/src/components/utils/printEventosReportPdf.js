@@ -102,7 +102,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
     .page { width: 277mm; min-height: 190mm; margin: 0 auto; padding: 16mm 20mm 20mm 20mm; background: #fff; }
 
     /* ── Encabezado ── */
-    .header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 8px; border-bottom: 2px solid #111; margin-bottom: 4px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 8px; border-bottom: 2px solid #01369e; margin-bottom: 4px; }
     .header-brand { font-size: 22pt; font-weight: 800; letter-spacing: -0.5px; color: #111; }
     .header-sub { font-size: 9pt; color: #555; margin-top: 2px; }
     .header-right { text-align: right; font-size: 8.5pt; color: #444; line-height: 1.6; }
@@ -122,7 +122,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 
     /* ── Tabla ── */
     table { width: 100%; border-collapse: collapse; font-size: 8pt; }
-    thead tr { background: #111; color: #fff; }
+    thead tr { background: #01369e; color: #fff; }
     thead th { padding: 7px 7px; text-align: left; font-weight: 600; font-size: 7.5pt; letter-spacing: 0.3px; white-space: nowrap; }
     thead th.r { text-align: right; }
     tbody tr { border-bottom: 1px solid #e5e7eb; }
@@ -137,7 +137,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
     .badge-cancelado { background: #fee2e2; color: #991b1b; }
 
     /* ── Fila de totales ── */
-    tfoot tr { background: #f3f4f6; border-top: 2px solid #111; }
+    tfoot tr { background: #f3f4f6; border-top: 2px solid #01369e; }
     tfoot td { padding: 7px 7px; font-size: 8pt; font-weight: 700; color: #111; }
     tfoot td.r { text-align: right; }
 
@@ -147,7 +147,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
       .badge-activo    { background: #dcfce7 !important; color: #166534 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-concluido { background: #dbeafe !important; color: #1e3a8a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-cancelado { background: #fee2e2 !important; color: #991b1b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      thead tr { background: #111 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      thead tr { background: #01369e !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       tfoot tr { background: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       tbody tr:nth-child(even) { background: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       thead { display: table-header-group; }
@@ -178,7 +178,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<title>Reporte de Eventos — EcoSound</title>
+<title>Reporte de Eventos — HerrSoft Events</title>
 <style>${css}</style>
 </head>
 <body>
@@ -186,7 +186,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 
   <div class="header">
     <div>
-      <div class="header-brand">EcoSound</div>
+      <div class="header-brand">HerrSoft Events</div>
       <div class="header-sub">Producción de eventos</div>
     </div>
     <div class="header-right">

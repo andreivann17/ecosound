@@ -16,7 +16,7 @@
   font-size: 12px;
   margin-bottom: 16px;
   display: inline-flex !important;
-  color: #05060a !important;
+  color: #01369e !important;
 }
 
 .cd-back-btn:hover {
@@ -168,7 +168,7 @@
 }
 
 .cd-tab-btn-active {
-  background: #05060a !important;
+  background: #01369e !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(5, 6, 10, 0.22);
 }
@@ -220,7 +220,7 @@
   background: #eff6ff;
   border-radius: 10px;
   font-size: 17px;
-  color: #05060a;
+  color: #01369e;
 }
 
 .cd-card-title {
@@ -254,7 +254,7 @@
 }
 
 .cd-field-value-primary {
-  color: #05060a;
+  color: #01369e;
 }
 
 .cd-field-value-muted {
@@ -270,7 +270,7 @@
 }
 
 .cd-phone-icon {
-  color: #05060a;
+  color: #01369e;
   font-size: 14px;
 }
 
@@ -353,7 +353,7 @@
   line-height: 1;
 }
 
-.cd-financial-primary { color: #05060a; }
+.cd-financial-primary { color: #01369e; }
 .cd-financial-error { color: #b31b25; }
 .cd-financial-ok { color: #15803d; }
 
@@ -415,7 +415,7 @@
   font-size: 13px;
 }
 
-.cd-tl-dot-contrato { background: #f1f5f9; color: #05060a; border: 2px solid #cbd5e1; }
+.cd-tl-dot-contrato { background: #f1f5f9; color: #01369e; border: 2px solid #cbd5e1; }
 .cd-tl-dot-pago     { background: #dcfce7; color: #15803d; border: 2px solid #bbf7d0; }
 .cd-tl-dot-evento   { background: #fff7ed; color: #c2410c; border: 2px solid #fed7aa; }
 
@@ -460,8 +460,8 @@
 .cd-btn-add-pago.ant-btn {
   border-radius: 10px !important;
   font-weight: 700;
-  background: #05060a !important;
-  border-color: #05060a !important;
+  background: #01369e !important;
+  border-color: #01369e !important;
   color: #fff !important;
 }
 
@@ -531,8 +531,8 @@
   border-radius: 10px !important;
   font-weight: 600;
   font-size: 13px;
-  border-color: #05060a !important;
-  color: #05060a !important;
+  border-color: #01369e !important;
+  color: #01369e !important;
 }
 .cd-btn-upload.ant-btn:hover {
   background: #f8fafc !important;

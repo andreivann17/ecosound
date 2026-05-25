@@ -10,10 +10,8 @@ def create_sesion(
     data: Dict[str, Any],
     id_user_created: int,
     conn,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """
-    Inserta una sesión de fotos. Devuelve {id_sesion}.
-    """
     now = dt.datetime.now()
     sql = """
         INSERT INTO sesiones (
@@ -23,8 +21,9 @@ def create_sesion(
             fecha_sesion,
             comentarios,
             datetime,
+            id_cliente,
             active
-        ) VALUES (%s, %s, %s, %s, %s, %s, 1)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
     """
     with conn.cursor() as cur:
         cur.execute(sql, (
@@ -34,6 +33,7 @@ def create_sesion(
             data.get("fecha_sesion"),
             data.get("comentarios") or None,
             now,
+            id_cliente,
         ))
         new_id = cur.lastrowid
 
@@ -67,13 +67,16 @@ def list_sesiones(
     search: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
+    id_cliente: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     conditions = []
     params: List[Any] = []
 
-    if True:
-        conditions.append("s.active = 1")
-        params.append(active)
+    if id_cliente is not None:
+        conditions.append("s.id_cliente = %s")
+        params.append(id_cliente)
+
+    conditions.append("s.active = 1")
 
     if nombre_cliente:
         conditions.append("s.nombre_cliente LIKE %s")

@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Button, Dropdown, Space, Segmented, Checkbox, Menu, notification } from "antd";
-import { FilterOutlined } from "@ant-design/icons";
+import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
 
-export default function OutlookRibbon({ view, setView, filters, setFilters, onCreateEvent }) {
+export default function OutlookRibbon({ view, setView, filters, setFilters, onCreateEvent, onOpenPrint, onOpenSearch }) {
   const [filterOpen, setFilterOpen] = useState(false);
 
   const ciudades = useMemo(
@@ -18,12 +18,15 @@ export default function OutlookRibbon({ view, setView, filters, setFilters, onCr
 
   const tiposContrato = useMemo(
     () => [
-      { id: 1, label: "Bodas", hex: "#be123c" },
-      { id: 2, label: "XV", hex: "#7c3aed" },
-      { id: 3, label: "Graduación", hex: "#1d4ed8" },
-      { id: 4, label: "Corporativo", hex: "#0f766e" },
-      { id: 5, label: "Cumpleaños", hex: "#ea580c" },
-      { id: 6, label: "Otro", hex: "#6b7280" },
+      { id: 1,  label: "Bodas",        hex: "#be123c" },
+      { id: 2,  label: "XV",           hex: "#7c3aed" },
+      { id: 3,  label: "Graduación",   hex: "#1d4ed8" },
+      { id: 4,  label: "Corporativo",  hex: "#0f766e" },
+      { id: 5,  label: "Cumpleaños",   hex: "#ea580c" },
+      { id: 6,  label: "Citas",        hex: "#0891b2" },
+      { id: 7,  label: "Reunion Zoom", hex: "#4f46e5" },
+      { id: 8,  label: "Pendiente",    hex: "#d97706" },
+      { id: 10, label: "Fotografía",   hex: "#c026d3" },
     ],
     []
   );
@@ -180,9 +183,8 @@ export default function OutlookRibbon({ view, setView, filters, setFilters, onCr
     <div className="ol-ribbon">
       <div className="ol-ribbonLeft">
         <Space size={12} align="center">
-          <Button className="ol-createBtn" onClick={onCreateEvent} style={{ background: "#05060a", borderColor: "#05060a", color: "#fff" }}>
-            <i className="fa-regular fa-calendar-days" style={{ marginRight: 5 }}></i>
-            Nuevo evento
+          <Button className="ol-createBtn" onClick={onCreateEvent} icon={<PlusOutlined />} style={{ background: "#01369e", borderColor: "#01369e", color: "#fff" }}>
+            Nueva cita
           </Button>
 
           <Segmented
@@ -211,12 +213,10 @@ export default function OutlookRibbon({ view, setView, filters, setFilters, onCr
             </Button>
           </Dropdown>
 
-          <Button disabled onClick={() => window.print()}>
-            <i className="fa-solid fa-print" style={{ marginRight: 5 }}></i>
-            Imprimir
-          </Button>
+      
+       
 
-         
+
         </Space>
       </div>
     </div>

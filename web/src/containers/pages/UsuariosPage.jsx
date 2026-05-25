@@ -1,12 +1,13 @@
-// src/containers/pages/UsuariosPage.jsx
+﻿// src/containers/pages/UsuariosPage.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import { actionUsuariosGet } from "../../redux/actions/usuarios/usuarios";
 
-import { Button, Input, Space, Typography, Pagination } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Input, Modal, Space, Typography, Pagination } from "antd";
+import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons";
+import { previewUsuariosReportPdf, printUsuariosReportPdf } from "../../components/utils/printUsuariosReportPdf";
 
 import "./ContratosPage.css";
 import "./UsuariosPage.css";
@@ -27,6 +28,13 @@ export default function UsuariosPage() {
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportHtml, setExportHtml]  = useState("");
+
+  const handleExport = () => {
+    setExportHtml(previewUsuariosReportPdf({ items: filteredItems }));
+    setExportOpen(true);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -69,22 +77,14 @@ export default function UsuariosPage() {
     <main className="contratos-main">
       <div className="contratos-content">
 
-        {/* HEADER */}
-        <section className="contratos-header-section">
-          <Space direction="vertical" size={2}>
-            <Title level={2} className="contratos-title">
-              Usuarios
-            </Title>
-            <Text className="contratos-subtitle">
-              Gestión de usuarios del sistema
-            </Text>
-          </Space>
-        </section>
+        <section className="contratos-section" style={{ marginTop: 0 }}>
 
-        <section className="contratos-section">
-
-          {/* FILTROS */}
+          {/* FILTROS + HEADER */}
           <div className="contratos-filters-panel">
+            <Space direction="vertical" size={2} style={{ marginBottom: 16 }}>
+              <Title level={2} className="contratos-title">Usuarios</Title>
+              <Text className="contratos-subtitle">Gestión de usuarios del sistema</Text>
+            </Space>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <div className="contratos-field-label">Buscar usuario</div>
@@ -122,7 +122,15 @@ export default function UsuariosPage() {
               </Title>
               <Text type="secondary">{filteredItems.length} encontrados</Text>
             </div>
-            <div className="contratos-toolbar-right">
+            <div className="contratos-toolbar-right" style={{ display: "flex", gap: 8 }}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExport}
+                className="laboral-btn-import"
+                style={{ flex: "none" }}
+              >
+                Exportar
+              </Button>
               {canInsertar && (
                 <Button
                   type="primary"
@@ -209,6 +217,42 @@ export default function UsuariosPage() {
 
         </section>
       </div>
+
+      {/* ── Modal: Exportar ── */}
+      <Modal
+        open={exportOpen}
+        onCancel={() => setExportOpen(false)}
+        title="Previsualización — Reporte de Usuarios"
+        width={1020}
+        centered
+        destroyOnClose
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button
+              onClick={() => setExportOpen(false)}
+              style={{ background: "#374151", borderColor: "#374151", color: "#fff" }}
+            >
+              Cerrar
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              style={{ background: "#01369e", borderColor: "#01369e" }}
+              onClick={() => printUsuariosReportPdf({ items: filteredItems })}
+            >
+              Exportar PDF
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <iframe
+            title="preview-usuarios"
+            style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+            srcDoc={exportHtml}
+          />
+        </div>
+      </Modal>
     </main>
   );
 }

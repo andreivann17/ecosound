@@ -1,5 +1,39 @@
 /* EventosPage.css */
 
+/* ── Crear/Editar evento — page header card ── */
+.cc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  height: auto;
+  font-size: 12px;
+  font-weight: 700 !important;
+  color: #01369e !important;
+  margin-bottom: 8px;
+}
+
+.cc-back-btn:hover {
+  color: #0a2a7a !important;
+}
+
+.cc-page-header-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Switches — active state primary blue */
+.ant-switch.ant-switch-checked {
+  background: #01369e !important;
+}
+
 .eventos-main {
   background-color: #eef1f5;
   min-height: calc(100vh - 56px);
@@ -10,12 +44,17 @@
   margin: 0 auto;
 }
 
-.eventos-header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+.eventos-header-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 22px 16px;
+  box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
   margin-bottom: 20px;
+}
+
+.eventos-header-section {
+  margin-bottom: 16px;
 }
 
 .eventos-title {
@@ -28,19 +67,9 @@
   font-size: 13px;
 }
 
-.eventos-section {
-  margin-top: 8px;
-  margin-bottom: 20px;
-}
-
 .eventos-filters-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
-  margin-top: 4px;
-  margin-bottom: 18px;
+  padding: 0;
+  margin: 0;
 }
 
 .eventos-field-label {
@@ -197,7 +226,7 @@
 .eventos-substat-value {
   font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
   line-height: 1;
 }
 
@@ -254,8 +283,8 @@
 }
 
 .eventos-stat-inactivos .eventos-stat-icon {
-  background: #f3f4f6;
-  color: #52A855 ;
+  background: #dbeafe !important;
+  color: #01369e !important;
 }
 
 .eventos-stat-cancelados .eventos-stat-icon {
@@ -266,7 +295,7 @@
 .eventos-stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
   line-height: 1;
 }
 
@@ -368,7 +397,7 @@
   font-weight: 600 !important;
   font-size: 15px !important;
   line-height: 1.3 !important;
-  color: #0f172a !important;
+  color: #0d1b4b !important;
 }
 
 .evento-status-badge {
@@ -470,7 +499,7 @@
 .evento-money-value {
   font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
   line-height: 1.2;
 }
 
@@ -531,7 +560,7 @@
 .evento-btn-details {
   width: 100%;
   padding: 14px 16px;
-  background: #05060a;
+  background: #6280a3;
   border: none;
   color: #ffffff;
   font-size: 11px;
@@ -548,7 +577,7 @@
 }
 
 .evento-btn-details:hover {
-  background: #1e293b;
+  background: #4e6a8c;
 }
 
 @media (max-width: 768px) {

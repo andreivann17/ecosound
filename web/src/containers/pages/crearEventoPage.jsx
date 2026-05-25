@@ -1,11 +1,13 @@
-
+﻿
 import React, { useState, useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import {
   apiEventosInstance,
   authHeaderEventos,
 } from "../../redux/actions/eventos/eventos";
+import { actionCiudadesGet } from "../../redux/actions/ciudades/ciudades";
 
 import {
   Form,
@@ -61,13 +63,6 @@ const FIELD_LABELS = {
   fecha_creacion_contrato: "Fecha de celebración del contrato",
 };
 
-const CIUDADES = [
-  { label: "San Luis Rio Colorado", value: 1 },
-  { label: "Mexicali", value: 2 },
-  { label: "Puerto Peñasco", value: 3 },
-  { value: 4, label: "Valle de San Luis" },
-  { value: 5, label: "Valle de Mexicali" },
-];
 
 const TIPOS_EVENTO = [
   { label: "Bodas", value: 1 },
@@ -113,6 +108,16 @@ function parseMoney(str) {
 export default function CrearEventoPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
+
+  const ciudadesRaw = useSelector((s) => {
+    const d = s.ciudades?.data;
+    return Array.isArray(d) ? d : [];
+  });
+  const ciudadesOptions = ciudadesRaw.map((c) => ({
+    label: c.nombre,
+    value: c.id_ciudad,
+  }));
 
   const eventoEditar = location.state?.evento ?? null;
   const isEditing = !!eventoEditar;
@@ -121,6 +126,7 @@ export default function CrearEventoPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    dispatch(actionCiudadesGet());
     if (!isEditing) {
       form.setFieldValue("fecha_creacion_contrato", dayjs());
     }
@@ -479,48 +485,47 @@ export default function CrearEventoPage() {
     <main className="eventos-main">
       <div className="eventos-content">
 
-        <section className="eventos-header-section">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
-            <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/eventos")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Eventos
-              </Button>
-              <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
-                {isEditing
-                  ? `Editando evento de ${eventoEditar.cliente_nombre}`
-                  : "Nuevo evento"}
-              </Title>
-              <Text className="eventos-subtitle">
-                {isEditing
-                  ? "Modifica los datos del evento y guarda los cambios."
-                  : "Completa los datos del cliente y del evento para registrarlo."}
-              </Text>
-            </Space>
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/eventos")}
+          className="cc-back-btn"
+        >
+          Volver a Eventos
+        </Button>
 
-            <Space style={{ marginTop: 4 }}>
-              <Button
-                className="eventos-btn-clean"
-                onClick={() => navigate("/eventos")}
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                loading={saving}
-                icon={!isEditing ? <PlusOutlined /> : null}
-                onClick={handleSave}
-                style={{ backgroundColor: "#111", borderColor: "#111" }}
-              >
-                {isEditing ? "Guardar cambios" : "Crear evento"}
-              </Button>
-            </Space>
-          </div>
+        <section className="cc-page-header-card">
+          <Space direction="vertical" size={2}>
+            <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
+              {isEditing
+                ? `Editando evento de ${eventoEditar.cliente_nombre}`
+                : "Nuevo evento"}
+            </Title>
+            <Text className="eventos-subtitle">
+              {isEditing
+                ? "Modifica los datos del evento y guarda los cambios."
+                : "Completa los datos del cliente y del evento para registrarlo."}
+            </Text>
+          </Space>
+
+          <Space>
+            <Button
+              className="eventos-btn-clean"
+              onClick={() => navigate("/eventos")}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="primary"
+              loading={saving}
+              icon={!isEditing ? <PlusOutlined /> : null}
+              onClick={handleSave}
+              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+            >
+              {isEditing ? "Guardar cambios" : "Crear evento"}
+            </Button>
+          </Space>
         </section>
 
         <Form form={form} layout="vertical">
@@ -577,7 +582,7 @@ export default function CrearEventoPage() {
                     <span className="cc-section-icon"><SoundOutlined /></span>
                     Información del evento de sonido
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6b7280" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#01369e", fontWeight: 700 }}>
                     ¿Habrá evento de sonido?
                     <Switch
                       checked={hayEventoSonido}
@@ -631,7 +636,7 @@ export default function CrearEventoPage() {
                     >
                       <Select
                         placeholder="Selecciona la ciudad"
-                        options={CIUDADES}
+                        options={ciudadesOptions}
                         disabled={!hayEventoSonido}
                       />
                     </Form.Item>
@@ -663,6 +668,7 @@ export default function CrearEventoPage() {
                         format="HH:mm"
                         placeholder="--:-- --"
                         minuteStep={15}
+                        needConfirm={false}
                         disabled={!hayEventoSonido}
                         onChange={(v) => setHoraInicio(v)}
                       />
@@ -679,6 +685,7 @@ export default function CrearEventoPage() {
                         format="HH:mm"
                         placeholder="--:-- --"
                         minuteStep={15}
+                        needConfirm={false}
                         disabled={!hayEventoSonido}
                         onChange={(v) => setHoraFinal(v)}
                       />
@@ -743,7 +750,7 @@ export default function CrearEventoPage() {
                     <span className="cc-section-icon"><CameraOutlined /></span>
                     Información de fotografía / sesión
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#6b7280" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#01369e", fontWeight: 700 }}>
                     ¿Habrá sesión de fotografía?
                     <Switch
                       checked={hayEventoFoto}
@@ -771,7 +778,7 @@ export default function CrearEventoPage() {
                     >
                       <Select
                         placeholder="Selecciona la ciudad"
-                        options={CIUDADES}
+                        options={ciudadesOptions}
                         disabled={!hayEventoFoto}
                         allowClear
                       />
@@ -815,6 +822,7 @@ export default function CrearEventoPage() {
                         format="HH:mm"
                         placeholder="--:--"
                         minuteStep={15}
+                        needConfirm={false}
                         disabled={!hayEventoFoto}
                       />
                     </Form.Item>
@@ -876,6 +884,7 @@ export default function CrearEventoPage() {
                         format="HH:mm"
                         placeholder="--:-- --"
                         minuteStep={15}
+                        needConfirm={false}
                       />
                     </Form.Item>
                   </Col>
@@ -901,7 +910,10 @@ export default function CrearEventoPage() {
                     prefix="$"
                     suffix="MXN"
                     placeholder="0.00"
-                    onBlur={() => handleMoneyBlur("importe")}
+                    onBlur={() => {
+                      handleMoneyBlur("importe");
+                      form.validateFields(["importe_anticipo"]);
+                    }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -913,6 +925,19 @@ export default function CrearEventoPage() {
                 <Form.Item
                   name="importe_anticipo"
                   label={<span className="eventos-field-label">Monto primer pago</span>}
+                  rules={[
+                    {
+                      validator(_, value) {
+                        if (!value) return Promise.resolve();
+                        const total = parseFloat(String(form.getFieldValue("importe") ?? "").replace(/[^0-9.]/g, ""));
+                        const anticipo = parseFloat(String(value).replace(/[^0-9.]/g, ""));
+                        if (!isNaN(total) && !isNaN(anticipo) && anticipo > total) {
+                          return Promise.reject("El primer pago no puede ser mayor al importe total");
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}
                 >
                   <Input
                     prefix="$"

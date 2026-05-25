@@ -1,4 +1,4 @@
-// src/components/desvinculaciones/detalles/DatosExpedienteCard.jsx
+﻿// src/components/desvinculaciones/detalles/DatosExpedienteCard.jsx
 import React, { useMemo } from "react";
 import {
   Card,
@@ -139,7 +139,7 @@ export default function DatosExpedienteCard({
               type="default"
               icon={<EditOutlined />}
               onClick={() =>
-                navigate(`/materias/laboral/desvinculaciones/${detalle.id}/editar`, {
+                navigate(`/app/materias/laboral/desvinculaciones/${detalle.id}/editar`, {
                   state: {
                     idAutoridad: detalle.id_autoridad,
                     nombreIdentificacionCiudad: detalle.nombre_identificador,

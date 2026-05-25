@@ -1,14 +1,14 @@
 .cfg-main {
   background-color: #eef1f5;
   min-height: calc(100vh - 56px);
-  padding: 20px 20px 24px 12px;
+  padding: 24px 20px 24px 12px;
 }
 
 .cfg-layout {
   display: flex;
   gap: 16px;
   width: 100%;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 104px);
 }
 
 /* ── Sidebar ── */
@@ -26,6 +26,7 @@
   align-self: flex-start;
   position: sticky;
   top: 24px;
+  min-height: calc(100vh - 104px);
 }
 
 .cfg-sidebar-header {
@@ -117,6 +118,8 @@
 .cfg-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .cfg-content-card {
@@ -125,6 +128,8 @@
   border-radius: 18px;
   box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
   overflow: hidden;
+  flex: 1;
+  min-height: calc(100vh - 104px);
 }
 
 .cfg-content-header {
@@ -255,9 +260,14 @@
 .cfg-tipo-btn-add {
   border-radius: 10px !important;
   font-weight: 600;
-  background: #111827 !important;
-  border-color: #111827 !important;
+  background: #01369e !important;
+  border-color: #01369e !important;
   color: #fff !important;
+}
+
+.cfg-tipo-btn-add:hover {
+  background: #0244c0 !important;
+  border-color: #0244c0 !important;
 }
 
 .cfg-tipo-btn-add:disabled {
@@ -424,12 +434,200 @@
   color: #374151;
 }
 
+/* ── Correo entry wrapper ── */
+.cfg-correo-entry {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.cfg-correo-entry:last-child {
+  border-bottom: none;
+}
+
+.cfg-correo-entry > .cfg-correo-row {
+  border-bottom: none;
+}
+
+/* ── Destinatarios panel ── */
+.cfg-dest-panel {
+  padding: 14px 18px 16px;
+  background: #f0f7ff;
+  border-top: 1px dashed #bfdbfe;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cfg-dest-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #3b82f6;
+}
+
+.cfg-dest-icon {
+  font-size: 13px;
+}
+
+.cfg-dest-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Botones editar / guardar / cancelar */
+.cfg-dest-btn {
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 12px;
+  transition: background 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+  height: 28px;
+}
+
+.cfg-dest-btn--edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.cfg-dest-btn--edit:hover {
+  background: #bfdbfe;
+}
+
+.cfg-dest-btn--save {
+  background: #01369e;
+  color: #fff;
+}
+.cfg-dest-btn--save:hover:not(:disabled) {
+  background: #012d85;
+}
+.cfg-dest-btn--save:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.cfg-dest-btn--cancel {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+.cfg-dest-btn--cancel:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Vista: chips de solo lectura */
+.cfg-dest-view {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  align-items: center;
+}
+
+.cfg-dest-chip-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff;
+  border: 1px solid #bfdbfe;
+  border-radius: 24px;
+  padding: 4px 12px 4px 5px;
+}
+
+.cfg-dest-chip-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e3a5f;
+  line-height: 1;
+}
+
+.cfg-dest-empty {
+  font-size: 12px;
+  color: #93c5fd;
+  font-style: italic;
+}
+
+/* Tags dentro del Select (modo edición) */
+.cfg-dest-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border-radius: 20px !important;
+  padding: 2px 8px 2px 4px !important;
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin: 2px !important;
+}
+
+.cfg-dest-tag .ant-tag-close-icon {
+  color: #93c5fd !important;
+  font-size: 10px !important;
+  margin-left: 2px !important;
+}
+
+.cfg-dest-tag .ant-tag-close-icon:hover {
+  color: #1d4ed8 !important;
+}
+
+/* ── Recordatorio row (sin desc) ── */
+.cfg-correo-row--recordatorio {
+  background: #fff;
+  padding: 11px 16px;
+}
+
 /* ── Stock input ── */
 .cfg-stock-input {
   width: 90px !important;
   flex-shrink: 0;
 }
 
+/* ── Aviso list en configuración ── */
+.cfg-aviso-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cfg-aviso-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-left: 4px solid #6366f1;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.cfg-aviso-item-text {
+  flex: 1;
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.cfg-aviso-item .cfg-tipo-chip-del {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* ── Stock input ── */
 .cfg-stock-input .ant-input-number-input {
   text-align: center;
   font-weight: 700;

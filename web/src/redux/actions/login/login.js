@@ -74,9 +74,10 @@ export const actionLogin = (params, onSuccess, onError) => {
 
       const { data } = await axios.post(
         `${BASE_URL}/auth/login`,
-        { email: params.email, password: params.password, withCredentials: true  },
+        { email: params.email, password: params.password },
         {
           headers: { "Content-Type": "application/json" },
+          withCredentials: true,
         }
       );
 
@@ -98,7 +99,6 @@ export const actionLogin = (params, onSuccess, onError) => {
      
       if (!token) throw new Error("Invalid login response");
 
-      localStorage.setItem("tokenadmin", token);
       localStorage.setItem("token", token);
       localStorage.setItem("email", params.email);
       localStorage.setItem("last_login", new Date().toISOString());
@@ -138,6 +138,28 @@ export const actionLogin = (params, onSuccess, onError) => {
     }
   };
 };
+export const actionLoginAdmin = (params, onSuccess, onError) => {
+  return async () => {
+    try {
+      if (!params?.email || !params?.password) throw new Error("Campos requeridos");
+
+      const { data } = await axios.post(
+        `${BASE_URL}/auth/login-admin`,
+        { email: params.email, password: params.password },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const token = data?.access_token;
+      if (!token) throw new Error("Respuesta inválida");
+
+      localStorage.setItem("tokenadmin", token);
+      onSuccess();
+    } catch (err) {
+      onError(err?.response?.data?.detail || "Credenciales incorrectas");
+    }
+  };
+};
+
 export const actionLogout = ( ) => {
   return async (dispatch) => {
     try {

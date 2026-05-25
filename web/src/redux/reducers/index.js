@@ -22,6 +22,8 @@ import inventario from "./inventario"
 import usuarios from "./usuarios"
 import trabajadores from "./trabajadores"
 import paquetes from "./paquetes"
+import gastos from "./gastos"
+import clientes_events from "./clientes_events"
 export default combineReducers({
     materias,
     convenios,
@@ -45,5 +47,7 @@ export default combineReducers({
     usuarios,
     trabajadores,
     paquetes,
+    gastos,
+    clientes_events,
     login
 })

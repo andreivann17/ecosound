@@ -1,4 +1,4 @@
-// src/containers/pages/ContratosPage.jsx
+﻿// src/containers/pages/ContratosPage.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";

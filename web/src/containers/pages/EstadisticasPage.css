@@ -15,17 +15,22 @@
 }
 
 /* ── Page header ── */
-.est-page-header {
+.est-page-header-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding: 4px 0 0;
+  gap: 16px;
 }
 
 .est-page-title {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #1e293b;
+  color: #0d1b4b;
   margin: 0 0 2px;
   line-height: 1.2;
 }
@@ -75,7 +80,7 @@
 .est-period-display {
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: #0d1b4b;
 }
 
 /* ── Period Selector ── */
@@ -94,8 +99,8 @@
 }
 
 .est-select.ant-select-focused .ant-select-selector {
-  border-color: #05060a !important;
-  box-shadow: 0 0 0 2px rgba(5, 6, 10, 0.08) !important;
+  border-color: #01369e !important;
+  box-shadow: 0 0 0 2px rgba(1, 54, 158, 0.15) !important;
 }
 
 /* ── KPI Grid ── */
@@ -131,6 +136,7 @@
 .est-kpi-icon-red   { background: #fee2e2; color: #b91c1c; }
 .est-kpi-icon-blue  { background: #ede9fe; color: #4f46e5; }
 .est-kpi-icon-amber { background: #fef9c3; color: #92400e; }
+.est-kpi-icon-rose  { background: #fdf2f4; color: #9f1239; }
 
 .est-kpi-label {
   font-size: 0.63rem;
@@ -143,7 +149,7 @@
 .est-kpi-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #1e293b;
+  color: #0d1b4b;
   margin: 6px 0 4px;
   line-height: 1.1;
 }
@@ -247,7 +253,7 @@
 .est-vencido-nombre {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0d1b4b;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -350,7 +356,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0d1b4b;
   overflow: hidden;
 }
 
@@ -373,7 +379,7 @@
 .est-contrato-importe {
   text-align: right;
   font-weight: 600;
-  color: #1e293b;
+  color: #0d1b4b;
 }
 
 .est-contrato-saldo {

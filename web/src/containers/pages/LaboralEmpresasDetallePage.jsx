@@ -1,4 +1,4 @@
-// src/pages/materias/empresas/EmpresaDetallePage.jsx
+﻿// src/pages/materias/empresas/EmpresaDetallePage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -110,7 +110,7 @@ const location = useLocation();
                 message: "Empresa eliminada",
                 description: "Se eliminó correctamente.",
               });
-              navigate("/empresas");
+              navigate("/app/empresas");
             })
           );
         } catch (error) {
@@ -138,7 +138,7 @@ const location = useLocation();
             type="link"
             icon={<ArrowLeftOutlined />}
             className="laboral-exp-back"
-              onClick={() => navigate(`/empresas${location.search}`)}
+              onClick={() => navigate(`/app/empresas${location.search}`)}
           >
             Volver
           </Button>
@@ -170,7 +170,7 @@ const location = useLocation();
           type="link"
           icon={<ArrowLeftOutlined />}
           className="laboral-exp-back"
-           onClick={() => navigate(`/empresas${location.search}`)}
+           onClick={() => navigate(`/app/empresas${location.search}`)}
         >
           Volver
         </Button>

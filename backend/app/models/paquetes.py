@@ -3,71 +3,57 @@ from typing import Any, Dict, List, Optional
 from ..db import get_connection
 
 
-def list_paquetes(tipo: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_paquetes(tipo: Optional[str] = None, search: Optional[str] = None, id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
         rows: List[Dict[str, Any]] = []
         with conn.cursor(dictionary=True) as cur:
             if tipo != "sonido":
+                cond_f = "p.active_sistema = 1"
+                params_f: List[Any] = []
+                if id_cliente is not None:
+                    cond_f += " AND p.id_cliente = %s"
+                    params_f.append(id_cliente)
                 if search:
-                    like = f"%{search}%"
-                    cur.execute(
-                        """
-                        SELECT p.id_paquete_fotografia AS id_paquete, p.nombre, p.active,
-                            0 AS is_paquete_sonido,
-                            (SELECT COUNT(*) FROM paquetes_contenido pc
-                             WHERE pc.id_paquete = p.id_paquete_fotografia
-                               AND pc.is_paquete_sonido = 0 AND pc.active = 1) AS contenidos_count
-                        FROM paquetes_fotografia p
-                        WHERE p.active_sistema = 1 AND p.nombre LIKE %s
-                        ORDER BY p.nombre ASC
-                        """,
-                        (like,),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        SELECT p.id_paquete_fotografia AS id_paquete, p.nombre, p.active,
-                            0 AS is_paquete_sonido,
-                            (SELECT COUNT(*) FROM paquetes_contenido pc
-                             WHERE pc.id_paquete = p.id_paquete_fotografia
-                               AND pc.is_paquete_sonido = 0 AND pc.active = 1) AS contenidos_count
-                        FROM paquetes_fotografia p
-                        WHERE p.active_sistema = 1
-                        ORDER BY p.nombre ASC
-                        """
-                    )
+                    cond_f += " AND p.nombre LIKE %s"
+                    params_f.append(f"%{search}%")
+                cur.execute(
+                    f"""
+                    SELECT p.id_paquete_fotografia AS id_paquete, p.nombre, p.active,
+                        0 AS is_paquete_sonido,
+                        (SELECT COUNT(*) FROM paquetes_contenido pc
+                         WHERE pc.id_paquete = p.id_paquete_fotografia
+                           AND pc.is_paquete_sonido = 0 AND pc.active = 1) AS contenidos_count
+                    FROM paquetes_fotografia p
+                    WHERE {cond_f}
+                    ORDER BY p.nombre ASC
+                    """,
+                    params_f,
+                )
                 rows += cur.fetchall() or []
 
             if tipo != "fotografia":
+                cond_s = "p.active_sistema = 1"
+                params_s: List[Any] = []
+                if id_cliente is not None:
+                    cond_s += " AND p.id_cliente = %s"
+                    params_s.append(id_cliente)
                 if search:
-                    like = f"%{search}%"
-                    cur.execute(
-                        """
-                        SELECT p.id_paquete_sonido AS id_paquete, p.nombre, p.active,
-                            1 AS is_paquete_sonido,
-                            (SELECT COUNT(*) FROM paquetes_contenido pc
-                             WHERE pc.id_paquete = p.id_paquete_sonido
-                               AND pc.is_paquete_sonido = 1 AND pc.active = 1) AS contenidos_count
-                        FROM paquetes_sonido p
-                        WHERE p.active_sistema = 1 AND p.nombre LIKE %s
-                        ORDER BY p.nombre ASC
-                        """,
-                        (like,),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        SELECT p.id_paquete_sonido AS id_paquete, p.nombre, p.active,
-                            1 AS is_paquete_sonido,
-                            (SELECT COUNT(*) FROM paquetes_contenido pc
-                             WHERE pc.id_paquete = p.id_paquete_sonido
-                               AND pc.is_paquete_sonido = 1 AND pc.active = 1) AS contenidos_count
-                        FROM paquetes_sonido p
-                        WHERE p.active_sistema = 1
-                        ORDER BY p.nombre ASC
-                        """
-                    )
+                    cond_s += " AND p.nombre LIKE %s"
+                    params_s.append(f"%{search}%")
+                cur.execute(
+                    f"""
+                    SELECT p.id_paquete_sonido AS id_paquete, p.nombre, p.active,
+                        1 AS is_paquete_sonido,
+                        (SELECT COUNT(*) FROM paquetes_contenido pc
+                         WHERE pc.id_paquete = p.id_paquete_sonido
+                           AND pc.is_paquete_sonido = 1 AND pc.active = 1) AS contenidos_count
+                    FROM paquetes_sonido p
+                    WHERE {cond_s}
+                    ORDER BY p.nombre ASC
+                    """,
+                    params_s,
+                )
                 rows += cur.fetchall() or []
         return rows
     finally:
@@ -115,19 +101,19 @@ def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict
         conn.close()
 
 
-def create_paquete(nombre: str, is_paquete_sonido: bool) -> Dict[str, Any]:
+def create_paquete(nombre: str, is_paquete_sonido: bool, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             if is_paquete_sonido:
                 cur.execute(
-                    "INSERT INTO paquetes_sonido (nombre, active, active_sistema) VALUES (%s, 1, 1)",
-                    (nombre.strip(),),
+                    "INSERT INTO paquetes_sonido (nombre, active, active_sistema, id_cliente) VALUES (%s, 1, 1, %s)",
+                    (nombre.strip(), id_cliente),
                 )
             else:
                 cur.execute(
-                    "INSERT INTO paquetes_fotografia (nombre, active, active_sistema) VALUES (%s, 1, 1)",
-                    (nombre.strip(),),
+                    "INSERT INTO paquetes_fotografia (nombre, active, active_sistema, id_cliente) VALUES (%s, 1, 1, %s)",
+                    (nombre.strip(), id_cliente),
                 )
             new_id = cur.lastrowid
         conn.commit()

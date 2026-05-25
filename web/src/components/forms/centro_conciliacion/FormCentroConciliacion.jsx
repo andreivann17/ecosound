@@ -1,4 +1,4 @@
-// src/pages/laboral/expedientes/FormCentroConciliacion.jsx
+﻿// src/pages/laboral/expedientes/FormCentroConciliacion.jsx
 import React, {
   useMemo,
   useState,
@@ -1205,7 +1205,7 @@ const handleChangeCiudad = (value) => {
   const expedienteId = result?.id;
 
   if (expedienteId) {
-    navigate(`/materias/laboral/centro-conciliacion/${expedienteId}`);
+    navigate(`/app/materias/laboral/centro-conciliacion/${expedienteId}`);
   } else {
     onSaved?.();
   }

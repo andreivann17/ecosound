@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderNavbar from "../../components/navigation/header_navbar.jsx";
 
@@ -52,7 +52,7 @@ function Materias() {
       description:
         "Conflictos individuales y colectivos de trabajo, despidos, prestaciones y seguridad social.",
       icon: <SolutionOutlined />,
-      route: "/materias/laboral",
+      route: "/app/materias/laboral",
       disabled: false,
     },
     {
@@ -62,7 +62,7 @@ function Materias() {
       description:
         "Delitos, procedimientos penales y estrategias de defensa o asesoría jurídica especializada.",
       icon: <AlertOutlined />,
-      route: "/materias/penal",
+      route: "/app/materias/penal",
       disabled: true,
     },
     {
@@ -72,7 +72,7 @@ function Materias() {
       description:
         "Controversias entre comerciantes, contratos mercantiles, títulos de crédito y obligaciones.",
       icon: <ReconciliationOutlined />,
-      route: "/materias/mercantil",
+      route: "/app/materias/mercantil",
       disabled: true,
     },
     {
@@ -82,7 +82,7 @@ function Materias() {
       description:
         "Contratos civiles, obligaciones, daños y perjuicios, arrendamientos y controversias de propiedad.",
       icon: <HomeOutlined />,
-      route: "/materias/civil",
+      route: "/app/materias/civil",
       disabled: true,
     },
     {
@@ -92,7 +92,7 @@ function Materias() {
       description:
         "Divorcios, guardia y custodia, pensiones alimenticias y procedimientos de adopción.",
       icon: <TeamOutlined />,
-      route: "/materias/familiar",
+      route: "/app/materias/familiar",
       disabled: true,
     },
     {
@@ -102,7 +102,7 @@ function Materias() {
       description:
         "Ejidos, comunidades agrarias, tenencia de la tierra y conflictos sobre uso y aprovechamiento.",
       icon: <EnvironmentOutlined />,
-      route: "/materias/agrario",
+      route: "/app/materias/agrario",
       disabled: true,
     },
     {
@@ -112,7 +112,7 @@ function Materias() {
       description:
         "Configura otros tipos de materia que maneje el despacho y no estén cubiertos en las categorías anteriores.",
       icon: <AppstoreOutlined />,
-      route: "/materias/otro",
+      route: "/app/materias/otro",
       disabled: true,
     },
   ];
@@ -137,7 +137,7 @@ function Materias() {
     <Button
       type="link"
       icon={<ArrowLeftOutlined />}
-      onClick={() => navigate("/home")}
+      onClick={() => navigate("/app/home")}
       className="materias-back-btn"
     >
       Volver a Inicio

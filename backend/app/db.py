@@ -22,6 +22,7 @@ from mysql.connector import pooling
 #: Global variable holding the connection pool instance. It is set by
 #: :func:`init_pool` and used by :func:`get_connection`.
 _POOL: Optional[pooling.MySQLConnectionPool] = None
+_POOL_ADMIN: Optional[pooling.MySQLConnectionPool] = None
 
 
 def init_pool() -> None:
@@ -58,7 +59,31 @@ def init_pool() -> None:
         user=user,
         password=password,
         autocommit=True,
+        consume_results=True,
     )
+
+    global _POOL_ADMIN
+    admin_database = os.getenv("DB_ADMIN_NAME", "administrador")
+    _POOL_ADMIN = mysql.connector.pooling.MySQLConnectionPool(
+        pool_name="fastapi_admin_pool",
+        pool_size=pool_size,
+        host=host,
+        port=port,
+        database=admin_database,
+        user=user,
+        password=password,
+        autocommit=True,
+        consume_results=True,
+    )
+
+
+def get_admin_connection() -> mysql.connector.connection.MySQLConnection:
+    """Get a connection from the admin pool (database: administrador)."""
+    global _POOL_ADMIN
+    if _POOL_ADMIN is None:
+        init_pool()
+    assert _POOL_ADMIN is not None
+    return _POOL_ADMIN.get_connection()
 
 
 def get_connection() -> mysql.connector.connection.MySQLConnection:

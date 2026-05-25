@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -27,6 +27,7 @@ import {
   CalendarOutlined,
   BarChartOutlined,
   TeamOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
@@ -101,6 +102,10 @@ export default function TrabajadorDetallePage() {
   const [analisisData, setAnalisisData] = useState(null);
   const [analisisLoading, setAnalisisLoading] = useState(false);
 
+  // Actividad state
+  const [actividad, setActividad] = useState([]);
+  const [loadingActividad, setLoadingActividad] = useState(false);
+
   const fetchTrabajador = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,6 +149,25 @@ export default function TrabajadorDetallePage() {
     }
   }, [activeTab, analisisPeriodo, analisisCustomRange, fetchAnalisis]);
 
+  const fetchActividad = useCallback(async () => {
+    setLoadingActividad(true);
+    try {
+      const { data } = await apiTrabajadoresInstance.get(
+        `/trabajadores/${idTrabajador}/actividad`,
+        { headers: authHeaderTrabajadores() }
+      );
+      setActividad(Array.isArray(data) ? data : data.items ?? []);
+    } catch {
+      setActividad([]);
+    } finally {
+      setLoadingActividad(false);
+    }
+  }, [idTrabajador]);
+
+  useEffect(() => {
+    if (activeTab === "actividad") fetchActividad();
+  }, [activeTab, fetchActividad]);
+
   const handleAnalisisPeriodo = (val) => {
     setAnalisisPeriodo(val);
     if (val !== "custom") setAnalisisCustomRange(null);
@@ -161,7 +185,7 @@ export default function TrabajadorDetallePage() {
         { headers: authHeaderTrabajadores() }
       );
       notification.success({ message: "Trabajador eliminado" });
-      navigate("/trabajadores");
+      navigate("/app/trabajadores");
     } catch (err) {
       notification.error({
         message: "Error al eliminar",
@@ -223,7 +247,7 @@ export default function TrabajadorDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/trabajadores")}
+          onClick={() => navigate("/app/trabajadores")}
         >
           Volver a Trabajadores
         </Button>
@@ -269,7 +293,7 @@ export default function TrabajadorDetallePage() {
                 <Button
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
-                  onClick={() => navigate(`/trabajadores/${idTrabajador}/editar`, { state: { trabajador } })}
+                  onClick={() => navigate(`/app/trabajadores/${idTrabajador}/editar`, { state: { trabajador } })}
                 >
                   Editar
                 </Button>
@@ -301,6 +325,16 @@ export default function TrabajadorDetallePage() {
             >
               <BarChartOutlined />
               Análisis
+            </button>
+            <button
+              className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("actividad")}
+            >
+              <HistoryOutlined />
+              Actividad
+              {actividad.length > 0 && (
+                <span className="cd-actividad-count">{actividad.length}</span>
+              )}
             </button>
           </div>
         </div>
@@ -469,6 +503,66 @@ export default function TrabajadorDetallePage() {
                   </div>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {activeTab === "actividad" && (
+          <div className="cd-card">
+            <div className="cd-card-header">
+              <div className="cd-card-icon-wrap"><HistoryOutlined /></div>
+              <h2 className="cd-card-title">
+                Actividad del trabajador
+                {actividad.length > 0 && (
+                  <span className="cd-actividad-count">{actividad.length}</span>
+                )}
+              </h2>
+            </div>
+
+            {loadingActividad ? (
+              <div className="cd-loading-wrap"><Spin size="large" /></div>
+            ) : actividad.length === 0 ? (
+              <Empty description="Sin actividad registrada aún" style={{ margin: "40px 0" }} />
+            ) : (
+              <div className="cd-actividad-list">
+                {actividad.map((item, idx) => {
+                  const ACTION_CONFIG = {
+                    CREATE: { label: "Creación",     color: "#15803d", bg: "#dcfce7" },
+                    UPDATE: { label: "Actualización", color: "#1d4ed8", bg: "#dbeafe" },
+                    DELETE: { label: "Eliminación",  color: "#b91c1c", bg: "#fee2e2" },
+                  };
+                  const cfg = ACTION_CONFIG[item.action] || { label: item.action, color: "#595c5e", bg: "#f1f5f9" };
+                  return (
+                    <div key={item.id_audit_log || idx} className="cd-actividad-item">
+                      <div className="cd-actividad-dot-col">
+                        <div className="cd-actividad-dot" style={{ background: cfg.color }} />
+                        {idx < actividad.length - 1 && <div className="cd-actividad-line" />}
+                      </div>
+                      <div className="cd-actividad-body">
+                        <div className="cd-actividad-top-row">
+                          <span className="cd-actividad-badge" style={{ color: cfg.color, background: cfg.bg }}>
+                            {cfg.label}
+                          </span>
+                          <span className="cd-actividad-message">{item.message}</span>
+                        </div>
+                        <div className="cd-actividad-bottom-row">
+                          <span className="cd-actividad-time">
+                            {item.datetime ? dayjs(item.datetime).format("DD/MM/YYYY, HH:mm") : "—"}
+                          </span>
+                          {item.user_name && (
+                            <div className="cd-actividad-user">
+                              <span>{item.user_name}</span>
+                              {item.user_email && (
+                                <span className="cd-actividad-email">{item.user_email}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

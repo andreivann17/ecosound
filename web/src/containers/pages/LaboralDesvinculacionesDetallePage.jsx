@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
+﻿// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -120,7 +120,7 @@ const [deletingExp, setDeletingExp] = useState(false);
             type="link"
             icon={<ArrowLeftOutlined />}
             className="laboral-exp-back"
-            onClick={() => navigate("/materias/laboral/desvinculaciones")}
+            onClick={() => navigate("/app/materias/laboral/desvinculaciones")}
           >
             Volver a expedientes
           </Button>
@@ -163,7 +163,7 @@ const handleDeleteExpediente = () => {
               message: "Desvinculación eliminada",
               description: "Se eliminó correctamente.",
             });
-            navigate("/materias/laboral/desvinculaciones");
+            navigate("/app/materias/laboral/desvinculaciones");
           })
         );
       } catch (error) {
@@ -190,7 +190,7 @@ const handleDeleteExpediente = () => {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="laboral-exp-back"
-          onClick={() => navigate("/materias/laboral/desvinculaciones")}
+          onClick={() => navigate("/app/materias/laboral/desvinculaciones")}
         >
           Volver a expedientes
         </Button>

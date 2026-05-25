@@ -4,11 +4,11 @@ import { PATH } from "../redux/utils";
 
 const PermisosContext = createContext(null);
 
-const MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes"];
+const MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones"];
 const ACTIONS = ["modulo", "consultar", "insertar", "editar", "eliminar"];
 
 const buildDefault = () =>
-  Object.fromEntries(MODULES.map((m) => [m, Object.fromEntries(ACTIONS.map((a) => [a, false]))]));
+  Object.fromEntries(MODULES.map((m) => [m, Object.fromEntries(ACTIONS.map((a) => [a, true]))]));
 
 export function PermisosProvider({ children }) {
   const [permisos, setPermisos] = useState(buildDefault());

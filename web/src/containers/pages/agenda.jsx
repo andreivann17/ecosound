@@ -1,25 +1,26 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { Layout, message, Modal, notification } from "antd";
+import { Layout, Modal, notification } from "antd";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
-  actionAgendaPost, // ✅ CAMBIO: POST con payload completo
+  actionAgendaPost,
   actionAgendaCreate,
   actionAgendaUpdate,
   actionAgendaDelete,
   actionAgendaGetById,
 } from "../../redux/actions/agenda/agenda";
+import { actionSesionesFotosGet } from "../../redux/actions/sesiones_fotos/sesiones_fotos";
 
 import { actionCiudadesGet } from "../../redux/actions/ciudades/ciudades.js";
 import { actionEstadosGet } from "../../redux/actions/estados/estados.js";
 import OutlookRibbon from "../../components/calendar/OutlookRibbon";
-import OutlookDateBar from "../../components/calendar/OutlookDateBar";
-import OutlookSidebar from "../../components/calendar/OutlookSidebar";
 import OutlookCalendarBoard from "../../components/calendar/OutlookCalendarBoard";
 import EventModal from "../../components/calendar/EventModal";
 import EventViewModal from "../../components/calendar/EventViewModal";
+import PrintModal from "../../components/calendar/PrintModal";
+import AgendaSearchModal from "../../components/calendar/AgendaSearchModal";
 
 import {
   buildMonthMatrix,
@@ -32,7 +33,7 @@ import "../../components/calendar/css/index.css";
 
 dayjs.locale("es");
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 const toLocalISO = (d) => dayjs(d).format("YYYY-MM-DDTHH:mm:ss");
 
 const getRangeParams = (view, cursorDate) => {
@@ -53,24 +54,16 @@ const getRangeParams = (view, cursorDate) => {
   return { from: toLocalISO(from), to: toLocalISO(to) };
 };
 
-
-// Ultra-robusto: acepta array directo o payloads con items/data/items
 const coerceItems = (slice) => {
   if (!slice) return [];
   if (Array.isArray(slice)) return slice;
-
-  // casos típicos redux
   if (Array.isArray(slice.items)) return slice.items;
   if (Array.isArray(slice.data)) return slice.data;
   if (slice.data && Array.isArray(slice.data.items)) return slice.data.items;
-
-  // axios: { data: { items } }
   if (slice.payload && Array.isArray(slice.payload.items)) return slice.payload.items;
-
   return [];
 };
 
-// construir payload POST completo
 const buildAgendaPayload = ({ rangeParams, filters }) => {
   const cityIds = Array.isArray(filters?.cityIds)
     ? filters.cityIds.map(Number)
@@ -92,17 +85,19 @@ const buildAgendaPayload = ({ rangeParams, filters }) => {
 };
 
 const TIPO_CONTRATO_COLORS = {
-  1: "#be123c",  // Bodas
-  2: "#7c3aed",  // XV
-  3: "#1d4ed8",  // Graduación
-  4: "#0f766e",  // Corporativo
-  5: "#ea580c",  // Cumpleaños
-  6: "#6b7280",  // Otro
+  1:  "#be123c",  // Bodas
+  2:  "#7c3aed",  // XV
+  3:  "#1d4ed8",  // Graduación
+  4:  "#0f766e",  // Corporativo
+  5:  "#ea580c",  // Cumpleaños
+  6:  "#0891b2",  // Citas
+  7:  "#4f46e5",  // Reunion Zoom
+  8:  "#d97706",  // Pendiente
+  10: "#c026d3",  // Fotografía
 };
 
 const SESION_COLOR = "#e91e8c";
 
-// backend -> UI event
 const mapAgendaItemToUiEvent = (it) => {
   const canceled =
     it?.status === "canceled" || it?.canceled === true || it?.is_canceled === true;
@@ -125,7 +120,6 @@ const mapAgendaItemToUiEvent = (it) => {
     it?.recurrenceRule ??
     null;
 
-  // ✅ NUEVO: documento (viene del backend en snake_case)
   const documento_url = it?.documento_url ?? null;
   const documento_filename = it?.documento_filename ?? null;
 
@@ -135,38 +129,39 @@ const mapAgendaItemToUiEvent = (it) => {
     start,
     end,
     allDay,
-
     calendarId: "cal_main",
     showAs: "busy",
     recurring: !!(it?.is_recurring ?? recurrence),
     canceled,
-
     location: it?.location || "",
     description: it?.description || "",
   });
 
+  const source_table = it?.source_table || "";
+  const source = source_table === "sesiones_fotos" ? "sesiones_fotos" : source_table;
+
+  const tipo_id = it?.contrato_tipo_id ?? it?.id_agenda_evento ?? null;
+
   return {
     ...base,
-
     ciudad_id,
     nombre_ciudad,
     reminder,
     inPerson,
     recurrence,
     url,
-
-    // ✅ REINYECTA documento para EventViewModal
     documento_url,
     documento_filename,
-
-    color_hex: it?.source_table === "sesiones_fotos"
+    contrato_tipo_id: tipo_id,
+    source_table,
+    source,
+    color_hex: source_table === "sesiones_fotos"
       ? SESION_COLOR
-      : (TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null),
-    color: it?.source_table === "sesiones_fotos"
+      : (TIPO_CONTRATO_COLORS[tipo_id] || it?.color_hex || null),
+    color: source_table === "sesiones_fotos"
       ? SESION_COLOR
-      : (TIPO_CONTRATO_COLORS[it?.contrato_tipo_id] || it?.color_hex || null),
+      : (TIPO_CONTRATO_COLORS[tipo_id] || it?.color_hex || null),
     id_agenda_evento: it?.id_agenda_evento ?? it?.id_evento ?? null,
-
     is_recurring: it?.is_recurring ?? null,
   };
 };
@@ -176,7 +171,6 @@ export default function OutlookCalendarPage() {
 
   const [view, setView] = useState("month");
   const [cursorDate, setCursorDate] = useState(dayjs());
-  const [selectedCalendars, setSelectedCalendars] = useState({ cal_main: true });
 
   const lastNotifAtRef = useRef(0);
   const pendingNotifRef = useRef(null);
@@ -184,12 +178,15 @@ export default function OutlookCalendarPage() {
     const now = Date.now();
     const cooldownMs = 1500;
 
-    
     if (now - lastNotifAtRef.current < cooldownMs) {
       if (pendingNotifRef.current) clearTimeout(pendingNotifRef.current);
       pendingNotifRef.current = setTimeout(() => {
         lastNotifAtRef.current = Date.now();
-        
+        notification.info({
+          message: "Agenda actualizada",
+          description: text || "Se detectaron cambios en la agenda.",
+          key: "agenda_update",
+        });
         pendingNotifRef.current = null;
       }, cooldownMs);
       return;
@@ -211,7 +208,6 @@ export default function OutlookCalendarPage() {
     });
   }, []);
 
-  // ✅ CAMBIO: filtros nuevos (OutlookRibbon los inicializa a "todos")
   const [filters, setFilters] = useState({
     tipoContratoIds: null,
     cityIds: null,
@@ -220,11 +216,8 @@ export default function OutlookCalendarPage() {
 
   const rangeParams = useMemo(() => getRangeParams(view, cursorDate), [view, cursorDate]);
 
-
   const wsRef = useRef(null);
   const rangeRef = useRef(rangeParams);
-
-  // ✅ NUEVO: guardar el último payload para refrescos WS
   const lastPayloadRef = useRef(null);
 
   useEffect(() => {
@@ -232,56 +225,33 @@ export default function OutlookCalendarPage() {
   }, [rangeParams]);
 
   const connectWS = useCallback(() => {
-    const url = "ws://localhost:8000/ws/agenda"; // en prod: wss://tu-dominio/ws/agenda
+    const url = "ws://localhost:8000/ws/agenda";
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // opcional: handshake
       ws.send(JSON.stringify({ type: "HELLO", page: "agenda" }));
     };
 
     ws.onclose = () => {
-      // reconexión simple
       setTimeout(() => connectWS(), 1000);
     };
 
     ws.onerror = () => {
-      try {
-        ws.close();
-      } catch {}
+      try { ws.close(); } catch {}
     };
-    
 
-    // ✅ CAMBIO: WS refresca con POST respetando filtros
     ws.onmessage = (ev) => {
       let msg = ev.data;
-      try {
-        msg = JSON.parse(ev.data);
-      } catch {}
+      try { msg = JSON.parse(ev.data); } catch {}
 
-      if (msg?.type === "AGENDA_INVALIDATE") {
+      if (msg?.type === "AGENDA_INVALIDATE" || msg?.type === "AGENDA_REFRESH_RANGE") {
         notifyAgendaUpdate("Hubo una actualización. Refrescando vista…");
-
         const baseRange = rangeRef.current;
         const payload = lastPayloadRef.current
           ? { ...lastPayloadRef.current, from: baseRange.from, to: baseRange.to }
           : null;
-
         if (payload) dispatch(actionAgendaPost(payload));
-        return;
-      }
-
-      if (msg?.type === "AGENDA_REFRESH_RANGE") {
-        notifyAgendaUpdate("Se actualizó el rango actual. Refrescando…");
-
-        const baseRange = rangeRef.current;
-        const payload = lastPayloadRef.current
-          ? { ...lastPayloadRef.current, from: baseRange.from, to: baseRange.to }
-          : null;
-
-        if (payload) dispatch(actionAgendaPost(payload));
-        return;
       }
     };
   }, [dispatch, notifyAgendaUpdate]);
@@ -293,28 +263,31 @@ export default function OutlookCalendarPage() {
     };
   }, [connectWS]);
 
-  // ===== AGENDA: LEE BIEN items =====
+  // ===== AGENDA =====
   const agendaSlice = useSelector((state) => state.agenda || {});
   const agendaItems = useMemo(
     () => coerceItems(agendaSlice?.data ?? agendaSlice),
     [agendaSlice]
   );
 
+  // ===== SESIONES DE FOTOS =====
+  const sesionesItems = useSelector((state) => state.sesiones_fotos?.items || []);
+
   // ===== CIUDADES =====
   const ciudadesSlice = useSelector((state) => state.ciudades || {});
   const ciudadesItems = useMemo(() => coerceItems(ciudadesSlice), [ciudadesSlice]);
 
-const ciudadOptions = useMemo(() => {
-  return ciudadesItems
-    .map((c) => ({
-      label: c?.nombre || c?.code || `Ciudad ${c?.id}`,
-      value: c?.id,
-      id_estado: c?.id_estado, // 🔥 CLAVE PARA FILTRAR
-    }))
-    .filter((o) => o.label && o.value != null && o.id_estado != null);
-}, [ciudadesItems]);
+  const ciudadOptions = useMemo(() => {
+    return ciudadesItems
+      .map((c) => ({
+        label: c?.nombre || c?.code || `Ciudad ${c?.id}`,
+        value: c?.id,
+        id_estado: c?.id_estado,
+      }))
+      .filter((o) => o.label && o.value != null && o.id_estado != null);
+  }, [ciudadesItems]);
 
-const estadosSlice = useSelector((state) => state.estados || {});
+  const estadosSlice = useSelector((state) => state.estados || {});
   const estadosItems = useMemo(() => coerceItems(estadosSlice), [estadosSlice]);
 
   const estadoOptions = useMemo(() => {
@@ -323,24 +296,14 @@ const estadosSlice = useSelector((state) => state.estados || {});
       value: c.id,
     }));
   }, [estadosItems]);
-  const agendaById = useMemo(() => {
-    const m = new Map();
-    (agendaItems || []).forEach((it) => {
-      const id = it.id ?? it.id_agenda;
-      if (id != null) m.set(id, it);
-    });
-    return m;
-  }, [agendaItems]);
 
   const [draft, setDraft] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // ===== NUEVO: modal de VISTA (click) =====
   const [viewOpen, setViewOpen] = useState(false);
   const [viewEvent, setViewEvent] = useState(null);
-
-
- 
 
   useEffect(() => {
     dispatch(actionCiudadesGet({}));
@@ -348,15 +311,41 @@ const estadosSlice = useSelector((state) => state.estados || {});
   }, [dispatch]);
 
   const eventsUi = useMemo(() => {
-    return (agendaItems || []).map(mapAgendaItemToUiEvent);
-  }, [agendaItems]);
+    const agendaEvents = (agendaItems || []).map(mapAgendaItemToUiEvent);
+
+    const sesionEvents = (sesionesItems || []).map((s) => {
+      const start = s.fecha_sesion;
+      const end = dayjs(s.fecha_sesion).add(1, "hour").toISOString();
+      const base = normalizeEvent({
+        id: `sesion_${s.id_sesion}`,
+        title: s.nombre_cliente || "Sesión de fotos",
+        start,
+        end,
+        allDay: false,
+        calendarId: "cal_main",
+        showAs: "busy",
+        recurring: false,
+        canceled: false,
+        location: s.lugar || "",
+        description: s.comentarios || "",
+      });
+      return {
+        ...base,
+        color: SESION_COLOR,
+        color_hex: SESION_COLOR,
+        source: "sesiones_fotos",
+        source_id: s.id_sesion,
+      };
+    });
+
+    return [...agendaEvents, ...sesionEvents];
+  }, [agendaItems, sesionesItems]);
 
   const withinRange = (ev, fromISO, toISO) => {
     const from = dayjs(fromISO);
     const to = dayjs(toISO);
     const start = dayjs(ev.start);
     const end = dayjs(ev.end || ev.start);
-
     return start.isBefore(to) && end.isAfter(from);
   };
 
@@ -367,30 +356,11 @@ const estadosSlice = useSelector((state) => state.estados || {});
   }, [eventsUi, rangeParams]);
 
   const visibleEvents = useMemo(() => {
-    const enabledIds = Object.keys(selectedCalendars).filter(
-      (k) => selectedCalendars[k]
-    );
-
     return eventsUiInRange.filter((e) => {
-      if (!enabledIds.includes(e.calendarId)) return false;
       if (e.color_hex === SESION_COLOR && !filters.showSesiones) return false;
       return true;
     });
-  }, [eventsUiInRange, selectedCalendars, filters.showSesiones]);
-
-  const rangeLabel = useMemo(() => {
-    if (view === "month") return cursorDate.format("MMMM YYYY");
-    if (view === "day") return cursorDate.format("D MMMM, YYYY");
-
-    const weekDays = buildWeekDays(cursorDate, view === "week_work");
-    const start = weekDays[0];
-    const end = weekDays[weekDays.length - 1];
-    return `${start.format("DD")}–${end.format("DD")} de ${start.format(
-      "MMMM"
-    )} de ${start.format("YYYY")}`;
-  }, [cursorDate, view]);
-
-  const onToday = () => setCursorDate(dayjs());
+  }, [eventsUiInRange, filters.showSesiones]);
 
   const onPrev = () => {
     if (view === "day") setCursorDate((d) => d.subtract(1, "day"));
@@ -404,14 +374,6 @@ const estadosSlice = useSelector((state) => state.estados || {});
     else setCursorDate((d) => d.add(1, "week"));
   };
 
-  const onPickMonthYear = (monthDayjs) => {
-    const currentDay = cursorDate.date();
-    const target = monthDayjs.date(1);
-    const daysInTarget = target.daysInMonth();
-    const safeDay = Math.min(currentDay, daysInTarget);
-    setCursorDate(target.date(safeDay));
-  };
-
   const openNewEvent = (base) => {
     setDraft({
       id: null,
@@ -419,10 +381,8 @@ const estadosSlice = useSelector((state) => state.estados || {});
       start: base?.start || cursorDate.hour(8).minute(0).second(0).toISOString(),
       end: base?.end || cursorDate.hour(8).minute(30).second(0).toISOString(),
       allDay: false,
-
       ciudad_id: null,
       location: "",
-
       calendarId: "cal_main",
       showAs: "busy",
       recurring: false,
@@ -430,63 +390,55 @@ const estadosSlice = useSelector((state) => state.estados || {});
       description: "",
       reminder: "15m",
       inPerson: false,
-
       id_agenda_evento: null,
       source_table: null,
       source_id: null,
-
       recurrence: null,
     });
-
     setModalOpen(true);
   };
 
   const onSelectSlot = ({ start, end }) => openNewEvent({ start, end });
 
-const onSaveEvent = async (payload, files = []) => {
-  try {
-    if (!payload) throw new Error("payload vacío");
+  const onSaveEvent = async (payload, files = []) => {
+    try {
+      if (!payload) throw new Error("payload vacío");
 
-    const isUpdate = !!draft?.id;
+      const isUpdate = !!draft?.id;
+      const filesMap =
+        Array.isArray(files) && files.length
+          ? { documento: files[0] }
+          : null;
 
-    const filesMap =
-      Array.isArray(files) && files.length
-        ? { documento: files[0] } // 👈 igual que desvinculaciones: filesMap.documento
-        : null;
+      if (isUpdate) {
+        await dispatch(actionAgendaUpdate(draft.id, payload, rangeParams, () => {}, filesMap));
+      } else {
+        await dispatch(actionAgendaCreate(payload, rangeParams, () => {}, filesMap));
+      }
 
-    if (isUpdate) {
-      await dispatch(actionAgendaUpdate(draft.id, payload, rangeParams, () => {}, filesMap));
-    } else {
-      await dispatch(actionAgendaCreate(payload, rangeParams, () => {}, filesMap));
+      setModalOpen(false);
+      setDraft(null);
+
+      notification.info({
+        message: "Evento guardado",
+        description: "",
+        key: "agenda_creado",
+      });
+    } catch (e) {
+      const msg =
+        e?.response?.data?.detail || e?.message || "No se pudo guardar el evento";
+      notification.error({ message: msg });
     }
+  };
 
-    setModalOpen(false);
-    setDraft(null);
-
-    notification.info({
-      message: "Evento guardado",
-      description: "",
-      key: "agenda_creado",
-    });
-  } catch (e) {
-    const msg =
-      e?.response?.data?.detail || e?.message || "No se pudo guardar el evento";
-    message.error(msg);
-  }
-};
-
-  // ===== CLICK = VISTA =====
   const onViewEvent = (ev) => {
-      console.log("VIEW EVENT =>", ev); // debe traer documento_url
-
     setViewEvent(ev);
     setViewOpen(true);
   };
 
-  // ===== DOBLE CLICK / EDITAR =====
   const onEditEvent = async (ev) => {
     const id = ev?.id ?? ev?.id_agenda;
-    const full = await dispatch(actionAgendaGetById(id)); // que retorne el objeto completo
+    const full = await dispatch(actionAgendaGetById(id));
     setDraft(full);
     setModalOpen(true);
   };
@@ -495,25 +447,33 @@ const onSaveEvent = async (payload, files = []) => {
     try {
       await dispatch(actionAgendaDelete(data.id, rangeParams));
       notification.info({
-      message: "Evento eliminado",
-      description:  "",
-      key: "agenda_elimnado",
-    });
+        message: "Evento eliminado",
+        description: "",
+        key: "agenda_eliminado",
+      });
     } catch (e) {
       const msg =
         e?.response?.data?.detail || e?.message || "No se pudo eliminar el evento";
-        notification.info({
-      message: msg,
-      description:  "",
-      key: "agenda_no_elimnado",
-    });
-
+      notification.info({
+        message: msg,
+        description: "",
+        key: "agenda_no_eliminado",
+      });
     }
   };
 
   const onSave = async (payload, files) => {
-  await onSaveEvent(payload, files);
-};
+    await onSaveEvent(payload, files);
+  };
+
+  const onSelectSearchEvent = (rawItem) => {
+    const rawStart = rawItem?.start_at || rawItem?.start || null;
+    const startDate = rawStart ? dayjs(rawStart) : null;
+    if (startDate && startDate.isValid()) {
+      setCursorDate(startDate);
+    }
+    setSearchOpen(false);
+  };
 
   const boardModel = useMemo(() => {
     if (view === "month") return { kind: "month", matrix: buildMonthMatrix(cursorDate) };
@@ -527,15 +487,15 @@ const onSaveEvent = async (payload, files = []) => {
       workWeek: view === "week_work",
     };
   }, [cursorDate, view]);
+
   useEffect(() => {
-  if (!Array.isArray(filters?.tipoContratoIds)) return;
-  if (!Array.isArray(filters?.cityIds)) return;
-  const payload = buildAgendaPayload({ rangeParams, filters });
-  lastPayloadRef.current = payload;
-  dispatch(actionAgendaPost(payload));
-}, [dispatch, rangeParams, filters]);
-
-
+    if (!Array.isArray(filters?.tipoContratoIds)) return;
+    if (!Array.isArray(filters?.cityIds)) return;
+    const payload = buildAgendaPayload({ rangeParams, filters });
+    lastPayloadRef.current = payload;
+    dispatch(actionAgendaPost(payload));
+    dispatch(actionSesionesFotosGet({ from: rangeParams.from, to: rangeParams.to }));
+  }, [dispatch, rangeParams, filters]);
 
   return (
     <Layout className="ol-root">
@@ -546,38 +506,13 @@ const onSaveEvent = async (payload, files = []) => {
           filters={filters}
           setFilters={setFilters}
           onCreateEvent={() => openNewEvent()}
+          onOpenPrint={() => setPrintOpen(true)}
+          onOpenSearch={() => setSearchOpen(true)}
         />
       </div>
 
       <Layout className="ol-shell">
-        <Sider width={280} className="ol-sider" theme="light">
-         <OutlookSidebar
-  cursorDate={cursorDate}
-  onPickDate={setCursorDate}
-  calendars={[{ id: "cal_main", name: "Calendario", color: "#2b78d6" }]}
-  selectedCalendars={selectedCalendars}
-  onToggleCalendar={(id, val) =>
-    setSelectedCalendars((p) => ({ ...p, [id]: val }))
-  }
-  filters={filters}
-  setFilters={setFilters}
-/>
-
-        </Sider>
-
         <Layout className="ol-main">
-          <div className="ol-datebarWrap">
-            <OutlookDateBar
-              view={view}
-              rangeLabel={rangeLabel}
-              cursorDate={cursorDate}
-              onPickMonthYear={onPickMonthYear}
-              onToday={onToday}
-              onPrev={onPrev}
-              onNext={onNext}
-            />
-          </div>
-
           <Content className="ol-content">
             <OutlookCalendarBoard
               model={{
@@ -589,9 +524,13 @@ const onSaveEvent = async (payload, files = []) => {
               view={view}
               events={visibleEvents}
               onSelectSlot={onSelectSlot}
-              onViewEvent={onViewEvent}
               onEditEvent={onEditEvent}
               onDeleteEvent={onDeleteEvent}
+              onPrev={onPrev}
+              onNext={onNext}
+              onPickDate={setCursorDate}
+              filters={filters}
+              setFilters={setFilters}
             />
           </Content>
         </Layout>
@@ -608,6 +547,20 @@ const onSaveEvent = async (payload, files = []) => {
           setDraft(null);
         }}
         onSave={onSave}
+      />
+
+      <PrintModal
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        view={view}
+        cursorDate={cursorDate}
+        events={visibleEvents}
+      />
+
+      <AgendaSearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectEvent={onSelectSearchEvent}
       />
 
       <EventViewModal
@@ -632,7 +585,7 @@ const onSaveEvent = async (payload, files = []) => {
             onOk: async () => {
               setViewOpen(false);
               setViewEvent(null);
-              await onDeleteEvent(ev.id);
+              await onDeleteEvent(ev);
             },
           });
         }}

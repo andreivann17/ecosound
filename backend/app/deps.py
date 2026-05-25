@@ -8,13 +8,13 @@ Al usar Security(HTTPBearer), Swagger UI muestra el botón "Authorize".
 from __future__ import annotations
 
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import jwt
-from fastapi import HTTPException, Security, status
+from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-SECRET_KEY = os.getenv("SECRET_KEY", "secret")
+SECRET_KEY = os.getenv("SECRET_KEY", "herrsoft-ecosound-jwt-secret-key-change-in-prod-2026")
 ALGORITHMS = ["HS256"]
 
 security = HTTPBearer(auto_error=False)
@@ -51,3 +51,11 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+def get_tenant_filter(
+    current_user: Dict = Depends(get_current_user),
+) -> Optional[int]:
+    from .models.users import get_user_id_cliente
+    user_id = int(current_user.get("id") or 0)
+    return get_user_id_cliente(user_id) if user_id else None

@@ -82,6 +82,11 @@ export default function OutlookCalendarBoard({
   onSelectSlot,
   onEditEvent,
   onDeleteEvent,
+  onPrev,
+  onNext,
+  onPickDate,
+  filters,
+  setFilters,
 }) {
   const anchor = useMemo(() => dayjs(cursorDate), [cursorDate]);
   const evs = useMemo(() => normalizeEventsForBoard(events), [events]);
@@ -92,7 +97,6 @@ export default function OutlookCalendarBoard({
   const openPeek = useCallback((ev, targetEl) => {
     const r = targetEl.getBoundingClientRect();
     const spaceRight = window.innerWidth - r.right;
-    // Preferir lado derecho; si no hay espacio, ir a la izquierda
     const x = spaceRight >= POPUP_W + 16 ? r.right + 8 : r.left - POPUP_W - 8;
     const y = r.top;
     setPeek({ open: true, ev, x, y });
@@ -105,6 +109,11 @@ export default function OutlookCalendarBoard({
     closePeek,
     onEditEvent,
     onDeleteEvent,
+    onPrev,
+    onNext,
+    onPickDate,
+    filters,
+    setFilters,
   };
 
   const overlay = (
@@ -119,7 +128,7 @@ export default function OutlookCalendarBoard({
   if (view === "month") {
     return (
       <>
-        <OutlookCalendarMonthView anchor={anchor} view={view} {...sharedProps} />
+        <OutlookCalendarMonthView anchor={anchor} cursorDate={cursorDate} view={view} {...sharedProps} />
         {overlay}
       </>
     );

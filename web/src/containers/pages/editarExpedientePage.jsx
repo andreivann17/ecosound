@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/CrearExpedientePage.jsx
+﻿// src/pages/materias/laboral/CrearExpedientePage.jsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Typography, Breadcrumb, Button } from "antd";
@@ -15,7 +15,7 @@ export default function CrearExpedientePage() {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate(`/materias/laboral/`);
+    navigate(`/app/materias/laboral/`);
   };
 
   const commonProps = {
@@ -49,8 +49,8 @@ export default function CrearExpedientePage() {
           <Breadcrumb
             items={[
               { title: "Panel principal", href: "/" },
-              { title: "Materias", href: "/materias" },
-              { title: "Laboral", href: "/materias/laboral" },
+              { title: "Materias", href: "/app/materias" },
+              { title: "Laboral", href: "/app/materias/laboral" },
               { title: "Crear expediente" },
             ]}
           />

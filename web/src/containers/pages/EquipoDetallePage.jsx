@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -130,6 +130,10 @@ export default function EquipoDetallePage() {
   const [analisisData, setAnalisisData] = useState(null);
   const [analisisLoading, setAnalisisLoading] = useState(false);
 
+  // Actividad tab state
+  const [actividad, setActividad] = useState([]);
+  const [loadingActividad, setLoadingActividad] = useState(false);
+
   // Movimientos tab period filter state
   const [movPeriodo, setMovPeriodo] = useState("mes");
   const [movCustomRange, setMovCustomRange] = useState(null);
@@ -144,6 +148,25 @@ export default function EquipoDetallePage() {
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idEquipo]);
+
+  const fetchActividad = useCallback(async () => {
+    setLoadingActividad(true);
+    try {
+      const { data } = await apiInventarioInstance.get(
+        `/inventario/equipo/${idEquipo}/actividad`,
+        { headers: authHeaderInventario() }
+      );
+      setActividad(Array.isArray(data) ? data : data.items ?? []);
+    } catch {
+      setActividad([]);
+    } finally {
+      setLoadingActividad(false);
+    }
+  }, [idEquipo]);
+
+  useEffect(() => {
+    if (activeTab === "actividad") fetchActividad();
+  }, [activeTab, fetchActividad]);
 
   const fetchMovimientos = useCallback(async () => {
     try {
@@ -263,7 +286,7 @@ export default function EquipoDetallePage() {
             headers: authHeaderInventario(),
           });
           notification.success({ message: "Equipo eliminado" });
-          navigate("/inventario");
+          navigate("/app/inventario");
         } catch (err) {
           notification.error({
             message: "Error al eliminar",
@@ -402,7 +425,7 @@ export default function EquipoDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/inventario")}
+          onClick={() => navigate("/app/inventario")}
         >
           Volver a Inventario
         </Button>
@@ -459,7 +482,7 @@ export default function EquipoDetallePage() {
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
                   onClick={() =>
-                    navigate(`/inventario/equipo/${equipo.id_equipo}/editar`, {
+                    navigate(`/app/inventario/equipo/${equipo.id_equipo}/editar`, {
                       state: { equipo },
                     })
                   }
@@ -502,7 +525,16 @@ export default function EquipoDetallePage() {
               <HistoryOutlined />
               Movimientos
             </button>
-          
+            <button
+              className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("actividad")}
+            >
+              <HistoryOutlined />
+              Actividad
+              {actividad.length > 0 && (
+                <span className="cd-actividad-count">{actividad.length}</span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -817,6 +849,64 @@ export default function EquipoDetallePage() {
                   </div>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {activeTab === "actividad" && (
+          <div className="cd-card">
+            <div className="cd-card-header">
+              <div className="cd-card-icon-wrap"><HistoryOutlined /></div>
+              <h2 className="cd-card-title">
+                Actividad del equipo
+                {actividad.length > 0 && (
+                  <span className="cd-actividad-count">{actividad.length}</span>
+                )}
+              </h2>
+            </div>
+
+            {loadingActividad ? (
+              <div className="cd-loading-wrap"><Spin size="large" /></div>
+            ) : actividad.length === 0 ? (
+              <Empty description="Sin actividad registrada aún" style={{ margin: "40px 0" }} />
+            ) : (
+              <div className="cd-actividad-list">
+                {actividad.map((item, idx) => {
+                  const ACTION_CONFIG = {
+                    CREATE: { label: "Creación",      color: "#15803d", bg: "#dcfce7" },
+                    UPDATE: { label: "Actualización", color: "#1d4ed8", bg: "#dbeafe" },
+                    DELETE: { label: "Eliminación",   color: "#b91c1c", bg: "#fee2e2" },
+                  };
+                  const cfg = ACTION_CONFIG[item.action] || { label: item.action, color: "#595c5e", bg: "#f1f5f9" };
+                  return (
+                    <div key={item.id_audit_log || idx} className="cd-actividad-item">
+                      <div className="cd-actividad-dot-col">
+                        <div className="cd-actividad-dot" style={{ background: cfg.color }} />
+                        {idx < actividad.length - 1 && <div className="cd-actividad-line" />}
+                      </div>
+                      <div className="cd-actividad-body">
+                        <div className="cd-actividad-top-row">
+                          <span className="cd-actividad-badge" style={{ color: cfg.color, background: cfg.bg }}>
+                            {cfg.label}
+                          </span>
+                          <span className="cd-actividad-message">{item.message}</span>
+                        </div>
+                        <div className="cd-actividad-bottom-row">
+                          <span className="cd-actividad-time">{fmtDatetime(item.datetime)}</span>
+                          {item.user_name && (
+                            <div className="cd-actividad-user">
+                              <span>{item.user_name}</span>
+                              {item.user_email && (
+                                <span className="cd-actividad-email">{item.user_email}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

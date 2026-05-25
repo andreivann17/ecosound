@@ -1,4 +1,4 @@
-// src/containers/pages/crearUsuarioPage.jsx
+﻿// src/containers/pages/crearUsuarioPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -12,15 +12,24 @@ import {
   Button,
   Row,
   Col,
-  Divider,
   notification,
   Typography,
   Space,
 } from "antd";
-import { ArrowLeftOutlined, EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  CameraOutlined,
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+  LockOutlined,
+  PlusOutlined,
+  SaveOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 
 import "./ContratosPage.css";
 import "./UsuariosPage.css";
+import "./EventosPage.css";
 import { PATH as API_BASE } from "../../redux/utils";
 
 const { Title, Text } = Typography;
@@ -148,59 +157,56 @@ export default function CrearUsuarioPage() {
     <main className="contratos-main">
       <div className="contratos-content">
 
-        {/* HEADER */}
-        <section className="contratos-header-section">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
-            <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/usuarios")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Usuarios
-              </Button>
-              <Title level={2} className="contratos-title" style={{ marginBottom: 0 }}>
-                {isEditing ? `Editando usuario: ${usuarioEditar.name}` : "Nuevo usuario"}
-              </Title>
-              <Text className="contratos-subtitle">
-                {isEditing
-                  ? "Modifica los datos del usuario y guarda los cambios."
-                  : "Completa los datos para registrar un nuevo usuario."}
-              </Text>
-            </Space>
+        {/* Back button */}
+        <Button
+          type="link"
+          className="cc-back-btn"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/usuarios")}
+        >
+          Volver a Usuarios
+        </Button>
 
-            <Space style={{ marginTop: 4 }}>
-              <Button
-                className="contratos-btn-clean"
-                onClick={() => navigate("/usuarios")}
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={handleSave}
-                style={{ backgroundColor: "#111", borderColor: "#111" }}
-              >
-                {isEditing ? "Guardar cambios" : "Crear usuario"}
-              </Button>
-            </Space>
+        {/* Page header card */}
+        <div className="cc-page-header-card">
+          <div>
+            <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
+              {isEditing ? `Editando: ${usuarioEditar.name}` : "Nuevo usuario"}
+            </Title>
+            <Text className="eventos-subtitle">
+              {isEditing
+                ? "Modifica los datos del usuario y guarda los cambios."
+                : "Completa los datos para registrar un nuevo usuario."}
+            </Text>
           </div>
-        </section>
+          <Space>
+            <Button className="eventos-btn-clean" onClick={() => navigate("/usuarios")} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              type="primary"
+              icon={isEditing ? <SaveOutlined /> : <PlusOutlined />}
+              loading={saving}
+              onClick={handleSave}
+              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+            >
+              {isEditing ? "Guardar cambios" : "Crear usuario"}
+            </Button>
+          </Space>
+        </div>
 
-        {/* FORMULARIO */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, marginTop: 0 }}>
+        {/* Body */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "stretch" }}>
 
-          {/* COLUMNA IZQUIERDA – datos */}
-          <div className="contratos-filters-panel">
+          {/* Columna izquierda */}
+          <div className="cc-section-card" style={{ height: "100%" }}>
+
+            <div className="cc-section-header">
+              <span className="cc-section-icon"><UserOutlined /></span>
+              Datos del usuario
+            </div>
+
             <Form form={form} layout="vertical">
-
-              <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
-                Datos del usuario
-              </Title>
-
               <Row gutter={16}>
                 <Col xs={24} md={12}>
                   <Form.Item
@@ -225,11 +231,10 @@ export default function CrearUsuarioPage() {
                 </Col>
               </Row>
 
-              <Divider style={{ margin: "4px 0 20px" }} />
-
-              <Title level={5} style={{ marginBottom: 16, color: "#374151" }}>
+              <div className="cc-section-header" style={{ marginTop: 8 }}>
+                <span className="cc-section-icon"><LockOutlined /></span>
                 {isEditing ? "Cambiar contraseña (opcional)" : "Contraseña"}
-              </Title>
+              </div>
 
               <Row gutter={16}>
                 <Col xs={24} md={12}>
@@ -238,19 +243,14 @@ export default function CrearUsuarioPage() {
                     label={<span className="contratos-field-label">Contraseña</span>}
                     rules={
                       !isEditing
-                        ? [
-                            { required: true, message: "Requerido" },
-                            { min: 6, message: "Mínimo 6 caracteres" },
-                          ]
+                        ? [{ required: true, message: "Requerido" }, { min: 6, message: "Mínimo 6 caracteres" }]
                         : [{ min: 6, message: "Mínimo 6 caracteres" }]
                     }
                   >
                     <Input.Password
                       placeholder="Contraseña"
                       autoComplete="new-password"
-                      iconRender={(visible) =>
-                        visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                      }
+                      iconRender={(v) => v ? <EyeTwoTone /> : <EyeInvisibleOutlined />}
                     />
                   </Form.Item>
                 </Col>
@@ -258,32 +258,27 @@ export default function CrearUsuarioPage() {
                   <Form.Item
                     name="confirm_password"
                     label={<span className="contratos-field-label">Confirmar contraseña</span>}
-                    rules={
-                      !isEditing
-                        ? [{ required: true, message: "Requerido" }]
-                        : []
-                    }
+                    rules={!isEditing ? [{ required: true, message: "Requerido" }] : []}
                     dependencies={["password"]}
                   >
                     <Input.Password
                       placeholder="Repite la contraseña"
                       autoComplete="new-password"
-                      iconRender={(visible) =>
-                        visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-                      }
+                      iconRender={(v) => v ? <EyeTwoTone /> : <EyeInvisibleOutlined />}
                     />
                   </Form.Item>
                 </Col>
               </Row>
-
             </Form>
           </div>
 
-          {/* COLUMNA DERECHA – foto */}
-          <div className="contratos-filters-panel" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <Title level={5} style={{ marginBottom: 4, color: "#374151" }}>
-              Foto de perfil <span style={{ fontWeight: 400, color: "#9ca3af", fontSize: 12 }}>(opcional)</span>
-            </Title>
+          {/* Columna derecha – foto */}
+          <div className="cc-section-card" style={{ height: "100%" }}>
+            <div className="cc-section-header">
+              <span className="cc-section-icon"><CameraOutlined /></span>
+              Foto de perfil
+              <span style={{ fontWeight: 400, color: "#9ca3af", fontSize: 11, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
+            </div>
 
             <input
               ref={fotoInputRef}
@@ -305,11 +300,7 @@ export default function CrearUsuarioPage() {
                   <img src={fotoPreview} alt="preview" className="usr-dragger-img" />
                   <button
                     className="usr-dragger-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFotoFile(null);
-                      setFotoPreview(null);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setFotoFile(null); setFotoPreview(null); }}
                   >
                     ×
                   </button>

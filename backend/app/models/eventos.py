@@ -25,6 +25,7 @@ def create_evento(
     data: Dict[str, Any],
     id_user_created: int,
     conn,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     now = dt.datetime.now()
     sql = """
@@ -54,9 +55,10 @@ def create_evento(
             fecha_creacion_contrato,
             datetime,
             code,
+            id_cliente,
             active
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
         )
     """
     with conn.cursor() as cur:
@@ -86,6 +88,7 @@ def create_evento(
             data.get("fecha_creacion_contrato") or None,
             now,
             "",
+            id_cliente,
         ))
         new_id = cur.lastrowid
 
@@ -133,9 +136,16 @@ def list_eventos(
     search: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
+    id_cliente: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     conditions = []
     params: List[Any] = []
+    print("----")
+    print(id_cliente)
+
+    if id_cliente is not None:
+        conditions.append("e.id_cliente = %s")
+        params.append(id_cliente)
 
     if active is not None:
         conditions.append("e.active = %s")
@@ -301,6 +311,7 @@ def cards_evento(
     date_to: Optional[str] = None,
     active: Optional[int] = 1,
     search: Optional[str] = None,
+    id_cliente: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     return list_eventos(
         cliente_nombre=cliente_nombre,
@@ -308,6 +319,7 @@ def cards_evento(
         date_to=date_to,
         active=active,
         search=search,
+        id_cliente=id_cliente,
     )
 
 

@@ -4,7 +4,7 @@
   --legal-dark: #0f172a;
   --legal-blue: #1e293b;
   --legal-accent: #3b82f6;
-  --legal-bg: #f8fafc;
+  --legal-bg: #eef1f5;
   --legal-border: #e2e8f0;
   --text-main: #0f172a;
   --text-soft: #64748b;
@@ -28,7 +28,7 @@ body,
 }
 
 .notification-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
   background: var(--legal-bg);
@@ -402,9 +402,9 @@ body,
 }
 
 .module-chip {
-  background: #fff7ed;
-  color: #c2410c;
-  border: 1px solid #fed7aa;
+  background: rgba(1, 54, 158, 0.08);
+  color: #012770;
+  border: 1px solid rgba(1, 54, 158, 0.2);
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 10px;
@@ -597,7 +597,7 @@ body,
   width: auto;
   min-width: 210px;
   padding: 14px 32px;
-  background: #0f172a;
+  background: #6280a3;
   color: #ffffff;
   border-radius: 10px;
   font-size: 16px;
@@ -610,7 +610,7 @@ body,
 }
 
 .primary-btn:hover {
-  background: #1e293b;
+  background: #4e6a8a;
 }
 
 .primary-btn:active {
@@ -903,7 +903,7 @@ body,
 .primary-btn {
   min-width: 200px;
   padding: 14px 28px;
-  background: #0f172a;
+  background: #6280a3;
   color: #ffffff;
   border-radius: 12px;
   font-size: 16px;
@@ -918,7 +918,7 @@ body,
 }
 
 .primary-btn:hover {
-  background: #111c34;
+  background: #4e6a8a;
 }
 
 .secondary-btn {

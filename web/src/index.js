@@ -1,4 +1,5 @@
-import { createRef, useEffect } from "react";
+﻿import "./redux/axiosSetup";
+import { createRef, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import {
@@ -22,6 +23,7 @@ import NuevoConteoPage from "./containers/pages/NuevoConteoPage.jsx"
 import ConteosPage from "./containers/pages/ConteosPage.jsx"
 import ConteoDetallePage from "./containers/pages/ConteoDetallePage.jsx"
 
+import SesionesPage from "./containers/pages/SesionesPage.jsx"
 import CrearSesionPage from "./containers/pages/CrearSesionPage.jsx"
 import SesionDetallePage from "./containers/pages/SesionDetallePage.jsx"
 import UsuariosPage from "./containers/pages/UsuariosPage.jsx"
@@ -36,29 +38,29 @@ import PerfilPage from "./containers/pages/PerfilPage.jsx"
 import PaquetesPage from "./containers/pages/PaquetesPage.jsx"
 import CrearPaquetePage from "./containers/pages/crearPaquetePage.jsx"
 import PaqueteDetallePage from "./containers/pages/PaqueteDetallePage.jsx"
+import GastosPage from "./containers/pages/GastosPage.jsx"
+import CrearGastoPage from "./containers/pages/crearGastoPage.jsx"
+import GastoDetallePage from "./containers/pages/GastoDetallePage.jsx"
+import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
+import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
+import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
+import AdminAppsEventPage from "./containers/pages/admin/AdminAppsEventPage.jsx"
+import CrearClienteEventPage from "./containers/pages/admin/events/CrearClienteEventPage.jsx"
+import ClienteEventDetallePage from "./containers/pages/admin/events/ClienteEventDetallePage.jsx"
 import { actionUserMeGet } from "./redux/actions/login/login";
 import Login from "./containers/pages/login";
-import Materias from "./containers/pages/materias";
-import CrearEmpresas from "./containers/pages/crearEmpresasPage.jsx";
-import MateriaLaboral from "./containers/pages/materiaLaboral";
-import LaboralConciliacionesPage from "./containers/pages/laboralConciliacionPage.jsx";
-import LaboralDesvinculacionesPage from "./containers/pages/laboralDesvinculacionesPage.jsx";
-import LaboralTribunalPage from "./containers/pages/laboralTribunalPage.jsx";
-import LaboralTribunalDetallePage from "./containers/pages/LaboralTribunalDetallePage.jsx";
-import CrearTribunalPage from "./containers/pages/crearTribunalPage.jsx";
+import LoginAdmin from "./containers/pages/loginAdmin.jsx";
 import Signup from "./containers/pages/signup";
-import CrearExpedientePage from "./containers/pages/crearCentroConciliacionPage.jsx";
-import CrearDesvinculacionPage from "./containers/pages/crearDesvinculacionPage.jsx";
 import Crear from "./containers/pages/crear.jsx";
 import Home from "./containers/pages/home";
 import Notificaciones from "./containers/pages/notificaciones"
 import NotificacionesDetalles from "./containers/pages/notificaciones_detalles.jsx"
-import Empresas from "./containers/pages/empresas.jsx";
 import Agenda from "./containers/pages/agenda.jsx";
-import EmpresasDetallePage from "./containers/pages/LaboralEmpresasDetallePage.jsx";
-import LaboralDesvinculacionesDetallePage from "./containers/pages/LaboralDesvinculacionesDetallePage.jsx";
-import LaboralConciliacionDetallePage from "./containers/pages/LaboralConciliacionDetallePage.jsx";
 import NotFound from "./containers/errors/error404";
+import Error401 from "./containers/errors/error401";
+import Error403 from "./containers/errors/error403";
+import Error500 from "./containers/errors/error500";
+import Error503 from "./containers/errors/error503";
 import HeaderNavbar from "./components/navigation/header_navbar.jsx";
 import "./assets/css/bootstrap.css";
 import "./assets/css/administrador.css";
@@ -68,9 +70,13 @@ import "./assets/css/utils.css";
 import "../src/assets/css/header.css";
 
 import store from "./store";
+import { isTokenExpired, tokenExpiresInMs } from "./utils/tokenUtils";
+import { sessionManager } from "./redux/sessionManager";
+import ModalReautenticar from "./components/modals/ModalReautenticar";
 import { Provider, useDispatch } from "react-redux";
 import ElectronView from "./electron_view";
 import { PermisosProvider } from "./context/PermisosContext";
+import RequireModulo from "./components/guards/RequireModulo";
 
 const routes = [
   {
@@ -82,279 +88,180 @@ const routes = [
     className: "Login",
   },
   {
-    path: "/agenda",
+    path: "/admin-login",
+    value: "admin-login",
+    name: "AdminLogin",
+    element: <LoginAdmin />,
+    nodeRef: createRef(),
+    className: "AdminLogin",
+  },
+  {
+    path: "/app/agenda",
     value: "agenda",
     name: "Agenda",
     element: <Agenda />,
     nodeRef: createRef(),
     className: "Agenda",
+    modulo: "agenda",
   },
   {
-    path: "/eventos",
+    path: "/app/eventos",
     value: "eventos",
     name: "Eventos",
     element: <Eventos />,
     nodeRef: createRef(),
     className: "Eventos",
+    modulo: "eventos",
   },
   {
-    path: "/eventos/:idEvento",
+    path: "/app/eventos/:idEvento",
     value: "eventos-detalle",
     name: "Eventos-Detalle",
     element: <EventoDetallePage />,
     nodeRef: createRef(),
     className: "EventosDetalle",
+    modulo: "eventos",
   },
   {
-    path: "/estadisticas",
+    path: "/app/sesiones",
+    value: "sesiones",
+    name: "Sesiones",
+    element: <SesionesPage />,
+    nodeRef: createRef(),
+    className: "Sesiones",
+  },
+  {
+    path: "/app/sesiones/crear",
+    value: "sesiones-crear",
+    name: "Sesiones-Crear",
+    element: <CrearSesionPage />,
+    nodeRef: createRef(),
+    className: "SesionesCrear",
+  },
+  {
+    path: "/app/sesiones/:idSesion",
+    value: "sesiones-detalle",
+    name: "Sesiones-Detalle",
+    element: <SesionDetallePage />,
+    nodeRef: createRef(),
+    className: "SesionesDetalle",
+  },
+  {
+    path: "/app/sesiones/:idSesion/editar",
+    value: "sesiones-editar",
+    name: "Sesiones-Editar",
+    element: <CrearSesionPage />,
+    nodeRef: createRef(),
+    className: "SesionesEditar",
+  },
+  {
+    path: "/app/estadisticas",
     value: "estadisticas",
     name: "Estadisticas",
     element: <EstadisticasPage />,
     nodeRef: createRef(),
     className: "Estadisticas",
+    modulo: "estadisticas",
   },
   {
-    path: "/eventos/crear",
+    path: "/app/eventos/crear",
     value: "eventos-crear",
     name: "Eventos-Crear",
     element: <CrearEventoPage />,
     nodeRef: createRef(),
     className: "EventosCrear",
+    modulo: "eventos",
   },
   {
-    path: "/eventos/:idEvento/editar",
+    path: "/app/eventos/:idEvento/editar",
     value: "eventos-editar",
     name: "Eventos-Editar",
     element: <CrearEventoPage />,
     nodeRef: createRef(),
     className: "EventosEditar",
+    modulo: "eventos",
   },
   {
-    path: "/inventario",
+    path: "/app/inventario",
     value: "inventario",
     name: "Inventario",
     element: <InventarioPage />,
     nodeRef: createRef(),
     className: "Inventario",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/equipo/crear",
+    path: "/app/inventario/equipo/crear",
     value: "inventario-equipo-crear",
     name: "Inventario-Equipo-Crear",
     element: <CrearEquipoPage />,
     nodeRef: createRef(),
     className: "InventarioEquipoCrear",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/equipo/:idEquipo",
+    path: "/app/inventario/equipo/:idEquipo",
     value: "inventario-equipo-detalle",
     name: "Inventario-Equipo-Detalle",
     element: <EquipoDetallePage />,
     nodeRef: createRef(),
     className: "InventarioEquipoDetalle",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/equipo/:idEquipo/editar",
+    path: "/app/inventario/equipo/:idEquipo/editar",
     value: "inventario-equipo-editar",
     name: "Inventario-Equipo-Editar",
     element: <CrearEquipoPage />,
     nodeRef: createRef(),
     className: "InventarioEquipoEditar",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/conteos",
+    path: "/app/inventario/conteos",
     value: "inventario-conteos",
     name: "Inventario-Conteos",
     element: <ConteosPage />,
     nodeRef: createRef(),
     className: "InventarioConteos",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/conteos/nuevo",
+    path: "/app/inventario/conteos/nuevo",
     value: "inventario-conteos-nuevo",
     name: "Inventario-Conteos-Nuevo",
     element: <NuevoConteoPage />,
     nodeRef: createRef(),
     className: "InventarioConteosNuevo",
+    modulo: "inventario",
   },
   {
-    path: "/inventario/conteos/:idConteo",
+    path: "/app/inventario/conteos/:idConteo",
     value: "inventario-conteo-detalle",
     name: "Inventario-Conteo-Detalle",
     element: <ConteoDetallePage />,
     nodeRef: createRef(),
     className: "InventarioConteoDetalle",
+    modulo: "inventario",
   },
-  
-   {
-    path: "/notificaciones",
+
+  {
+    path: "/app/notificaciones",
     value: "notificaciones",
     name: "Notificaciones",
     element: <Notificaciones />,
     nodeRef: createRef(),
     className: "Notificaciones",
+    modulo: "notificaciones",
   },
-   {
-    path: "/notificaciones/:idNotificacion",
+  {
+    path: "/app/notificaciones/:idNotificacion",
     value: "NotificacionesDetalles",
     name: "NotificacionesDetalles",
     element: <NotificacionesDetalles />,
     nodeRef: createRef(),
     className: "NotificacionesDetalles",
-  },
-  {
-    path: "/empresas",
-    value: "empresas",
-    name: "Empresas",
-    element: <Empresas />,
-    nodeRef: createRef(),
-    className: "Empresas",
-  },
-  {
-    path: "/crear",
-    value: "crear",
-    name: "Crear",
-    element: <Crear />,
-    nodeRef: createRef(),
-    className: "Crear",
-  },
-  {
-    path: "/materias/laboral",
-    value: "materia-laboral-0",
-    name: "Materia-Laboral",
-    element: <MateriaLaboral />,
-    nodeRef: createRef(),
-    className: "MateriaLaboral",
-  },
-  {
-    path: "/materias/laboral/centro-conciliacion",
-    value: "materia-laboral-conciliaciones",
-    name: "Materia-Laboral-Conciliaciones",
-    element: <LaboralConciliacionesPage />,
-    nodeRef: createRef(),
-    className: "MateriaConciliacionesTipo",
-  },
-
-  {
-    path: "/materias/laboral/:tipo/crear",
-    value: "materia-laboral-tipo-crear",
-    name: "Materia-Laboral-Tipo-Crear",
-    element: <CrearExpedientePage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralTipoCrear",
-  },
-  {
-    path: "/materias/laboral/centro-conciliacion/:idExpediente",
-    value: "materia-laboral-centro-conciliacion",
-    name: "Materia-Laboral-Centro-Conciliacion",
-    element: <LaboralConciliacionDetallePage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralConciliacion",
-  },
-  {
-    path: "/empresas/:idEmpresa",
-    value: "empresas-detalle",
-    name: "Empresas-Detalle",
-    element: <EmpresasDetallePage />,
-    nodeRef: createRef(),
-    className: "EmpresasDetallePage",
-  },
-  {
-    path: "/empresas/crear",
-    value: "empresas-crear",
-    name: "Empresas-Crear",
-    element: <CrearEmpresas />,
-    nodeRef: createRef(),
-    className: "EmpresasCrear",
-  },
-  {
-    path: "/empresas/:idEmpresa/editar",
-    value: "empresas-editar",
-    name: "Empresas-Editar",
-    element: <CrearEmpresas />,
-    nodeRef: createRef(),
-    className: "EmpresasEditar",
-  },
-   {
-    path: "/materias/laboral/desvinculaciones",
-    value: "materia-laboral-desvinculaciones",
-    name: "Materia-Laboral-Desvinculaciones",
-    element: <LaboralDesvinculacionesPage />,
-    nodeRef: createRef(),
-    className: "MateriaDesvinculacionesTipo",
-  },
-  {
-    path: "/materias/laboral/desvinculaciones/crear",
-    value: "materia-laboral-desvinculaciones-crear",
-    name: "Materia-Laboral-Desvinculaciones-crear",
-    element: <CrearDesvinculacionPage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralDesvinculacionesCrear",
-  },
-  {
-    path: "/materias/laboral/desvinculaciones/:idExpediente",
-    value: "materia-laboral-desvinculaciones",
-    name: "Materia-Laboral-Desvinculaciones",
-    element: <LaboralDesvinculacionesDetallePage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralDesvinculaciones",
-  },
-  {
-    path: "/materias/laboral/desvinculaciones/:idExpediente/editar",
-    value: "materia-laboral-desvinculaciones-editar",
-    name: "Materia-Laboral-Desvinculaciones-Editar",
-    element: <CrearDesvinculacionPage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralDesvinculacionesEditar",
-  },
-  {
-    path: "/materias/laboral/tribunal",
-    value: "materia-laboral-tribunal",
-    name: "Materia-Laboral-Tribunal",
-    element: <LaboralTribunalPage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralTribunal",
-  },
-  {
-    path: "/materias/laboral/tribunal/crear",
-    value: "materia-laboral-tribunal-crear",
-    name: "Materia-Laboral-Tribunal-Crear",
-    element: <CrearTribunalPage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralTribunalCrear",
-  },
-  {
-    path: "/materias/laboral/tribunal/:idExpediente",
-    value: "materia-laboral-tribunal",
-    name: "Materia-Laboral-Tribunal",
-    element: <LaboralTribunalDetallePage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralTribunal",
-  },
-  {
-    path: "/materias/laboral/tribunal/:idExpediente/editar",
-    value: "materia-laboral-tribunal-editar",
-    name: "Materia-Laboral-Tribunal-Editar",
-    element: <CrearTribunalPage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralTribunalEditar",
-  },
-  
-  {
-    path: "/materias/laboral/centro-conciliacion/:idExpediente/editar",
-    value: "materia-laboral-centro-conciliacion-editar",
-    name: "Materia-Laboral-Centro-Conciliacion-Editar",
-    element: <CrearExpedientePage />,
-    nodeRef: createRef(),
-    className: "MateriaLaboralConciliacionEditar",
-  },
-  {
-    path: "/materias",
-    value: "materias-0",
-    name: "Materias",
-    element: <Materias />,
-    nodeRef: createRef(),
-    className: "Materias",
+    modulo: "notificaciones",
   },
   {
     path: "/signup",
@@ -377,7 +284,7 @@ const routes = [
     className: "WebBlock",
   },
   {
-    path: "/home",
+    path: "/app/home",
     value: "0-0",
     name: "Home",
     element: <Home />,
@@ -385,79 +292,88 @@ const routes = [
     className: "Home",
   },
   {
-    path: "/usuarios",
+    path: "/app/usuarios",
     value: "usuarios",
     name: "Usuarios",
     element: <UsuariosPage />,
     nodeRef: createRef(),
     className: "Usuarios",
+    modulo: "usuarios",
   },
   {
-    path: "/usuarios/crear",
+    path: "/app/usuarios/crear",
     value: "usuarios-crear",
     name: "Usuarios-Crear",
     element: <CrearUsuarioPage />,
     nodeRef: createRef(),
     className: "UsuariosCrear",
+    modulo: "usuarios",
   },
   {
-    path: "/usuarios/:code/editar",
+    path: "/app/usuarios/:code/editar",
     value: "usuarios-editar",
     name: "Usuarios-Editar",
     element: <CrearUsuarioPage />,
     nodeRef: createRef(),
     className: "UsuariosEditar",
+    modulo: "usuarios",
   },
   {
-    path: "/usuarios/:code",
+    path: "/app/usuarios/:code",
     value: "usuarios-detalle",
     name: "Usuarios-Detalle",
     element: <UsuarioDetallePage />,
     nodeRef: createRef(),
     className: "UsuariosDetalle",
+    modulo: "usuarios",
   },
   {
-    path: "/trabajadores",
+    path: "/app/trabajadores",
     value: "trabajadores",
     name: "Trabajadores",
     element: <TrabajadoresPage />,
     nodeRef: createRef(),
     className: "Trabajadores",
+    modulo: "trabajadores",
   },
   {
-    path: "/trabajadores/crear",
+    path: "/app/trabajadores/crear",
     value: "trabajadores-crear",
     name: "Trabajadores-Crear",
     element: <CrearTrabajadorPage />,
     nodeRef: createRef(),
     className: "TrabajadoresCrear",
+    modulo: "trabajadores",
   },
   {
-    path: "/trabajadores/:idTrabajador",
+    path: "/app/trabajadores/:idTrabajador",
     value: "trabajadores-detalle",
     name: "Trabajadores-Detalle",
     element: <TrabajadorDetallePage />,
     nodeRef: createRef(),
     className: "TrabajadoresDetalle",
+    modulo: "trabajadores",
   },
   {
-    path: "/trabajadores/:idTrabajador/editar",
+    path: "/app/trabajadores/:idTrabajador/editar",
     value: "trabajadores-editar",
     name: "Trabajadores-Editar",
     element: <CrearTrabajadorPage />,
     nodeRef: createRef(),
     className: "TrabajadoresEditar",
+    modulo: "trabajadores",
   },
   {
-    path: "/configuracion",
+    path: "/app/configuracion",
     value: "configuracion",
     name: "Configuracion",
     element: <ConfiguracionPage />,
     nodeRef: createRef(),
     className: "Configuracion",
+    modulo: "configuracion",
   },
   {
-    path: "/perfil",
+    path: "/app/perfil",
     value: "perfil",
     name: "Perfil",
     element: <PerfilPage />,
@@ -465,36 +381,164 @@ const routes = [
     className: "Perfil",
   },
   {
-    path: "/paquetes",
+    path: "/app/paquetes",
     value: "paquetes",
     name: "Paquetes",
     element: <PaquetesPage />,
     nodeRef: createRef(),
     className: "Paquetes",
+    modulo: "paquetes",
   },
   {
-    path: "/paquetes/crear",
+    path: "/app/paquetes/crear",
     value: "paquetes-crear",
     name: "Paquetes-Crear",
     element: <CrearPaquetePage />,
     nodeRef: createRef(),
     className: "PaquetesCrear",
+    modulo: "paquetes",
   },
   {
-    path: "/paquetes/:idPaquete",
+    path: "/app/paquetes/:idPaquete",
     value: "paquetes-detalle",
     name: "Paquetes-Detalle",
     element: <PaqueteDetallePage />,
     nodeRef: createRef(),
     className: "PaquetesDetalle",
+    modulo: "paquetes",
   },
   {
-    path: "/paquetes/:idPaquete/editar",
+    path: "/app/paquetes/:idPaquete/editar",
     value: "paquetes-editar",
     name: "Paquetes-Editar",
     element: <CrearPaquetePage />,
     nodeRef: createRef(),
     className: "PaquetesEditar",
+    modulo: "paquetes",
+  },
+  {
+    path: "/app/gastos",
+    value: "gastos",
+    name: "Gastos",
+    element: <GastosPage />,
+    nodeRef: createRef(),
+    className: "Gastos",
+    modulo: "gastos",
+  },
+  {
+    path: "/app/gastos/crear",
+    value: "gastos-crear",
+    name: "Gastos-Crear",
+    element: <CrearGastoPage />,
+    nodeRef: createRef(),
+    className: "GastosCrear",
+    modulo: "gastos",
+  },
+  {
+    path: "/app/gastos/:idGasto",
+    value: "gastos-detalle",
+    name: "Gastos-Detalle",
+    element: <GastoDetallePage />,
+    nodeRef: createRef(),
+    className: "GastosDetalle",
+    modulo: "gastos",
+  },
+  {
+    path: "/app/gastos/:idGasto/editar",
+    value: "gastos-editar",
+    name: "Gastos-Editar",
+    element: <CrearGastoPage />,
+    nodeRef: createRef(),
+    className: "GastosEditar",
+    modulo: "gastos",
+  },
+  {
+    path: "/admin",
+    value: "admin",
+    name: "Admin",
+    element: <AdminHomePage />,
+    nodeRef: createRef(),
+    className: "Admin",
+  },
+  {
+    path: "/admin/apps",
+    value: "admin-apps",
+    name: "Admin-Apps",
+    element: <AdminAppsPage />,
+    nodeRef: createRef(),
+    className: "AdminApps",
+  },
+  {
+    path: "/admin/apps/event",
+    value: "admin-apps-event",
+    name: "Admin-Apps-Event",
+    element: <AdminAppsEventPage />,
+    nodeRef: createRef(),
+    className: "AdminAppsEvent",
+  },
+  {
+    path: "/admin/apps/event/clientes/crear",
+    value: "admin-apps-event-cliente-crear",
+    name: "Admin-Apps-Event-Cliente-Crear",
+    element: <CrearClienteEventPage />,
+    nodeRef: createRef(),
+    className: "AdminAppsEventClienteCrear",
+  },
+  {
+    path: "/admin/apps/event/clientes/:idCliente",
+    value: "admin-apps-event-cliente-detalle",
+    name: "Admin-Apps-Event-Cliente-Detalle",
+    element: <ClienteEventDetallePage />,
+    nodeRef: createRef(),
+    className: "AdminAppsEventClienteDetalle",
+  },
+  {
+    path: "/admin/apps/event/clientes/:idCliente/editar",
+    value: "admin-apps-event-cliente-editar",
+    name: "Admin-Apps-Event-Cliente-Editar",
+    element: <CrearClienteEventPage />,
+    nodeRef: createRef(),
+    className: "AdminAppsEventClienteEditar",
+  },
+  {
+    path: "/admin/clientes",
+    value: "admin-clientes",
+    name: "Admin-Clientes",
+    element: <AdminClientesPage />,
+    nodeRef: createRef(),
+    className: "AdminClientes",
+  },
+  {
+    path: "/401",
+    value: "Error401",
+    name: "Error401",
+    element: <Error401 />,
+    nodeRef: createRef(),
+    className: "Error401",
+  },
+  {
+    path: "/403",
+    value: "Error403",
+    name: "Error403",
+    element: <Error403 />,
+    nodeRef: createRef(),
+    className: "Error403",
+  },
+  {
+    path: "/500",
+    value: "Error500",
+    name: "Error500",
+    element: <Error500 />,
+    nodeRef: createRef(),
+    className: "Error500",
+  },
+  {
+    path: "/503",
+    value: "Error503",
+    name: "Error503",
+    element: <Error503 />,
+    nodeRef: createRef(),
+    className: "Error503",
   },
   {
     path: "*",
@@ -520,12 +564,27 @@ const requireAuth = ({ request }) => {
   //  throw redirect("/web");
   }
 
-  const token = localStorage.getItem("token");
+  // Rutas admin: protegidas por tokenadmin
+  if (path.startsWith("/admin")) {
+    if (path === "/admin-login") return null;
+    const tokenadmin = localStorage.getItem("tokenadmin");
+    if (!tokenadmin || isTokenExpired(tokenadmin)) {
+      if (tokenadmin) localStorage.removeItem("tokenadmin");
+      throw redirect("/admin-login");
+    }
+    return null;
+  }
 
-  const publicRoutes = ["/login", "/signup", "/prelogin", "/web"];
+  // Rutas normales: protegidas por token
+  const token = localStorage.getItem("token");
+  const publicRoutes = ["/login", "/signup", "/prelogin", "/web", "/admin-login"];
   const isPublic = publicRoutes.includes(path);
 
-  if (!token && !isPublic) {
+  if ((!token || isTokenExpired(token)) && !isPublic) {
+    if (token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("tokenadmin");
+    }
     throw redirect("/login");
   }
 
@@ -540,7 +599,9 @@ const router = createBrowserRouter([
     children: routes.map((route) => ({
       index: route.path === "/",
       path: route.path === "/" ? undefined : route.path,
-      element: route.element,
+      element: route.modulo
+        ? <RequireModulo modulo={route.modulo}>{route.element}</RequireModulo>
+        : route.element,
     })),
   },
 ]);
@@ -560,6 +621,44 @@ function Example() {
     if (!isElectron()) return;
     if (token) dispatch(actionUserMeGet());
   }, [dispatch, location.pathname]);
+
+  // Modal de re-autenticación cuando la sesión expira
+  const [showReauthModal, setShowReauthModal] = useState(false);
+
+  useEffect(() => {
+    const handleSessionExpired = () => setShowReauthModal(true);
+    window.addEventListener("session-expired", handleSessionExpired);
+    return () => window.removeEventListener("session-expired", handleSessionExpired);
+  }, []);
+
+  // Timer background: detecta expiración mientras el usuario está quieto
+  useEffect(() => {
+    const setupTimer = () => {
+      const t = localStorage.getItem("token");
+      if (!t || isTokenExpired(t)) return undefined;
+      const ms = tokenExpiresInMs(t);
+      if (ms <= 0) return undefined;
+      return setTimeout(() => {
+        if (!sessionManager.isRefreshing) {
+          sessionManager.setRefreshing(true);
+          window.dispatchEvent(new Event("session-expired"));
+        }
+      }, ms);
+    };
+
+    let timerId = setupTimer();
+
+    const resetTimer = () => {
+      if (timerId) clearTimeout(timerId);
+      timerId = setupTimer();
+    };
+
+    window.addEventListener("permisos-refresh", resetTimer);
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      window.removeEventListener("permisos-refresh", resetTimer);
+    };
+  }, []);
 
   // ✅ Si estás en WEB: renderiza SOLO el mensaje
   //if (!isElectron()) {
@@ -596,7 +695,7 @@ function Example() {
   const { nodeRef } = routecorrect || {};
   const routeclass = routecorrect?.value || "unknown";
 
-  const hideUserPopover = ["/login", "/prelogin", "/signup"].includes(normalpath);
+  const hideUserPopover = ["/login", "/prelogin", "/signup", "/admin-login"].includes(normalpath);
 
   const handleRightClick = (event) => {
     if (event.target.classList.contains("cardcatalogo")) {
@@ -613,6 +712,11 @@ function Example() {
 
   return (
     <>
+      <ModalReautenticar
+        open={showReauthModal}
+        onClose={() => setShowReauthModal(false)}
+      />
+
       <ElectronView
         prelogin={routeclass}
         routecorrect={routecorrect}

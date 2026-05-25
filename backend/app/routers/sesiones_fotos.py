@@ -2,14 +2,67 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import sesiones_fotos as sesion_model
 from ..models import agenda as agenda_model
+from ..models import audit as audit_model
+from ..models import notificaciones as noti_model
 from ..realtime.ws_manager import manager
 from ..db import get_connection
 import datetime as dt
 
+SESION_MODULO = 3
+TIPO_CREACION = 1
+TIPO_ACTUALIZACION = 2
+TIPO_ELIMINACION = 3
+
 router = APIRouter(prefix="/sesiones-fotos", tags=["sesiones-fotos"])
+
+
+def _log_audit_sesion(action: str, message: str, id_sesion: int, user_id: int,
+                      changes=None, request: Request = None):
+    try:
+        ip_address = None
+        user_agent = None
+        if request is not None:
+            fwd = request.headers.get("x-forwarded-for")
+            ip_address = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+            user_agent = request.headers.get("user-agent")
+        audit_model.create_audit_log(data={
+            "action": action,
+            "message": message,
+            "id_user": user_id,
+            "id_modulo": SESION_MODULO,
+            "id_key": str(id_sesion),
+            "changes": changes,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+        })
+    except Exception:
+        pass
+
+
+async def _notify_sesion(tipo: int, descripcion: str, id_sesion: int, user_id: int, id_cliente: Optional[int] = None):
+    try:
+        _data = {
+            "id_tipo_notificacion": tipo,
+            "id_modulo": SESION_MODULO,
+            "descripcion": descripcion,
+            "id_user": user_id,
+            "urgente": 0,
+            "id_key": str(id_sesion),
+        }
+        if id_cliente:
+            _data["id_cliente"] = id_cliente
+        noti_model.create_notificacion(data=_data)
+    except Exception:
+        pass
+    await manager.broadcast_json({
+        "type": "NOTIFICACION_INVALIDATE",
+        "source": "sesiones_fotos",
+        "id_sesion": id_sesion,
+        "descripcion_notificacion": descripcion,
+    })
 
 
 # ================== CONFIG: TIPOS DE SESIÓN ==================
@@ -303,6 +356,7 @@ def _build_agenda_payload(
 async def crear_sesion(
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
@@ -342,6 +396,7 @@ async def crear_sesion(
                 data=payload.model_dump(exclude_none=True),
                 id_user_created=user_id,
                 conn=conn,
+                id_cliente=tenant_id,
             )
             new_id = result["id_sesion"]
 
@@ -374,6 +429,9 @@ async def crear_sesion(
             "id_agenda": int(id_agenda),
         })
 
+    _log_audit_sesion("CREATE", f"Sesión de fotos creada", new_id, int(user_id))
+    await _notify_sesion(TIPO_CREACION, f"Nueva sesión de fotos registrada (#{new_id})", new_id, int(user_id), id_cliente=tenant_id)
+
     item = sesion_model.get_sesion_by_id(new_id)
     return {"id": new_id, "item": item}
 
@@ -387,7 +445,7 @@ def list_sesiones(
     search: Optional[str] = Query(None),
     limit: Optional[int] = Query(None, ge=1, le=500),
     offset: Optional[int] = Query(None, ge=0),
-    _current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     return sesion_model.list_sesiones(
         nombre_cliente=nombre_cliente,
@@ -397,6 +455,7 @@ def list_sesiones(
         search=search,
         limit=limit,
         offset=offset,
+        id_cliente=tenant_id,
     )
 
 
@@ -510,6 +569,9 @@ async def actualizar_sesion(
             "id_agenda": new_id_agenda,
         })
 
+    _log_audit_sesion("UPDATE", f"Sesión de fotos #{id_sesion} actualizada", id_sesion, int(user_id))
+    await _notify_sesion(TIPO_ACTUALIZACION, f"Sesión de fotos #{id_sesion} actualizada", id_sesion, int(user_id), id_cliente=row.get("id_cliente"))
+
     item = sesion_model.get_sesion_by_id(id_sesion)
     return {"updated": 1, "item": item}
 
@@ -536,4 +598,20 @@ def eliminar_sesion(
     finally:
         conn.close()
 
+    _log_audit_sesion("DELETE", f"Sesión de fotos #{id_sesion} eliminada", id_sesion, current_user.get("id", 0))
     return {"deleted": 1, "id_sesion": id_sesion}
+
+
+@router.get("/{id_sesion}/actividad")
+def get_actividad_sesion(
+    id_sesion: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    items, total = audit_model.list_audit_logs(
+        filters={"id_modulo": SESION_MODULO, "id_key": str(id_sesion)},
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total}

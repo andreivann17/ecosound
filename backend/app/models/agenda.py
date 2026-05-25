@@ -82,10 +82,11 @@ def create_agenda_with_document(
     id_agenda_evento: int,
     payload: Dict[str, Any],
     documento: UploadFile | None,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     conn = get_connection()
     try:
-        row = create_agenda_conn(conn=conn, id_user=id_user, id_agenda_evento=id_agenda_evento, payload=payload)
+        row = create_agenda_conn(conn=conn, id_user=id_user, id_agenda_evento=id_agenda_evento, payload=payload, id_cliente=id_cliente)
 
         id_agenda = row.get("id_agenda") or row.get("id")
         if not id_agenda:
@@ -157,6 +158,7 @@ def list_agenda(
     date_to: Optional[datetime] = None,
     status: Optional[str] = None,
     include_inactive: bool = False,
+    id_cliente: Optional[int] = None,
 ):
     conn = get_connection()
     try:
@@ -177,6 +179,10 @@ def list_agenda(
 
         if not include_inactive:
             where.append("a.active = 1")
+
+        if id_cliente is not None:
+            where.append("a.id_cliente = %s")
+            params.append(id_cliente)
 
         sql = f"""
                 SELECT
@@ -231,6 +237,7 @@ def list_agenda_post(
     include_other_cities: bool = False,
     event_type_ids: Optional[List[int]] = None,
     contrato_tipo_ids: Optional[List[int]] = None,
+    id_cliente: Optional[int] = None,
 ):
     conn = get_connection()
     try:
@@ -278,6 +285,10 @@ def list_agenda_post(
                 )
             )""")
             params.extend(contrato_tipo_ids)
+
+        if id_cliente is not None:
+            where.append("a.id_cliente = %s")
+            params.append(id_cliente)
 
         where_sql = " AND ".join(where) if where else "1=1"
 
@@ -547,16 +558,16 @@ def disable_agenda_conn(conn, id_agenda: int, id_user: int) -> int:
 # Create
 # ============================================================
 
-def create_agenda(id_user: int, id_agenda_evento: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_agenda(id_user: int, id_agenda_evento: int, payload: Dict[str, Any], id_cliente: Optional[int] = None) -> Dict[str, Any]:
     conn = get_connection()
     try:
-        row = create_agenda_conn(conn=conn, id_user=id_user, id_agenda_evento=id_agenda_evento, payload=payload)
+        row = create_agenda_conn(conn=conn, id_user=id_user, id_agenda_evento=id_agenda_evento, payload=payload, id_cliente=id_cliente)
         conn.commit()
         return row
     finally:
         conn.close()
 
-def create_agenda_conn(conn, id_user: int, id_agenda_evento: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+def create_agenda_conn(conn, id_user: int, id_agenda_evento: int, payload: Dict[str, Any], id_cliente: Optional[int] = None) -> Dict[str, Any]:
     """
     Misma lógica que create_agenda(), pero usando una conexión existente (transacción externa).
     NO cierra conn. NO hace conn.commit(); eso lo hace el caller.
@@ -583,11 +594,12 @@ def create_agenda_conn(conn, id_user: int, id_agenda_evento: int, payload: Dict[
       id_ciudad,
       reminder,
       in_person,
-      is_recurring
+      is_recurring,
+      id_cliente
     ) VALUES (
       %s, %s,%s, %s, %s, %s, %s,
       %s, %s, %s, %s, %s,
-      1, NOW(), %s, %s, %s, %s
+      1, NOW(), %s, %s, %s, %s, %s
     )
     """
 
@@ -612,6 +624,7 @@ def create_agenda_conn(conn, id_user: int, id_agenda_evento: int, payload: Dict[
                 payload.get("reminder") or "15m",
                 int(payload.get("in_person", 0)),
                 is_recurring,
+                id_cliente,
             ),
         )
         new_id = cur.lastrowid

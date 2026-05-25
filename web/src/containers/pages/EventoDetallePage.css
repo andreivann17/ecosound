@@ -1,5 +1,11 @@
 /* EventoDetallePage.css — mismo diseño que ContratoDetallePage.css */
 
+/* Visor de documentos — botón cerrar visible */
+.ev-viewer-modal .ant-modal-close-x,
+.ev-viewer-modal .ant-modal-close {
+  color: #374151 !important;
+}
+
 .cd-main {
   background-color: #f5f7f9;
   min-height: calc(100vh - 56px);
@@ -16,7 +22,7 @@
   font-size: 12px;
   margin-bottom: 16px;
   display: inline-flex !important;
-  color: #05060a !important;
+  color: #01369e !important;
 }
 
 .cd-back-btn:hover {
@@ -156,7 +162,7 @@
 .cd-tab-btn:hover { background: #e2e8f0; color: #334155; }
 
 .cd-tab-btn-active {
-  background: #05060a !important;
+  background: #01369e !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(5, 6, 10, 0.22);
 }
@@ -195,7 +201,7 @@
   background: #eff6ff;
   border-radius: 10px;
   font-size: 17px;
-  color: #05060a;
+  color: #01369e;
 }
 
 .cd-card-title {
@@ -227,11 +233,11 @@
   color: #2c2f31;
 }
 
-.cd-field-value-primary { color: #05060a; }
+.cd-field-value-primary { color: #01369e; }
 .cd-field-value-muted { font-weight: 400 !important; color: #595c5e; line-height: 1.5; }
 
 .cd-field-phone { display: flex; align-items: center; gap: 8px; }
-.cd-phone-icon { color: #05060a; font-size: 14px; }
+.cd-phone-icon { color: #01369e; font-size: 14px; }
 
 .cd-event-grid {
   display: grid;
@@ -290,7 +296,7 @@
   line-height: 1;
 }
 
-.cd-financial-primary { color: #05060a; }
+.cd-financial-primary { color: #01369e; }
 .cd-financial-error { color: #b31b25; }
 .cd-financial-ok { color: #15803d; }
 
@@ -331,7 +337,7 @@
   font-size: 13px;
 }
 
-.cd-tl-dot-contrato { background: #f1f5f9; color: #05060a; border: 2px solid #cbd5e1; }
+.cd-tl-dot-contrato { background: #f1f5f9; color: #01369e; border: 2px solid #cbd5e1; }
 .cd-tl-dot-pago     { background: #dcfce7; color: #15803d; border: 2px solid #bbf7d0; }
 .cd-tl-dot-evento   { background: #fff7ed; color: #c2410c; border: 2px solid #fed7aa; }
 
@@ -352,8 +358,8 @@
 .cd-btn-add-pago.ant-btn {
   border-radius: 10px !important;
   font-weight: 700;
-  background: #05060a !important;
-  border-color: #05060a !important;
+  background: #01369e !important;
+  border-color: #01369e !important;
   color: #fff !important;
 }
 
@@ -401,8 +407,8 @@
   border-radius: 10px !important;
   font-weight: 600;
   font-size: 13px;
-  border-color: #05060a !important;
-  color: #05060a !important;
+  border-color: #01369e !important;
+  color: #01369e !important;
 }
 
 .cd-btn-upload.ant-btn:hover { background: #f8fafc !important; }
@@ -583,7 +589,7 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(140deg, #1e293b 0%, #475569 100%);
+  background: linear-gradient(140deg, #0a2a7a 0%, #475569 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -604,7 +610,7 @@
 .cd-ev-card-name {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
   line-height: 1.2;
   text-transform: capitalize;
 }
@@ -637,7 +643,7 @@
 .cd-ev-meta-val {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
 }
 
 .cd-ev-meta-qty {

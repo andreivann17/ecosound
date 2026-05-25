@@ -1,4 +1,4 @@
-// src/components/expedientes/TribunalCards.jsx
+﻿// src/components/expedientes/TribunalCards.jsx
 
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +62,7 @@ export default function TribunalCards({
     if (!id) return;
 
     // ✅ TRIBUNAL (no centro-conciliación)
-    navigate(`/materias/laboral/tribunal/${id}`, {
+    navigate(`/app/materias/laboral/tribunal/${id}`, {
       state: {
         id,
         expediente: exp.expediente,

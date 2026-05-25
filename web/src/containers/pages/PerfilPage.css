@@ -46,7 +46,7 @@
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #05060a 0%, #2d3142 100%);
+  background: linear-gradient(135deg, #012770 0%, #2d3142 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +75,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #05060a;
+  background: #012770;
   border: 2px solid #ffffff;
   color: #ffffff;
   display: flex;
@@ -101,7 +101,7 @@
 .perf-header-name {
   font-size: 22px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0d1b4b;
   margin: 0;
   text-transform: capitalize;
   line-height: 1.2;
@@ -140,11 +140,11 @@
 
 .perf-tab-btn:hover {
   background: #f1f5f9;
-  color: #0f172a;
+  color: #0d1b4b;
 }
 
 .perf-tab-btn.active {
-  background: #0f172a;
+  background: #012770;
   color: #ffffff;
   font-weight: 700;
 }
@@ -189,7 +189,7 @@
 .perf-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0d1b4b;
   margin: 0;
 }
 
@@ -228,7 +228,7 @@
 
 .perf-value {
   font-size: 14px;
-  color: #0f172a;
+  color: #0d1b4b;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -289,27 +289,27 @@
 }
 
 .perf-btn-edit {
-  background: #0f172a !important;
-  border-color: #0f172a !important;
+  background: #012770 !important;
+  border-color: #012770 !important;
   color: #ffffff !important;
   font-weight: 600 !important;
 }
 
 .perf-btn-edit:hover {
-  background: #1e293b !important;
-  border-color: #1e293b !important;
+  background: #0248c7 !important;
+  border-color: #0248c7 !important;
 }
 
 .perf-btn-save {
-  background: #0f172a !important;
-  border-color: #0f172a !important;
+  background: #012770 !important;
+  border-color: #012770 !important;
   color: #ffffff !important;
   font-weight: 600 !important;
 }
 
 .perf-btn-save:hover {
-  background: #1e293b !important;
-  border-color: #1e293b !important;
+  background: #0248c7 !important;
+  border-color: #0248c7 !important;
 }
 
 /* ── Password form ───────────────────────────────────── */

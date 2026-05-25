@@ -1,90 +1,91 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import "../../assets/css/notificationDetail.css";
 import { useNavigate, useParams } from "react-router-dom";
 import { actionNotificacionesGetById } from "../../redux/actions/notificaciones/notificaciones";
 import { useDispatch } from "react-redux";
+import { usePermisos } from "../../context/PermisosContext";
+
+const ACTION_LABEL = { CREATE: "Creado", UPDATE: "Actualizado", DELETE: "Eliminado", VIEW: "Visto" };
+const MODULE_LABEL = { 2: "Eventos", 4: "Paquetes", 5: "Trabajadores", 6: "Inventario", 7: "Gastos" };
+
+// Mapa de id_modulo → función que construye la ruta al registro
+const MODULE_ROUTE = {
+  1: (idKey) => idKey ? `/app/materias/laboral/centro-conciliacion/${idKey}` : `/app/materias/laboral/centro-conciliacion`,
+  2: (idKey) => idKey ? `/app/eventos/${idKey}` : `/app/eventos`,
+  3: (idKey) => idKey ? `/app/sesiones/${idKey}` : `/app/sesiones`,
+  4: (idKey) => idKey ? `/app/paquetes/${idKey}` : `/app/paquetes`,
+  5: (idKey) => idKey ? `/app/trabajadores/${idKey}` : `/app/trabajadores`,
+  6: (idKey) => idKey ? `/app/inventario/equipo/${idKey}` : `/app/inventario`,
+  7: (idKey) => `/app/usuarios`,
+};
 
 function NotificationDetail() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { idNotificacion } = useParams();
+  const { perm } = usePermisos() || { perm: () => true };
+  const canConsultar = perm("notificaciones", "consultar");
 
   const [notificacion, setNotificacion] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-
     const fetchNotificacion = async () => {
       try {
         setLoading(true);
         const resp = await dispatch(actionNotificacionesGetById(idNotificacion));
-
-        if (mounted) {
-          setNotificacion(resp || null);
-        }
-      } catch (error) {
-        console.error("Error al obtener notificación:", error);
-        if (mounted) {
-          setNotificacion(null);
-        }
+        if (mounted) setNotificacion(resp || null);
+      } catch {
+        if (mounted) setNotificacion(null);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
-
-    if (idNotificacion) {
-      fetchNotificacion();
-    }
-
-    return () => {
-      mounted = false;
-    };
+    if (idNotificacion) fetchNotificacion();
+    return () => { mounted = false; };
   }, [dispatch, idNotificacion]);
 
   const fechaFormateada = useMemo(() => {
-    if (!notificacion?.fecha_notificacion) return "-";
-
-    const fecha = new Date(notificacion.fecha_notificacion);
-    if (Number.isNaN(fecha.getTime())) return notificacion.fecha_notificacion;
-
+    const raw = notificacion?.datetime;
+    if (!raw) return "-";
+    const fecha = new Date(raw);
+    if (Number.isNaN(fecha.getTime())) return raw;
     return fecha.toLocaleString("es-MX", {
-      day: "numeric",
-      month: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
+      day: "numeric", month: "numeric", year: "numeric",
+      hour: "numeric", minute: "2-digit", second: "2-digit",
     });
   }, [notificacion]);
 
-  const usuariosLeyeron = useMemo(() => {
-    if (!Array.isArray(notificacion?.usuarios_leyeron)) return [];
-    return notificacion.usuarios_leyeron;
+  const changesData = useMemo(() => {
+    const raw = notificacion?.changes;
+    if (!raw) return null;
+    if (typeof raw === "object") return raw;
+    try { return JSON.parse(raw); } catch { return raw; }
   }, [notificacion]);
 
-  const tituloNotificacion = useMemo(() => {
-    return notificacion?.nombre_tipo_notificacion || "Sin título";
-  }, [notificacion]);
+  const tituloNotificacion = notificacion?.action
+    ? (ACTION_LABEL[notificacion.action] || notificacion.action)
+    : "Sin tipo";
+  const descripcionNotificacion = notificacion?.message || "Sin descripción disponible.";
+  const nombreModulo = notificacion?.id_modulo
+    ? (MODULE_LABEL[notificacion.id_modulo] || `Módulo ${notificacion.id_modulo}`)
+    : "Sin módulo";
+  const nombreUsuario = notificacion?.user_name || `Usuario ${notificacion?.id_user || "?"}`;
+  const idVisual = notificacion?.id_audit_log
+    ? `#AUD-${String(notificacion.id_audit_log).padStart(4, "0")}`
+    : "-";
 
-  const descripcionNotificacion = useMemo(() => {
-    return notificacion?.descripcion || "Sin descripción disponible.";
-  }, [notificacion]);
+  const handleIrAlRegistro = () => {
+    const idModulo = notificacion?.id_modulo;
+    const idKey = notificacion?.id_key;
+    const routeFn = MODULE_ROUTE[idModulo];
+    if (routeFn) {
+      navigate(routeFn(idKey));
+    }
+  };
 
-  const nombreModulo = useMemo(() => {
-    return notificacion?.nombre_modulo || "Sin módulo";
-  }, [notificacion]);
-
-  const nombreUsuario = useMemo(() => {
-    return notificacion?.nombre_usuario || "Usuario desconocido";
-  }, [notificacion]);
-
-  const idVisual = useMemo(() => {
-    if (!notificacion?.id) return "-";
-    return `#NOT-${String(notificacion.id).padStart(4, "0")}`;
-  }, [notificacion]);
+  const tieneRuta = notificacion?.id_modulo && MODULE_ROUTE[notificacion.id_modulo];
 
   return (
     <div className="notification-page">
@@ -92,23 +93,13 @@ function NotificationDetail() {
         <main className="main-content">
           <div className="detail-content-wrapper">
             <div className="back-link-row">
-            <button
-  type="button"
-  onClick={() => navigate("/notificaciones")}
-  className="back-link btn"
->
-                <svg
-                  className="back-link-icon"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M15 19l-7-7 7-7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  />
+              <button
+                type="button"
+                onClick={() => navigate("/app/notificaciones")}
+                className="back-link btn"
+              >
+                <svg className="back-link-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                 </svg>
                 <span>Regresar</span>
               </button>
@@ -116,31 +107,22 @@ function NotificationDetail() {
 
             <div className="page-header">
               <h1>Detalle de Notificación</h1>
-              <p>Gestión integral de avisos procesales y términos legales</p>
+              <p>Actividad registrada en el sistema HerrSoft Events</p>
             </div>
 
             <section className="notification-detail-card">
               <div className="card-topbar">
                 <div className="card-topbar-left">
                   <span className="module-chip">{nombreModulo}</span>
-                  <span className="notification-id">
-                    ID Notificación: {idVisual}
-                  </span>
+                  <span className="notification-id">ID Notificación: {idVisual}</span>
                 </div>
 
                 <div className="card-topbar-right">
                   <div className="date-block">
-                    <svg
-                      className="date-icon"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="date-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                       />
                     </svg>
                     <span>{fechaFormateada}</span>
@@ -161,7 +143,6 @@ function NotificationDetail() {
                 <div className="info-grid">
                   <div className="info-section">
                     <h4>Información del Emisor</h4>
-
                     <div className="issuer-row">
                       <div className="issuer-avatar">
                         <svg fill="currentColor" viewBox="0 0 20 20">
@@ -172,7 +153,6 @@ function NotificationDetail() {
                           />
                         </svg>
                       </div>
-
                       <div>
                         <p className="issuer-name">{nombreUsuario}</p>
                         <p className="issuer-role">{nombreModulo}</p>
@@ -181,21 +161,22 @@ function NotificationDetail() {
                   </div>
 
                   <div className="info-section">
-                    <h4>Leído por</h4>
-
+                    <h4>Cambios Registrados</h4>
                     <div className="read-by-list">
-                      {usuariosLeyeron.length > 0 ? (
-                        usuariosLeyeron.map((usuario) => (
-                          <span
-                            className="read-pill"
-                            key={`${usuario.id_user}-${usuario.nombre}`}
-                          >
-                            <div className="read-dot" />
-                            {usuario.nombre}
-                          </span>
-                        ))
+                      {changesData ? (
+                        typeof changesData === "string" ? (
+                          <span className="read-pill">{changesData}</span>
+                        ) : (
+                          Object.entries(changesData).map(([k, v]) => (
+                            <span className="read-pill" key={k}>
+                              <div className="read-dot" />
+                              <strong>{k}:</strong>&nbsp;
+                              {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                            </span>
+                          ))
+                        )
                       ) : (
-                        <span className="read-pill more">Sin lecturas registradas</span>
+                        <span className="read-pill more">Sin cambios detallados</span>
                       )}
                     </div>
                   </div>
@@ -207,38 +188,30 @@ function NotificationDetail() {
                 </div>
 
                 <div className="actions-row">
-                  <button className="primary-btn" type="button">
-                    <span>Ir al expediente</span>
-                    <svg
-                      className="action-icon"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                      />
-                    </svg>
-                  </button>
+                  {tieneRuta && (
+                    <button className="primary-btn" type="button" onClick={handleIrAlRegistro}>
+                      <span>Ir al registro</span>
+                      <svg className="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                          strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                        />
+                      </svg>
+                    </button>
+                  )}
 
-                  <button className="secondary-btn" type="button">
-                    <svg
-                      className="share-icon"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                  <button
+                    className="secondary-btn"
+                    type="button"
+                    onClick={() => navigate("/app/notificaciones")}
+                  >
+                    <svg className="share-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
+                        d="M15 19l-7-7 7-7"
+                        strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                       />
                     </svg>
-                    Compartir
+                    Volver al listado
                   </button>
                 </div>
               </div>

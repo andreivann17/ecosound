@@ -2,10 +2,55 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import paquetes as paq_model
+from ..models import audit as audit_model
+from ..models import notificaciones as noti_model
+from ..realtime.ws_manager import manager
+
+PAQUETE_MODULO = 4
+TIPO_CREACION = 1
+TIPO_ACTUALIZACION = 2
+TIPO_ELIMINACION = 3
 
 router = APIRouter(prefix="/paquetes", tags=["paquetes"])
+
+
+def _log_audit_paquete(action: str, message: str, id_paquete: int, user_id: int, changes=None):
+    try:
+        audit_model.create_audit_log(data={
+            "action": action,
+            "message": message,
+            "id_user": user_id,
+            "id_modulo": PAQUETE_MODULO,
+            "id_key": str(id_paquete),
+            "changes": changes,
+        })
+    except Exception:
+        pass
+
+
+async def _notify_paquete(tipo: int, descripcion: str, id_paquete: int, user_id: int, id_cliente: Optional[int] = None):
+    try:
+        _data = {
+            "id_tipo_notificacion": tipo,
+            "id_modulo": PAQUETE_MODULO,
+            "descripcion": descripcion,
+            "id_user": user_id,
+            "urgente": 0,
+            "id_key": str(id_paquete),
+        }
+        if id_cliente:
+            _data["id_cliente"] = id_cliente
+        noti_model.create_notificacion(data=_data)
+    except Exception:
+        pass
+    await manager.broadcast_json({
+        "type": "NOTIFICACION_INVALIDATE",
+        "source": "paquetes",
+        "id_paquete": id_paquete,
+        "descripcion_notificacion": descripcion,
+    })
 
 
 class PaqueteCreate(BaseModel):
@@ -29,20 +74,26 @@ class ContenidoCreate(BaseModel):
 def list_paquetes(
     tipo: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return paq_model.list_paquetes(tipo=tipo, search=search)
+    return paq_model.list_paquetes(tipo=tipo, search=search, id_cliente=tenant_id)
 
 
 @router.post("", status_code=201)
-def crear_paquete(
+async def crear_paquete(
     payload: PaqueteCreate,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     nombre = (payload.nombre or "").strip()
     if not nombre:
         raise HTTPException(status_code=400, detail="Nombre requerido")
-    return paq_model.create_paquete(nombre, payload.is_paquete_sonido)
+    result = paq_model.create_paquete(nombre, payload.is_paquete_sonido, id_cliente=tenant_id)
+    new_id = result.get("id") or result.get("id_paquete") or 0
+    tipo_str = "sonido" if payload.is_paquete_sonido else "fotografía"
+    _log_audit_paquete("CREATE", f"Paquete de {tipo_str} '{nombre}' creado", new_id, _cu.get("id", 0))
+    await _notify_paquete(TIPO_CREACION, f"Nuevo paquete de {tipo_str} '{nombre}' registrado", new_id, _cu.get("id", 0), id_cliente=tenant_id)
+    return result
 
 
 @router.delete("/contenidos/{id_contenido}")
@@ -69,7 +120,7 @@ def get_paquete(
 
 
 @router.patch("/{id_paquete}")
-def actualizar_paquete(
+async def actualizar_paquete(
     id_paquete: int,
     payload: PaqueteUpdate,
     is_sonido: bool = Query(...),
@@ -83,6 +134,8 @@ def actualizar_paquete(
         data["active"] = int(data["active"])
     paq_model.update_paquete(id_paquete, is_sonido, data)
     updated = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    _log_audit_paquete("UPDATE", f"Paquete #{id_paquete} actualizado", id_paquete, _cu.get("id", 0), changes=data)
+    await _notify_paquete(TIPO_ACTUALIZACION, f"Paquete '{row.get('nombre','#'+str(id_paquete))}' actualizado", id_paquete, _cu.get("id", 0), id_cliente=row.get("id_cliente"))
     return {"updated": 1, "item": updated}
 
 
@@ -111,6 +164,21 @@ def get_analisis_paquete(
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
     return paq_model.get_paquete_analisis(id_paquete, is_sonido, date_from, date_to, date_field)
+
+
+@router.get("/{id_paquete}/actividad")
+def get_actividad_paquete(
+    id_paquete: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    items, total = audit_model.list_audit_logs(
+        filters={"id_modulo": PAQUETE_MODULO, "id_key": str(id_paquete)},
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total}
 
 
 @router.post("/{id_paquete}/contenidos", status_code=201)

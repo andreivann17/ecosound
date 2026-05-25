@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..db import get_connection
 
 router = APIRouter(prefix="/estadisticas", tags=["estadisticas"])
@@ -89,61 +89,93 @@ def get_estadisticas(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     if periodo not in ("semana", "quincena", "mes", "custom"):
         periodo = "mes"
 
     p_from, p_to = _period_dates(periodo, date_from, date_to)
     today = dt.date.today()
+
+    # tenant filters: _cf for queries with alias c, _nf for queries without alias
+    _cf = " AND c.id_cliente = %s" if tenant_id is not None else ""
+    _nf = " AND id_cliente = %s" if tenant_id is not None else ""
+    _tp = (tenant_id,) if tenant_id is not None else ()
+
     conn = get_connection()
 
     try:
         with conn.cursor(dictionary=True) as cur:
 
-            # ── KPIs — todos filtrados por fecha_evento del contrato ─────────
+            # ── KPIs ─────────────────────────────────────────────────────────
 
+            # Contratos con evento en el período (para saldo y valor total)
             contratos_count = int(_scalar(cur,
-                "SELECT COUNT(*) AS cnt FROM contratos "
-                "WHERE active = 1 AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COUNT(*) AS cnt FROM contratos "
+                f"WHERE active = 1 AND DATE(fecha_evento) BETWEEN %s AND %s{_nf}",
+                (p_from, p_to) + _tp,
             ))
 
-            # Anticipo cobrado de contratos con evento en el período
+            # Pagos recibidos EN el período (filtrado por fecha del pago, no del evento)
+            # — Anticipos cuya fecha_anticipo cae en el período
             ing_anticipo = float(_scalar(cur,
-                "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
-                "FROM contratos "
-                "WHERE active=1 AND fecha_anticipo IS NOT NULL "
-                "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
+                f"FROM contratos "
+                f"WHERE active=1 AND fecha_anticipo IS NOT NULL "
+                f"AND DATE(fecha_anticipo) BETWEEN %s AND %s{_nf}",
+                (p_from, p_to) + _tp,
             ))
-
-            # Abonos de contratos con evento en el período
+            # — Abonos cuya fecha cae en el período
             ing_abonos = float(_scalar(cur,
-                "SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
-                "FROM contratos_abonos ca "
-                "JOIN contratos c ON c.id_contrato = ca.id_contrato "
-                "WHERE ca.active=1 AND c.active=1 "
-                "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
+                f"FROM contratos_abonos ca "
+                f"JOIN contratos c ON c.id_contrato = ca.id_contrato "
+                f"WHERE ca.active=1 AND c.active=1 "
+                f"AND DATE(ca.fecha) BETWEEN %s AND %s{_cf}",
+                (p_from, p_to) + _tp,
             ))
             ingresos_cobrados = ing_anticipo + ing_abonos
+
+            # Total de gastos registrados en el período (por fecha del gasto)
+            _gf = " AND g.id_cliente = %s" if tenant_id is not None else ""
+            gastos_total = float(_scalar(cur,
+                f"SELECT COALESCE(SUM(monto), 0) AS t "
+                f"FROM gastos g "
+                f"WHERE g.active_sistema = 1 AND DATE(g.fecha) BETWEEN %s AND %s{_gf}",
+                (p_from, p_to) + _tp,
+            ))
+
+            # Gastos agrupados por tipo en el período
+            cur.execute(
+                f"SELECT COALESCE(tg.nombre, 'Sin tipo') AS tipo, COALESCE(SUM(g.monto), 0) AS total "
+                f"FROM gastos g "
+                f"LEFT JOIN tipo_gastos tg ON tg.id_tipo_gasto = g.id_tipo_gasto "
+                f"WHERE g.active_sistema = 1 AND DATE(g.fecha) BETWEEN %s AND %s{_gf} "
+                f"GROUP BY g.id_tipo_gasto, tg.nombre "
+                f"ORDER BY total DESC",
+                (p_from, p_to) + _tp,
+            )
+            gastos_por_tipo = [
+                {"tipo": r["tipo"], "total": float(r["total"])}
+                for r in cur.fetchall()
+            ]
 
             # Saldo pendiente de contratos con evento en el período
             saldo_pendiente_total = float(_scalar(cur,
                 f"SELECT COALESCE(SUM({_SALDO_EXPR}),0) AS t "
-                "FROM contratos c "
-                "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
-                "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"FROM contratos c "
+                f"WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
+                f"AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf}",
+                (p_from, p_to) + _tp,
             ))
 
             # Importe total de contratos en el período (alcance máximo)
             importe_total = float(_scalar(cur,
-                "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS t "
-                "FROM contratos "
-                "WHERE active=1 AND importe IS NOT NULL AND importe != '' "
-                "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS t "
+                f"FROM contratos "
+                f"WHERE active=1 AND importe IS NOT NULL AND importe != '' "
+                f"AND DATE(fecha_evento) BETWEEN %s AND %s{_nf}",
+                (p_from, p_to) + _tp,
             ))
 
             # ── Ingresos por mes — últimos 12 meses (por fecha_evento) ────────
@@ -157,31 +189,31 @@ def get_estadisticas(
                     y -= 1
                 mf, mt = _month_range(y, m)
 
-                # Anticipo cobrado de contratos con evento en ese mes
+                # Anticipos recibidos en ese mes (por fecha_anticipo)
                 cob_ant = float(_scalar(cur,
-                    "SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
-                    "FROM contratos "
-                    "WHERE active=1 AND fecha_anticipo IS NOT NULL "
-                    "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                    (mf, mt),
+                    f"SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe_anticipo),'') AS DECIMAL(12,2))),0) AS t "
+                    f"FROM contratos "
+                    f"WHERE active=1 AND fecha_anticipo IS NOT NULL "
+                    f"AND DATE(fecha_anticipo) BETWEEN %s AND %s{_nf}",
+                    (mf, mt) + _tp,
                 ))
-                # Abonos de contratos con evento en ese mes
+                # Abonos recibidos en ese mes (por fecha del abono)
                 cob_abo = float(_scalar(cur,
-                    "SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
-                    "FROM contratos_abonos ca "
-                    "JOIN contratos c ON c.id_contrato = ca.id_contrato "
-                    "WHERE ca.active=1 AND c.active=1 "
-                    "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
-                    (mf, mt),
+                    f"SELECT COALESCE(SUM(CAST(ca.importe AS DECIMAL(12,2))),0) AS t "
+                    f"FROM contratos_abonos ca "
+                    f"JOIN contratos c ON c.id_contrato = ca.id_contrato "
+                    f"WHERE ca.active=1 AND c.active=1 "
+                    f"AND DATE(ca.fecha) BETWEEN %s AND %s{_cf}",
+                    (mf, mt) + _tp,
                 ))
                 cobrado = cob_ant + cob_abo
 
                 pendiente = float(_scalar(cur,
                     f"SELECT COALESCE(SUM({_SALDO_EXPR}),0) AS pend "
-                    "FROM contratos c "
-                    "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
-                    "AND DATE(c.fecha_evento) BETWEEN %s AND %s",
-                    (mf, mt),
+                    f"FROM contratos c "
+                    f"WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
+                    f"AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf}",
+                    (mf, mt) + _tp,
                 ))
 
                 ingresos_por_mes.append({
@@ -194,13 +226,13 @@ def get_estadisticas(
             # ── Contratos por tipo de evento en el período ───────────────────
 
             cur.execute(
-                "SELECT COALESCE(te.nombre, 'Sin tipo') AS tipo, COUNT(*) AS cantidad "
-                "FROM contratos c "
-                "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
-                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
-                "GROUP BY c.id_tipo_evento, te.nombre "
-                "ORDER BY cantidad DESC",
-                (p_from, p_to),
+                f"SELECT COALESCE(te.nombre, 'Sin tipo') AS tipo, COUNT(*) AS cantidad "
+                f"FROM contratos c "
+                f"LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
+                f"WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
+                f"GROUP BY c.id_tipo_evento, te.nombre "
+                f"ORDER BY cantidad DESC",
+                (p_from, p_to) + _tp,
             )
             por_tipo = [
                 {"tipo": r["tipo"], "cantidad": int(r["cantidad"])}
@@ -210,13 +242,13 @@ def get_estadisticas(
             # ── Contratos por ciudad ─────────────────────────────────────────
 
             cur.execute(
-                "SELECT COALESCE(ci.nombre, 'Sin ciudad') AS ciudad, COUNT(*) AS cantidad "
-                "FROM contratos c "
-                "LEFT JOIN ciudades ci ON ci.id_ciudad = c.id_ciudad "
-                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
-                "GROUP BY c.id_ciudad, ci.nombre "
-                "ORDER BY cantidad DESC",
-                (p_from, p_to),
+                f"SELECT COALESCE(ci.nombre, 'Sin ciudad') AS ciudad, COUNT(*) AS cantidad "
+                f"FROM contratos c "
+                f"LEFT JOIN ciudades ci ON ci.id_ciudad = c.id_ciudad "
+                f"WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
+                f"GROUP BY c.id_ciudad, ci.nombre "
+                f"ORDER BY cantidad DESC",
+                (p_from, p_to) + _tp,
             )
             por_ciudad = [
                 {"ciudad": r["ciudad"], "cantidad": int(r["cantidad"])}
@@ -226,16 +258,16 @@ def get_estadisticas(
             # ── Paquetes: fotografía vs sonido ───────────────────────────────
 
             count_foto = int(_scalar(cur,
-                "SELECT COUNT(*) AS cnt FROM contratos "
-                "WHERE active=1 AND id_paquete_fotografia IS NOT NULL "
-                "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COUNT(*) AS cnt FROM contratos "
+                f"WHERE active=1 AND id_paquete_fotografia IS NOT NULL "
+                f"AND DATE(fecha_evento) BETWEEN %s AND %s{_nf}",
+                (p_from, p_to) + _tp,
             ))
             count_sonido = int(_scalar(cur,
-                "SELECT COUNT(*) AS cnt FROM contratos "
-                "WHERE active=1 AND id_paquete_sonido IS NOT NULL "
-                "AND DATE(fecha_evento) BETWEEN %s AND %s",
-                (p_from, p_to),
+                f"SELECT COUNT(*) AS cnt FROM contratos "
+                f"WHERE active=1 AND id_paquete_sonido IS NOT NULL "
+                f"AND DATE(fecha_evento) BETWEEN %s AND %s{_nf}",
+                (p_from, p_to) + _tp,
             ))
             por_tipo_paquete = [
                 {"tipo": "Fotografía", "cantidad": count_foto},
@@ -245,14 +277,14 @@ def get_estadisticas(
             # ── Top paquetes fotografía ──────────────────────────────────────
 
             cur.execute(
-                "SELECT pf.nombre, COUNT(*) AS cantidad "
-                "FROM contratos c "
-                "JOIN paquetes_fotografia pf ON pf.id_paquete_fotografia = c.id_paquete_fotografia "
-                "WHERE c.active = 1 AND c.id_paquete_fotografia IS NOT NULL "
-                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
-                "GROUP BY c.id_paquete_fotografia, pf.nombre "
-                "ORDER BY cantidad DESC LIMIT 10",
-                (p_from, p_to),
+                f"SELECT pf.nombre, COUNT(*) AS cantidad "
+                f"FROM contratos c "
+                f"JOIN paquetes_fotografia pf ON pf.id_paquete_fotografia = c.id_paquete_fotografia "
+                f"WHERE c.active = 1 AND c.id_paquete_fotografia IS NOT NULL "
+                f"AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
+                f"GROUP BY c.id_paquete_fotografia, pf.nombre "
+                f"ORDER BY cantidad DESC LIMIT 10",
+                (p_from, p_to) + _tp,
             )
             top_paquetes_foto = [
                 {"nombre": r["nombre"], "cantidad": int(r["cantidad"])}
@@ -262,14 +294,14 @@ def get_estadisticas(
             # ── Top paquetes sonido ──────────────────────────────────────────
 
             cur.execute(
-                "SELECT ps.nombre, COUNT(*) AS cantidad "
-                "FROM contratos c "
-                "JOIN paquetes_sonido ps ON ps.id_paquete_sonido = c.id_paquete_sonido "
-                "WHERE c.active = 1 AND c.id_paquete_sonido IS NOT NULL "
-                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
-                "GROUP BY c.id_paquete_sonido, ps.nombre "
-                "ORDER BY cantidad DESC LIMIT 10",
-                (p_from, p_to),
+                f"SELECT ps.nombre, COUNT(*) AS cantidad "
+                f"FROM contratos c "
+                f"JOIN paquetes_sonido ps ON ps.id_paquete_sonido = c.id_paquete_sonido "
+                f"WHERE c.active = 1 AND c.id_paquete_sonido IS NOT NULL "
+                f"AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
+                f"GROUP BY c.id_paquete_sonido, ps.nombre "
+                f"ORDER BY cantidad DESC LIMIT 10",
+                (p_from, p_to) + _tp,
             )
             top_paquetes_sonido = [
                 {"nombre": r["nombre"], "cantidad": int(r["cantidad"])}
@@ -279,7 +311,7 @@ def get_estadisticas(
             # ── Trabajadores por número de contratos ─────────────────────────
 
             cur.execute(
-                """
+                f"""
                 SELECT CONCAT(t.nombre, ' ', t.apellido) AS nombre,
                        COALESCE(p.nombre, 'Sin puesto') AS puesto,
                        COUNT(*) AS contratos_count
@@ -288,12 +320,12 @@ def get_estadisticas(
                 LEFT JOIN puestos p ON p.id_puesto = ct.id_puesto
                 JOIN contratos c ON c.id_contrato = ct.id_contrato
                 WHERE ct.active = 1 AND c.active = 1
-                  AND DATE(c.fecha_evento) BETWEEN %s AND %s
+                  AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf}
                 GROUP BY ct.id_trabajador, t.nombre, t.apellido, p.nombre
                 ORDER BY contratos_count DESC
                 LIMIT 20
                 """,
-                (p_from, p_to),
+                (p_from, p_to) + _tp,
             )
             trabajadores_stats = [
                 {
@@ -311,13 +343,13 @@ def get_estadisticas(
                 f"COALESCE(te.nombre,'Sin tipo') AS tipo_evento, "
                 f"({_SALDO_EXPR}) AS saldo, "
                 f"DATEDIFF(%s, c.fecha_evento) AS dias_diff "
-                "FROM contratos c "
-                "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
-                "WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
-                "AND DATE(c.fecha_evento) BETWEEN %s AND %s "
+                f"FROM contratos c "
+                f"LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
+                f"WHERE c.active=1 AND c.importe IS NOT NULL AND c.importe != '' "
+                f"AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
                 f"HAVING saldo > 0 "
-                "ORDER BY c.fecha_evento ASC LIMIT 50",
-                (str(today), p_from, p_to),
+                f"ORDER BY c.fecha_evento ASC LIMIT 50",
+                (str(today), p_from, p_to) + _tp,
             )
             contratos_pendientes = [
                 {
@@ -339,11 +371,11 @@ def get_estadisticas(
                 f"c.importe, "
                 f"COALESCE(te.nombre,'Sin tipo') AS tipo_evento, "
                 f"({_SALDO_EXPR}) AS saldo_pendiente "
-                "FROM contratos c "
-                "LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
-                "WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s "
-                "ORDER BY c.fecha_evento ASC LIMIT 100",
-                (p_from, p_to),
+                f"FROM contratos c "
+                f"LEFT JOIN tipo_eventos te ON te.id_tipo_evento = c.id_tipo_evento "
+                f"WHERE c.active = 1 AND DATE(c.fecha_evento) BETWEEN %s AND %s{_cf} "
+                f"ORDER BY c.fecha_evento ASC LIMIT 100",
+                (p_from, p_to) + _tp,
             )
             contratos_del_periodo = [
                 {
@@ -369,7 +401,9 @@ def get_estadisticas(
                     "saldo_pendiente_total": saldo_pendiente_total,
                     "importe_total": importe_total,
                     "contratos_count": contratos_count,
+                    "gastos_total": gastos_total,
                 },
+                "gastos_por_tipo": gastos_por_tipo,
                 "ingresos_por_mes": ingresos_por_mes,
                 "por_tipo_evento": por_tipo,
                 "por_ciudad": por_ciudad,

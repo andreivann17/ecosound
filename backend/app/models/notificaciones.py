@@ -19,6 +19,7 @@ NOTIFICACIONES_ALLOWED_COLS = {
     "urgente",
     "fecha_notificacion",
     "leido",
+    "id_cliente",
 }
 
 
@@ -60,7 +61,7 @@ def _sanitize_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         if k == "descripcion":
             v = _trim(v) if v is not None else None
 
-        if k in ("active", "id_tipo_notificacion", "id_modulo", "id_user", "urgente", "leido"):
+        if k in ("active", "id_tipo_notificacion", "id_modulo", "id_user", "urgente", "leido", "id_cliente"):
             v = _to_int_or_none(v)
 
         if k in ("datetime", "fecha_notificacion"):
@@ -79,12 +80,14 @@ def _sanitize_payload(data: Dict[str, Any]) -> Dict[str, Any]:
 import json
 
 
-def list_notificaciones() -> List[Dict[str, Any]]:
+def list_notificaciones(id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
+            where_sql = "WHERE n.id_cliente = %s" if id_cliente is not None else ""
+            params_list = (id_cliente,) if id_cliente is not None else ()
             cur.execute(
-                """
+                f"""
                 SELECT
                     n.id_notificacion AS id,
                     n.active,
@@ -101,18 +104,19 @@ def list_notificaciones() -> List[Dict[str, Any]]:
                     m.nombre AS nombre_modulo,
 
                     COALESCE((
-                        SELECT JSON_ARRAYAGG(
+                        SELECT CONCAT('[', GROUP_CONCAT(
                             JSON_OBJECT(
                                 'id_user', ul.id_user,
                                 'nombre', ul.name
                             )
-                        )
+                            SEPARATOR ','
+                        ), ']')
                         FROM notificaciones_leidos nl
                         INNER JOIN users ul
                             ON ul.id_user = nl.id_user
                         WHERE nl.id_notificacion = n.id_notificacion
                           AND nl.leido = 1
-                    ), JSON_ARRAY()) AS usuarios_leyeron
+                    ), '[]') AS usuarios_leyeron
 
                 FROM notificaciones n
                 LEFT JOIN users u
@@ -121,8 +125,10 @@ def list_notificaciones() -> List[Dict[str, Any]]:
                     ON m.id_modulo = n.id_modulo
                 LEFT JOIN tipo_notificaciones tn
                     ON tn.id_tipo_notificacion = n.id_tipo_notificacion
+                {where_sql}
                 ORDER BY n.fecha_notificacion DESC, n.id_notificacion DESC
-                """
+                """,
+                params_list,
             )
             rows = cur.fetchall()
 
@@ -240,7 +246,6 @@ def get_notificacion_by_id(*, id_notificacion: int, id_user: int) -> Optional[Di
                     n.descripcion,
                     n.id_user,
                     n.urgente,
-                    n.clave,
                     n.fecha_notificacion,
                     n.leido,
                     u.name AS nombre_usuario,
@@ -248,21 +253,20 @@ def get_notificacion_by_id(*, id_notificacion: int, id_user: int) -> Optional[Di
                     m.nombre AS nombre_modulo,
 
                     COALESCE((
-                        SELECT JSON_ARRAYAGG(
+                        SELECT CONCAT('[', GROUP_CONCAT(
                             JSON_OBJECT(
                                 'id_user', ul.id_user,
                                 'nombre', ul.name,
-                   
-                                    'fecha_leido', nl.fecha_leido
-
+                                'fecha_leido', nl.fecha_leido
                             )
-                        )
+                            SEPARATOR ','
+                        ), ']')
                         FROM notificaciones_leidos nl
                         INNER JOIN users ul
                             ON ul.id_user = nl.id_user
                         WHERE nl.id_notificacion = n.id_notificacion
                           AND nl.leido = 1
-                    ), JSON_ARRAY()) AS usuarios_leyeron
+                    ), '[]') AS usuarios_leyeron
 
                 FROM notificaciones n
                 LEFT JOIN users u

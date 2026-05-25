@@ -1,4 +1,4 @@
-// src/components/expedientes/ExpedienteCards.jsx
+﻿// src/components/expedientes/ExpedienteCards.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -90,7 +90,7 @@ const qs = persistSearch ?? location.search ?? "";
   };
 
  const handleView = (exp) => {
-  navigate(`/materias/laboral/desvinculaciones/${exp.id}${qs}`, {
+  navigate(`/app/materias/laboral/desvinculaciones/${exp.id}${qs}`, {
     state: {
       id: exp.id,
       code: exp.code,

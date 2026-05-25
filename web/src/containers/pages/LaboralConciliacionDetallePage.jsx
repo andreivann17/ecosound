@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
+﻿// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -185,7 +185,7 @@ useEffect(() => {
             type="link"
             icon={<ArrowLeftOutlined />}
             className="laboral-exp-back"
-            onClick={() => navigate("/materias/laboral/centro-conciliacion")}
+            onClick={() => navigate("/app/materias/laboral/centro-conciliacion")}
           >
             Volver a expedientes
           </Button>
@@ -281,7 +281,7 @@ const handleDeleteExpediente = () => {
               message: "Expediente eliminado",
               description: "Se eliminó correctamente.",
             });
-            navigate("/materias/laboral/centro-conciliacion");
+            navigate("/app/materias/laboral/centro-conciliacion");
           })
         );
       } catch (error) {
@@ -308,7 +308,7 @@ const handleDeleteExpediente = () => {
   type="link"
   icon={<ArrowLeftOutlined />}
   className="laboral-exp-back"
-  onClick={() => navigate(`/materias/laboral/centro-conciliacion${location.search}`)}
+  onClick={() => navigate(`/app/materias/laboral/centro-conciliacion${location.search}`)}
 >
   Volver a expedientes
 </Button>

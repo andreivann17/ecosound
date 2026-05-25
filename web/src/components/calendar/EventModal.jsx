@@ -637,7 +637,7 @@ onSave(payload, files);
         className="ol-modal"
         okText="Guardar"
         cancelText="Cancelar"
-        title="Nuevo evento"
+        title="Nueva cita"
         closeIcon={<CloseOutlined style={{ color: "#000" }} />} // ✅ X negro visible
         footer={[
           <Button key="cancel" onClick={onCancel}>
@@ -646,7 +646,7 @@ onSave(payload, files);
           <Button
             key="save"
             type="primary"
-            style={{ background: "#05060a", borderColor: "#05060a" }}
+            style={{ background: "#01369e", borderColor: "#01369e" }}
             onClick={() => {
               handleOk();
             }}
@@ -711,7 +711,7 @@ onSave(payload, files);
               <div style={{ marginTop: 8 }}>
                 <Button
                   type="link"
-                  style={{ padding: 0, fontWeight: 700 }}
+                  style={{ padding: 0, fontWeight: 700, color: "#01369e" }}
                   onClick={() => setOpenRepeat(true)}
                 >
                   {local.recurrence ? "Editar periódico" : "Hacer periódico"}

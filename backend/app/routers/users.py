@@ -11,7 +11,7 @@ from pathlib import Path as FsPath
 import re
 import shutil
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import users as users_model
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -115,6 +115,19 @@ def set_new_password(payload: NewPasswordRequest):
         email=payload.email,
         new_plain_password=payload.password
     )
+    if updated:
+        import datetime as _dt
+        _send_correo_usuario(
+            source_id=3,
+            cfg_flag="correo_recuperar_password",
+            titulo=f"Contraseña restablecida: {payload.email}",
+            icon="🔐",
+            banner="Un usuario recuperó su contraseña",
+            filas=[
+                ("Correo", payload.email),
+                ("Hora",   _dt.datetime.now().strftime("%d/%m/%Y %H:%M")),
+            ],
+        )
     return {"status": bool(updated)}
 
 # =================================================
@@ -136,6 +149,7 @@ CREATE TABLE IF NOT EXISTS configuracion_usuarios (
     correo_inicio_sesion      TINYINT(1) NOT NULL DEFAULT 0,
     correo_recuperar_password TINYINT(1) NOT NULL DEFAULT 0,
     id_user                   INT        NOT NULL DEFAULT 0,
+    id_cliente                INT        NOT NULL DEFAULT 0,
     active                    TINYINT(1) NOT NULL DEFAULT 1,
     datetime                  DATETIME   NOT NULL
 )
@@ -144,6 +158,9 @@ CREATE TABLE IF NOT EXISTS configuracion_usuarios (
 def _ensure_cfg_usuarios(conn):
     with conn.cursor() as cur:
         cur.execute(_CFG_USR_DDL)
+        cur.execute("SHOW COLUMNS FROM configuracion_usuarios LIKE 'id_cliente'")
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE configuracion_usuarios ADD COLUMN id_cliente INT NOT NULL DEFAULT 0")
     conn.commit()
 
 
@@ -157,21 +174,34 @@ _USR_CORREO_DEFAULTS = {
 @router.get("/config/correo")
 def get_config_correo_usuarios(
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     conn = get_connection()
     try:
         _ensure_cfg_usuarios(conn)
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                """
-                SELECT correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password
-                FROM configuracion_usuarios
-                WHERE active = 1
-                ORDER BY id_configuracion_usuario DESC
-                LIMIT 1
-                """
-            )
+            if tenant_id is not None:
+                cur.execute(
+                    """
+                    SELECT correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password
+                    FROM configuracion_usuarios
+                    WHERE active = 1 AND id_cliente = %s
+                    ORDER BY id_configuracion_usuario DESC
+                    LIMIT 1
+                    """,
+                    (tenant_id,),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password
+                    FROM configuracion_usuarios
+                    WHERE active = 1
+                    ORDER BY id_configuracion_usuario DESC
+                    LIMIT 1
+                    """
+                )
             row = cur.fetchone()
         if not row:
             return _USR_CORREO_DEFAULTS.copy()
@@ -191,10 +221,12 @@ class ConfigCorreoUsuarios(BaseModel):
 def save_config_correo_usuarios(
     payload: ConfigCorreoUsuarios,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     import datetime as _dt
     user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    id_cliente_val = tenant_id if tenant_id is not None else 0
     now = _dt.datetime.now()
     conn = get_connection()
     try:
@@ -204,10 +236,11 @@ def save_config_correo_usuarios(
                 """
                 SELECT id_configuracion_usuario
                 FROM configuracion_usuarios
-                WHERE active = 1
+                WHERE active = 1 AND id_cliente = %s
                 ORDER BY id_configuracion_usuario DESC
                 LIMIT 1
-                """
+                """,
+                (id_cliente_val,),
             )
             existing = cur.fetchone()
 
@@ -236,14 +269,15 @@ def save_config_correo_usuarios(
                     """
                     INSERT INTO configuracion_usuarios
                         (correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password,
-                         id_user, active, datetime)
-                    VALUES (%s, %s, %s, %s, 1, %s)
+                         id_user, id_cliente, active, datetime)
+                    VALUES (%s, %s, %s, %s, %s, 1, %s)
                     """,
                     (
                         int(payload.correo_crear_usuario),
                         int(payload.correo_inicio_sesion),
                         int(payload.correo_recuperar_password),
                         user_id,
+                        id_cliente_val,
                         now,
                     ),
                 )
@@ -253,12 +287,118 @@ def save_config_correo_usuarios(
     return {"ok": True}
 
 
+USR_MODULO_CORREO = 4  # id_modulo en configuracion_correos
+
+
+def _cfg_usuarios_flag(flag_key: str) -> bool:
+    from ..db import get_connection as _gc
+    conn = _gc()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                f"SELECT {flag_key} FROM configuracion_usuarios "
+                "WHERE active=1 ORDER BY id_configuracion_usuario DESC LIMIT 1"
+            )
+            row = cur.fetchone()
+        return bool(row and row.get(flag_key))
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+
+def _usuario_html(titulo: str, icon: str, banner_text: str, filas: list) -> str:
+    import datetime as _dt
+    now = _dt.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    rows_html = ""
+    for label, valor in filas:
+        rows_html += f"""
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f4f8;">
+          <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;
+                       letter-spacing:0.06em;margin-bottom:4px;">{label}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">{valor or "—"}</div>
+        </td></tr>"""
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f5;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0"
+           style="background:#ffffff;border-radius:16px;overflow:hidden;
+                  box-shadow:0 4px 16px rgba(0,0,0,0.08);max-width:580px;">
+      <tr>
+        <td style="background:#01369e;padding:24px 32px;">
+          <table width="100%"><tr>
+            <td>
+              <div style="font-size:22px;font-weight:700;color:#ffffff;">HerrSoft Events</div>
+              <div style="font-size:12px;color:#93c5fd;margin-top:2px;">Sistema de gestión</div>
+            </td>
+            <td align="right">
+              <span style="background:rgba(255,255,255,0.18);color:#fff;font-size:11px;
+                           font-weight:700;letter-spacing:0.06em;padding:4px 12px;border-radius:20px;">
+                USUARIOS
+              </span>
+            </td>
+          </tr></table>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#eff6ff;border-bottom:2px solid #bfdbfe;padding:14px 32px;">
+          <div style="font-size:15px;font-weight:700;color:#01369e;">{icon} {banner_text}</div>
+          <div style="font-size:12px;color:#3b82f6;margin-top:2px;">Enviado el {now}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 32px 0;">
+          <div style="font-size:20px;font-weight:700;color:#111827;">{titulo}</div>
+        </td>
+      </tr>
+      <tr><td style="padding:12px 32px 0;">
+        <hr style="border:none;border-top:1px solid #f0f4f8;margin:0;">
+      </td></tr>
+      <tr>
+        <td style="padding:16px 32px 28px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            {rows_html}
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#f8fafc;border-top:1px solid #f0f4f8;padding:16px 32px;">
+          <div style="font-size:11px;color:#9ca3af;text-align:center;">
+            Correo generado automáticamente por <strong>HerrSoft Events</strong> · No respondas a este mensaje.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>"""
+
+
+def _send_correo_usuario(source_id: int, cfg_flag: str, titulo: str, icon: str, banner: str, filas: list) -> None:
+    try:
+        if not _cfg_usuarios_flag(cfg_flag):
+            return
+        from ..utils.email import send_email_bg, get_destinatarios_emails
+        emails = get_destinatarios_emails(USR_MODULO_CORREO, source_id)
+        if not emails:
+            return
+        html = _usuario_html(titulo, icon, banner, filas)
+        send_email_bg(emails, f"{icon} {banner}", html)
+    except Exception:
+        pass
+
+
 @router.get("")
 def list_users(
     search: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return users_model.list_users(search=search)
+    return users_model.list_users(search=search, id_cliente=tenant_id)
 
 
 @router.post("", status_code=201)
@@ -271,11 +411,26 @@ def create_user(
         raise HTTPException(status_code=401, detail="Usuario inválido")
 
     try:
+        name_clean  = payload.name.strip()
+        email_clean = str(payload.email).lower().strip()
         code = users_model.create_user(
-            name=payload.name.strip(),
-            email=str(payload.email).lower().strip(),
+            name=name_clean,
+            email=email_clean,
             password_plain=payload.password,
             id_user_creation=int(creator_id),
+        )
+        import datetime as _dt
+        _send_correo_usuario(
+            source_id=1,
+            cfg_flag="correo_crear_usuario",
+            titulo=f"Nuevo usuario: {name_clean}",
+            icon="👤",
+            banner="Nuevo usuario registrado en el sistema",
+            filas=[
+                ("Nombre",   name_clean),
+                ("Correo",   email_clean),
+                ("Hora",     _dt.datetime.now().strftime("%d/%m/%Y %H:%M")),
+            ],
         )
         return {"code": code}
     except users_model.EmailAlreadyExists as e:
@@ -291,6 +446,7 @@ def get_my_perfil(current_user: Dict[str, Any] = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     perfil = users_model.get_user_perfil(id_user)
     nombre = perfil.get("nombre") or user.get("name", "")
+    ultima_sesion = perfil.get("ultima_sesion") or user.get("ultmo_inicio_sesion")
     return {
         "id": id_user,
         "code": user.get("code", ""),
@@ -298,6 +454,7 @@ def get_my_perfil(current_user: Dict[str, Any] = Depends(get_current_user)):
         "email": user.get("email", ""),
         "datetime": user.get("datetime", ""),
         **perfil,
+        "ultima_sesion": ultima_sesion,
     }
 
 
@@ -498,6 +655,12 @@ def delete_user(
     id_user = users_model.get_user_id_by_code(code)
     if not id_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if users_model.get_user_cliente_flag(id_user) == 1:
+        raise HTTPException(
+            status_code=403,
+            detail="Este usuario pertenece a un cliente de Events y no puede eliminarse desde aquí.",
+        )
 
     users_model.set_user_active_flag(id_user=id_user, active_value=0)
     return {"active": 0}

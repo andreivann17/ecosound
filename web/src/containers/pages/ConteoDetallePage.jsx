@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -118,7 +118,7 @@ export default function ConteoDetallePage() {
             <Button
               type="link"
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/inventario/conteos")}
+              onClick={() => navigate("/app/inventario/conteos")}
               style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
             >
               Volver a Conteos

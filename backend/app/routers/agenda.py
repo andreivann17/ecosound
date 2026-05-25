@@ -4,7 +4,7 @@ import json
 from pydantic import BaseModel, field_validator, Field, ConfigDict
 from typing import Optional, List, Literal, Dict, Any
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import agenda as agenda_model
 
 router = APIRouter(prefix="/agenda", tags=["agenda"])
@@ -142,14 +142,23 @@ class TipoAgendaCreate(BaseModel):
 
 
 @router.get("/config/tipos")
-def list_tipos_agenda(current_user: Dict[str, Any] = Depends(get_current_user)):
+def list_tipos_agenda(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
+):
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 ORDER BY nombre"
-            )
+            if tenant_id:
+                cur.execute(
+                    "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
+                    (tenant_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 ORDER BY nombre"
+                )
             return cur.fetchall()
     finally:
         conn.close()
@@ -159,6 +168,7 @@ def list_tipos_agenda(current_user: Dict[str, Any] = Depends(get_current_user)):
 def create_tipo_agenda(
     payload: TipoAgendaCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     nombre = payload.nombre.strip()
@@ -168,7 +178,8 @@ def create_tipo_agenda(
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO agenda_evento (nombre, active) VALUES (%s, 1)", (nombre,)
+                "INSERT INTO agenda_evento (nombre, active, id_cliente) VALUES (%s, 1, %s)",
+                (nombre, tenant_id),
             )
             conn.commit()
             new_id = cur.lastrowid
@@ -293,6 +304,7 @@ def save_config_correo_agenda(
 def agenda_filter(
     body: AgendaFilterBody,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
@@ -308,6 +320,7 @@ def agenda_filter(
         include_other_cities=body.include_other_cities,
         event_type_ids=body.event_type_ids,
         contrato_tipo_ids=body.contrato_tipo_ids or [],
+        id_cliente=tenant_id,
     )
     return {"items": items}
 @router.get("", status_code=200)
@@ -317,6 +330,7 @@ def agenda_list(
     date_to: Optional[datetime] = Query(default=None, alias="to"),
     status: Optional[str] = Query(default=None),
     include_inactive: bool = Query(default=False),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
@@ -328,6 +342,7 @@ def agenda_list(
         date_to=date_to,
         status=status,
         include_inactive=include_inactive,
+        id_cliente=tenant_id,
     )
     return {"items": items}
 
@@ -366,6 +381,7 @@ def agenda_create(
     payload: str = Form(...),
     documento: UploadFile | None = File(None),
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
@@ -383,6 +399,7 @@ def agenda_create(
         id_agenda_evento=DEFAULT_AGENDA_EVENTO_ID,
         payload=validated.model_dump(),
         documento=documento,
+        id_cliente=tenant_id,
     )
     return created
 

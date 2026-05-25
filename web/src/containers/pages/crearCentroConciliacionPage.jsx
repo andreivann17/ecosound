@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/CrearExpedientePage.jsx
+﻿// src/pages/materias/laboral/CrearExpedientePage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Breadcrumb, Button, Spin, notification } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";

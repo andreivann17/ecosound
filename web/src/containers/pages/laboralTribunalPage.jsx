@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+﻿import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -343,7 +343,7 @@ const handleCrearExpediente = () => {
   const nombreIdent = selectedAutoridadData?.nombre_identificacion_ciudad || "";
 
   // mismo path/estado que ya usas en tu LaboralProcedimientoPage
-  navigate(`/materias/laboral/tribunal/crear/`, {
+  navigate(`/app/materias/laboral/tribunal/crear/`, {
     state: {
       estado: selectedEstadoId,
       ciudad: selectedCiudadId,
@@ -462,7 +462,7 @@ function TableView({ pageRows, total, totalPages, page, setPage }) {
   className="act"
   type="button"
   title="Ver detalles"
-  onClick={() => navigate(`/materias/laboral/tribunal/${r.id || r.code}`)}
+  onClick={() => navigate(`/app/materias/laboral/tribunal/${r.id || r.code}`)}
 >
   <span className="material-icons-round">visibility</span>
 </button>
@@ -539,7 +539,7 @@ function CardsView({ rows, total, totalPages, page, setPage }) {
                 <button
   className="caseBtn"
   type="button"
-  onClick={() => navigate(`/materias/laboral/tribunal/${r.id || r.code}`)}
+  onClick={() => navigate(`/app/materias/laboral/tribunal/${r.id || r.code}`)}
 >
   <span className="material-icons-round">visibility</span>
   Ver detalles

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+﻿import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -36,6 +36,7 @@ import {
   StopOutlined,
   BarChartOutlined,
   CalendarOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
@@ -116,6 +117,10 @@ export default function PaqueteDetallePage() {
   const [analisisCustomRange, setAnalisisCustomRange] = useState(null);
   const [analisisDateField, setAnalisisDateField] = useState("fecha_evento");
   const [analisisData, setAnalisisData] = useState(null);
+
+  // Actividad state
+  const [actividad, setActividad] = useState([]);
+  const [loadingActividad, setLoadingActividad] = useState(false);
   const [analisisLoading, setAnalisisLoading] = useState(false);
 
   const isSonidoRef = useRef(isSonido);
@@ -175,6 +180,25 @@ export default function PaqueteDetallePage() {
       fetchAnalisis(analisisPeriodo, analisisCustomRange, analisisDateField);
     }
   }, [activeTab, analisisPeriodo, analisisCustomRange, analisisDateField, fetchAnalisis]);
+
+  const fetchActividad = useCallback(async () => {
+    setLoadingActividad(true);
+    try {
+      const { data } = await apiPaquetesInstance.get(
+        `/paquetes/${idPaquete}/actividad`,
+        { headers: authHeaderPaquetes(), params: { is_sonido: isSonido } }
+      );
+      setActividad(Array.isArray(data) ? data : data.items ?? []);
+    } catch {
+      setActividad([]);
+    } finally {
+      setLoadingActividad(false);
+    }
+  }, [idPaquete, isSonido]);
+
+  useEffect(() => {
+    if (activeTab === "actividad") fetchActividad();
+  }, [activeTab, fetchActividad]);
 
   const handleAnalisisPeriodo = (val) => {
     setAnalisisPeriodo(val);
@@ -440,6 +464,16 @@ export default function PaqueteDetallePage() {
               <BarChartOutlined />
               Análisis
             </button>
+            <button
+              className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
+              onClick={() => setActiveTab("actividad")}
+            >
+              <HistoryOutlined />
+              Actividad
+              {actividad.length > 0 && (
+                <span className="cd-actividad-count">{actividad.length}</span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -690,6 +724,69 @@ export default function PaqueteDetallePage() {
                   </div>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {activeTab === "actividad" && (
+          <div className="cd-card">
+            <div className="cd-card-header">
+              <div className="cd-card-icon-wrap"><HistoryOutlined /></div>
+              <h2 className="cd-card-title">
+                Actividad del paquete
+                {actividad.length > 0 && (
+                  <span className="cd-actividad-count">{actividad.length}</span>
+                )}
+              </h2>
+            </div>
+
+            {loadingActividad ? (
+              <div className="cd-loading-wrap"><Spin size="large" /></div>
+            ) : actividad.length === 0 ? (
+              <Empty description="Sin actividad registrada aún" style={{ margin: "40px 0" }} />
+            ) : (
+              <div className="cd-actividad-list">
+                {actividad.map((item, idx) => {
+                  const ACTION_CONFIG = {
+                    CREATE: { label: "Creación",      color: "#15803d", bg: "#dcfce7" },
+                    UPDATE: { label: "Actualización", color: "#1d4ed8", bg: "#dbeafe" },
+                    DELETE: { label: "Eliminación",   color: "#b91c1c", bg: "#fee2e2" },
+                  };
+                  const cfg = ACTION_CONFIG[item.action] || { label: item.action, color: "#595c5e", bg: "#f1f5f9" };
+                  const fmtDatetime = (v) => {
+                    if (!v) return "—";
+                    const d = dayjs(v);
+                    return d.isValid() ? d.format("DD/MM/YYYY, HH:mm") : "—";
+                  };
+                  return (
+                    <div key={item.id_audit_log || idx} className="cd-actividad-item">
+                      <div className="cd-actividad-dot-col">
+                        <div className="cd-actividad-dot" style={{ background: cfg.color }} />
+                        {idx < actividad.length - 1 && <div className="cd-actividad-line" />}
+                      </div>
+                      <div className="cd-actividad-body">
+                        <div className="cd-actividad-top-row">
+                          <span className="cd-actividad-badge" style={{ color: cfg.color, background: cfg.bg }}>
+                            {cfg.label}
+                          </span>
+                          <span className="cd-actividad-message">{item.message}</span>
+                        </div>
+                        <div className="cd-actividad-bottom-row">
+                          <span className="cd-actividad-time">{fmtDatetime(item.datetime)}</span>
+                          {item.user_name && (
+                            <div className="cd-actividad-user">
+                              <span>{item.user_name}</span>
+                              {item.user_email && (
+                                <span className="cd-actividad-email">{item.user_email}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

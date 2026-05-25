@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   apiPaquetesInstance,
@@ -25,6 +25,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 
+import "./EventosPage.css";
 import "./PaquetesPage.css";
 
 const { Title, Text } = Typography;
@@ -39,7 +40,6 @@ export default function CrearPaquetePage() {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [contenidos, setContenidos] = useState([{ key: Date.now(), value: "" }]);
-  // IDs originales guardados en DB para borrarlos al guardar cambios
   const [originalIds, setOriginalIds] = useState([]);
 
   useEffect(() => {
@@ -96,7 +96,6 @@ export default function CrearPaquetePage() {
         const isSonidoOrig = Boolean(paqueteEditar.is_paquete_sonido);
         const tipoChanged = isSonido !== isSonidoOrig;
 
-        // Borrar todos los contenidos originales (siempre, antes de recrear)
         for (const id of originalIds) {
           await apiPaquetesInstance.delete(`/paquetes/contenidos/${id}`, {
             headers: authHeaderPaquetes(),
@@ -104,7 +103,6 @@ export default function CrearPaquetePage() {
         }
 
         if (tipoChanged) {
-          // Tipo cambia → eliminar paquete original y crear uno nuevo en la tabla correcta
           await apiPaquetesInstance.delete(
             `/paquetes/${paqueteEditar.id_paquete}?is_sonido=${isSonidoOrig}`,
             { headers: authHeaderPaquetes() }
@@ -116,7 +114,6 @@ export default function CrearPaquetePage() {
           );
           idPaquete = res.data.id_paquete;
         } else {
-          // Mismo tipo → solo actualizar
           await apiPaquetesInstance.patch(
             `/paquetes/${paqueteEditar.id_paquete}?is_sonido=${isSonidoOrig}`,
             { nombre: payload.nombre, active: values.active },
@@ -167,54 +164,54 @@ export default function CrearPaquetePage() {
     <main className="paq-main">
       <div className="paq-content">
 
-        <section className="paq-header-section">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
-            <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/paquetes")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Paquetes
-              </Button>
-              <Title level={2} className="paq-title" style={{ marginBottom: 0 }}>
-                {isEditing ? `Editando: ${paqueteEditar.nombre}` : "Nuevo paquete"}
-              </Title>
-              <Text className="paq-subtitle">
-                {isEditing
-                  ? "Modifica los datos del paquete y guarda los cambios."
-                  : "Completa los datos del paquete para registrarlo en el sistema."}
-              </Text>
-            </Space>
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/paquetes")}
+          className="cc-back-btn"
+        >
+          Volver a Paquetes
+        </Button>
 
-            <Space style={{ marginTop: 4 }}>
-              <Button
-                className="paq-btn-clean"
-                onClick={() => navigate("/paquetes")}
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={handleSave}
-                style={{ backgroundColor: "#111", borderColor: "#111" }}
-              >
-                {isEditing ? "Guardar cambios" : "Crear paquete"}
-              </Button>
-            </Space>
-          </div>
+        <section className="cc-page-header-card">
+          <Space direction="vertical" size={2}>
+            <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
+              {isEditing ? `Editando: ${paqueteEditar.nombre}` : "Nuevo paquete"}
+            </Title>
+            <Text className="eventos-subtitle">
+              {isEditing
+                ? "Modifica los datos del paquete y guarda los cambios."
+                : "Completa los datos del paquete para registrarlo en el sistema."}
+            </Text>
+          </Space>
+
+          <Space>
+            <Button
+              className="eventos-btn-clean"
+              onClick={() => navigate("/paquetes")}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="primary"
+              loading={saving}
+              icon={!isEditing ? <PlusOutlined /> : null}
+              onClick={handleSave}
+              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+            >
+              {isEditing ? "Guardar cambios" : "Crear paquete"}
+            </Button>
+          </Space>
         </section>
 
         <Form form={form} layout="vertical">
-          <div className="paq-body-grid">
+          <div className="cc-body-grid cc-body-grid-paq">
 
-            <div className="paq-left-col">
-              <div className="paq-section-card">
-                <div className="paq-section-header">
-                  <span className="paq-section-icon"><AppstoreOutlined /></span>
+            <div className="cc-left-col">
+              <div className="cc-section-card paq-section-stretch">
+                <div className="cc-section-header">
+                  <span className="cc-section-icon"><AppstoreOutlined /></span>
                   Datos del paquete
                 </div>
                 <Row gutter={16}>
@@ -261,10 +258,10 @@ export default function CrearPaquetePage() {
               </div>
             </div>
 
-            <div className="paq-right-col">
-              <div className="paq-section-card">
-                <div className="paq-section-header">
-                  <span className="paq-section-icon"><UnorderedListOutlined /></span>
+            <div className="cc-right-col">
+              <div className="cc-section-card paq-section-stretch">
+                <div className="cc-section-header">
+                  <span className="cc-section-icon"><UnorderedListOutlined /></span>
                   Contenido del paquete
                 </div>
                 <Text style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 14 }}>

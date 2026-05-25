@@ -1,4 +1,4 @@
-// FormConvenios.jsx
+﻿// FormConvenios.jsx
 import React, { useMemo, useState, useEffect, useRef, useImperativeHandle } from "react";
 import {
   Form,
@@ -1020,7 +1020,7 @@ const makeFechaHoraInputHandler = (fieldName) => (e) => {
           });
 
           const newId = res?.id_desvinculacion ?? res?.id ?? res?.insertId ?? null;
-          if (newId) navigate(`/materias/laboral/desvinculaciones/${newId}`);
+          if (newId) navigate(`/app/materias/laboral/desvinculaciones/${newId}`);
 
           onSaved?.(backendPayload, filesMap, res);
         }

@@ -35,33 +35,30 @@ def create_puesto(nombre: str) -> Dict[str, Any]:
 
 # ================== TRABAJADORES ==================
 
-def list_trabajadores(search: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_trabajadores(search: Optional[str] = None, id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
+            conditions = ["t.active = 1"]
+            params: List[Any] = []
+            if id_cliente is not None:
+                conditions.append("t.id_cliente = %s")
+                params.append(id_cliente)
             if search:
+                conditions.append("(t.nombre LIKE %s OR t.apellido LIKE %s)")
                 like = f"%{search}%"
-                cur.execute(
-                    """
-                    SELECT t.*, p.nombre AS nombre_puesto
-                    FROM trabajadores t
-                    LEFT JOIN puestos p ON p.id_puesto = t.id_puesto
-                    WHERE t.active = 1
-                      AND (t.nombre LIKE %s OR t.apellido LIKE %s)
-                    ORDER BY t.nombre ASC, t.apellido ASC
-                    """,
-                    (like, like),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT t.*, p.nombre AS nombre_puesto
-                    FROM trabajadores t
-                    LEFT JOIN puestos p ON p.id_puesto = t.id_puesto
-                    WHERE t.active = 1
-                    ORDER BY t.nombre ASC, t.apellido ASC
-                    """
-                )
+                params.extend([like, like])
+            where = " AND ".join(conditions)
+            cur.execute(
+                f"""
+                SELECT t.*, p.nombre AS nombre_puesto
+                FROM trabajadores t
+                LEFT JOIN puestos p ON p.id_puesto = t.id_puesto
+                WHERE {where}
+                ORDER BY t.nombre ASC, t.apellido ASC
+                """,
+                params,
+            )
             return cur.fetchall() or []
     finally:
         conn.close()
@@ -91,7 +88,7 @@ def get_trabajador_by_id(id_trabajador: int) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
-def create_trabajador(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
+def create_trabajador(data: Dict[str, Any], id_user: int, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     now = dt.datetime.now()
     conn = get_connection()
     try:
@@ -99,8 +96,8 @@ def create_trabajador(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
             cur.execute(
                 """
                 INSERT INTO trabajadores
-                    (nombre, apellido, fecha_nacimiento, id_puesto, active, id_user, datetime)
-                VALUES (%s, %s, %s, %s, 1, %s, %s)
+                    (nombre, apellido, fecha_nacimiento, id_puesto, active, id_user, datetime, id_cliente)
+                VALUES (%s, %s, %s, %s, 1, %s, %s, %s)
                 """,
                 (
                     data.get("nombre", ""),
@@ -109,6 +106,7 @@ def create_trabajador(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
                     data.get("id_puesto") or None,
                     id_user,
                     now,
+                    id_cliente,
                 ),
             )
             new_id = cur.lastrowid

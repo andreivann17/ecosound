@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
+﻿// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -363,7 +363,7 @@ arr.forEach((name) => {
   });
 
 
-  const goBackToLaboralMenu = () => navigate("/home");
+  const goBackToLaboralMenu = () => navigate("/app/home");
 
   const handleCrearExpediente = () => {
     if (!selectedEstadoId || !selectedCiudadId) {
@@ -375,7 +375,7 @@ arr.forEach((name) => {
     }
 
     navigate(
-      `/materias/laboral/desvinculaciones/crear/`,
+      `/app/materias/laboral/desvinculaciones/crear/`,
       {
         state: {
           estado: selectedEstadoId,

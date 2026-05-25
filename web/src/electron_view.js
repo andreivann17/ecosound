@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Popover, Button, Typography, notification  } from "antd";
 import {
   SearchOutlined,
+  HomeOutlined,
   BellFilled,
   WarningOutlined,
   FolderOpenOutlined,
@@ -13,12 +14,17 @@ import {
   TeamOutlined,
   UserOutlined,
   SettingFilled,
+  CameraOutlined,
+  SoundOutlined,
+  ToolOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { usePermisos } from "./context/PermisosContext";
 import BuscarExpedienteModal from "./containers/pages/buscar.jsx";
-import logoPng from "./assets/img/logo2.png";
+import logoPng from "./assets/img/logo_hersom_event_2.png";
+import logoAdminPng from "./assets/img/logo_hersom.png";
 import "./styles.css";
 import { actionNotificacionesGet } from "./redux/actions/notificaciones/notificaciones";
 import { WS_PATH } from "./redux/utils.js";
@@ -32,6 +38,9 @@ export default function ElectronHeader({ hideUserPopover }) {
   const concSlice = useSelector((state) => state.notificaciones || {});
 
   const [notifOpen, setNotifOpen] = useState(false);
+  const [lastSeenTs, setLastSeenTs] = useState(
+    () => Number(localStorage.getItem("notif_last_seen") || 0)
+  );
   const [userOpen, setUserOpen] = useState(false);
   const [isBuscarOpen, setIsBuscarOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
@@ -50,17 +59,22 @@ export default function ElectronHeader({ hideUserPopover }) {
   const isLoginPage = location.pathname.includes("/login");
   const canShowUser = !isLoginPage;
 
-  const userEmail = localStorage.getItem("email") || "—";
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email") || "—");
   const userInitials = useMemo(() => {
-    const name = (localStorage.getItem("email") || "JD").trim();
+    const name = userEmail.trim();
     const parts = name.split(/\s+/).filter(Boolean);
-
     const a = parts[0]?.[0] || "J";
     const b = parts[0]?.[1] || "D";
     return (a + b).toUpperCase();
-  }, []);
+  }, [userEmail]);
 
   const [userAvatar, setUserAvatar] = useState(() => localStorage.getItem("userAvatar") || "");
+
+  useEffect(() => {
+    const syncEmail = () => setUserEmail(localStorage.getItem("email") || "—");
+    window.addEventListener("permisos-refresh", syncEmail);
+    return () => window.removeEventListener("permisos-refresh", syncEmail);
+  }, []);
 
   useEffect(() => {
     const handler = (e) => setUserAvatar(e.detail || "");
@@ -69,12 +83,9 @@ export default function ElectronHeader({ hideUserPopover }) {
   }, []);
 
   useEffect(() => {
-    console.log(hideUserPopover)
-    if(hideUserPopover){
-      return
-    }
-   // dispatch(actionNotificacionesGet());
-  }, [dispatch]);
+    if (hideUserPopover) return;
+    dispatch(actionNotificacionesGet());
+  }, [dispatch, hideUserPopover]);
 
   useEffect(() => {
     if (hideUserPopover && userOpen) setUserOpen(false);
@@ -192,41 +203,73 @@ const connectWS = useCallback(() => {
 
   const pathname = location.pathname || "/";
 
-  const isEventos = pathname.startsWith("/eventos");
-  const isPaquetes = pathname.startsWith("/paquetes");
-  const isInventario = pathname.startsWith("/inventario");
+  const isAdmin = pathname.startsWith("/admin");
 
-  const isHomeActive = pathname.startsWith("/home");
-  const links = [
-    { label: "Inicio", onClick: () => navigate("/home"), active: isHomeActive },
-    ...(perm("eventos", "modulo")    ? [{ label: "Eventos",    onClick: () => navigate("/eventos"),    active: isEventos    }] : []),
-    ...(perm("paquetes", "modulo")   ? [{ label: "Paquetes",   onClick: () => navigate("/paquetes"),   active: isPaquetes   }] : []),
-    ...(perm("inventario", "modulo") ? [{ label: "Inventario", onClick: () => navigate("/inventario"), active: isInventario }] : []),
-  ];
+  const isEventos = pathname.startsWith("/app/eventos");
+  const isPaquetes = pathname.startsWith("/app/paquetes");
+  const isInventario = pathname.startsWith("/app/inventario");
 
-  const appItems = [
-    ...(perm("agenda",        "modulo") ? [{ key: "agenda",        label: "Agenda",        icon: <CalendarFilled />,   iconCls: "eh-app-icon-agenda",        path: "/agenda"        }] : []),
-    ...(perm("estadisticas",  "modulo") ? [{ key: "estadisticas",  label: "Estadísticas",  icon: <BarChartOutlined />, iconCls: "eh-app-icon-estadisticas",  path: "/estadisticas"  }] : []),
-    ...(perm("trabajadores",  "modulo") ? [{ key: "trabajadores",  label: "Trabajadores",  icon: <TeamOutlined />,     iconCls: "eh-app-icon-trabajadores",  path: "/trabajadores"  }] : []),
-    ...(perm("usuarios",      "modulo") ? [{ key: "usuarios",      label: "Usuarios",      icon: <UserOutlined />,     iconCls: "eh-app-icon-usuarios",      path: "/usuarios"      }] : []),
-    ...(perm("configuracion", "modulo") ? [{ key: "configuracion", label: "Configuración", icon: <SettingFilled />,    iconCls: "eh-app-icon-configuracion", path: "/configuracion" }] : []),
+  const isHomeActive = pathname.startsWith("/app/home");
+  const isAdminHome = pathname === "/admin";
+  const isAdminApps = pathname.startsWith("/admin/apps");
+
+  const isAdminClientes = pathname.startsWith("/admin/clientes");
+
+  const links = isAdmin
+    ? [
+        { label: "Inicio",     onClick: () => navigate("/admin"),           active: isAdminHome     },
+        { label: "Apps",      onClick: () => navigate("/admin/apps"),      active: isAdminApps     },
+        { label: "Clientes",  onClick: () => navigate("/admin/clientes"),  active: isAdminClientes },
+      ]
+    : [
+        { label: "Inicio",onClick: () => navigate("/app/home"), active: isHomeActive },
+        ...(perm("eventos", "modulo")    ? [{ label: "Eventos",    onClick: () => navigate("/app/eventos"),    active: isEventos    }] : []),
+        ...(perm("paquetes", "modulo")   ? [{ label: "Paquetes",   onClick: () => navigate("/app/paquetes"),   active: isPaquetes   }] : []),
+      ];
+
+  const appItems = isAdmin ? [] : [
+    ...(perm("agenda",        "modulo") ? [{ key: "agenda",        label: "Agenda",        icon: <CalendarFilled />,   iconCls: "eh-app-icon-agenda",        path: "/app/agenda"        }] : []),
+    ...(perm("configuracion", "modulo") ? [{ key: "configuracion", label: "Configuración", icon: <SettingFilled />,    iconCls: "eh-app-icon-configuracion", path: "/app/configuracion" }] : []),
+    ...(perm("estadisticas",  "modulo") ? [{ key: "estadisticas",  label: "Estadísticas",  icon: <BarChartOutlined />, iconCls: "eh-app-icon-estadisticas",  path: "/app/estadisticas"  }] : []),
+    ...(perm("gastos",        "modulo") ? [{ key: "gastos",        label: "Gastos",        icon: <DollarOutlined />,   iconCls: "eh-app-icon-gastos",        path: "/app/gastos"        }] : []),
+    ...(perm("usuarios",      "modulo") ? [{ key: "usuarios",      label: "Usuarios",      icon: <UserOutlined />,     iconCls: "eh-app-icon-usuarios",      path: "/app/usuarios"      }] : []),
   ];
 
   const hasActiveApp = appItems.some((i) => pathname.startsWith(i.path));
 
-  const notifications = (concSlice?.data?.items || []).map((item) => {
-    let type = "info";
+  const ACTION_LABEL = {
+    CREATE: "Creación",
+    UPDATE: "Actualización",
+    DELETE: "Eliminación",
+    UPLOAD: "Carga de archivo",
+  };
 
-    if (Number(item?.urgente) === 1) {
+  const MODULO_LABEL = {
+    1: "Conciliaciones",
+    2: "Eventos",
+    3: "Sesiones de Fotos",
+    4: "Paquetes",
+    5: "Trabajadores",
+    6: "Inventario",
+    7: "Usuarios",
+    8: "Clientes",
+    9: "Gastos",
+  };
+
+  const notifications = (concSlice?.data?.items || []).map((item) => {
+    const action = (item?.action || "").toUpperCase();
+    const moduloNombre = MODULO_LABEL[item?.id_modulo] || "";
+
+    let type = "info";
+    if (action === "DELETE") {
       type = "danger";
-    } else if ((item?.nombre_modulo || "").toLowerCase().includes("tribunal")) {
+    } else if (action === "UPDATE") {
       type = "warn";
-    } else if ((item?.nombre_tipo_notificacion || "").toLowerCase().includes("document")) {
+    } else if (action === "UPLOAD") {
       type = "neutral";
     }
 
     let icon = <FolderOpenOutlined className="eh-notif-icon info" />;
-
     if (type === "danger") {
       icon = <WarningOutlined className="eh-notif-icon danger" />;
     } else if (type === "warn") {
@@ -235,23 +278,20 @@ const connectWS = useCallback(() => {
       icon = <FileTextOutlined className="eh-notif-icon neutral" />;
     }
 
-    const currentUserId = Number(concSlice?.data?.user_id);
-    const yaLeyeron = Array.isArray(item?.usuarios_leyeron) ? item.usuarios_leyeron : [];
+    const actionLabel = ACTION_LABEL[action] || action || "Notificación";
+    const title = moduloNombre ? `${moduloNombre} — ${actionLabel}` : actionLabel;
+    const desc = item?.message || item?.descripcion || "Sin descripción";
 
-    const leidoPorUsuarioActual = yaLeyeron.some(
-      (u) => Number(u?.id_user) === currentUserId
-    );
+    const itemTs = item.datetime ? new Date(item.datetime).getTime() : 0;
 
     return {
-      id: item.id,
+      id: item.id_audit_log || item.id,
       type,
       icon,
-      title: item.nombre_tipo_notificacion || "Notificación",
-      desc: item.descripcion || "Sin descripción",
-      meta: `${item.fecha_notificacion || item.datetime || ""} • ${
-        leidoPorUsuarioActual ? "Leído" : "No leído"
-      }`,
-      unread: !leidoPorUsuarioActual,
+      title,
+      desc,
+      meta: item.datetime || item.fecha_notificacion || "",
+      unread: itemTs > lastSeenTs,
     };
   });
 
@@ -271,7 +311,7 @@ const connectWS = useCallback(() => {
               className={`eh-notif-item ${n.type}`}
               onClick={() => {
                 setNotifOpen(false);
-                navigate(`/notificaciones/${n.id}`);
+                navigate(`/app/notificaciones/${n.id}`);
               }}
               style={{ cursor: "pointer" }}
             >
@@ -307,7 +347,7 @@ const connectWS = useCallback(() => {
           type="button"
           onClick={() => {
             setNotifOpen(false);
-            navigate("/notificaciones");
+            navigate("/app/notificaciones");
           }}
         >
           Ver todas las notificaciones
@@ -322,14 +362,14 @@ const connectWS = useCallback(() => {
  
 
       <header className="eh-root">
-        <div className="eh-bar">
+        <div className="eh-bar" style={isAdmin ? { background: "#01369e" } : undefined}>
           <div className="eh-left">
             <div className="eh-brand">
-              <img className="eh-logo" src={logoPng} alt="Logo" />
+              <img className="eh-logo" style={{width:isAdmin ? "80px" : "50px"}} src={isAdmin ? logoAdminPng : logoPng} alt="Logo" />
             </div>
 
             {isLoginPage !== true && (
-              <nav className="eh-nav electron-no-drag">
+              <nav className="eh-nav electron-no-drag" style={{ marginLeft: 16 }}>
                 {links.map((l) => (
                   <button
                     key={l.label}
@@ -337,6 +377,7 @@ const connectWS = useCallback(() => {
                     className={`eh-link nav-link ${l.active ? "nav-link--active active" : ""}`}
                     onClick={l.onClick}
                   >
+                    {l.icon && <span style={{ marginRight: 6, fontSize: 13 }}>{l.icon}</span>}
                     {l.label}
                   </button>
                 ))}
@@ -349,7 +390,7 @@ const connectWS = useCallback(() => {
               <>
               
 
-                <div style={{ display: "none" }}>
+                {perm("notificaciones", "modulo") && (
                 <Popover
                   content={notifCard}
                   trigger="click"
@@ -357,13 +398,28 @@ const connectWS = useCallback(() => {
                   open={notifOpen}
                   onOpenChange={(v) => {
                     setNotifOpen(v);
-                    if (v) setUserOpen(false);
+                    if (v) {
+                      setUserOpen(false);
+                      const now = Date.now();
+                      localStorage.setItem("notif_last_seen", String(now));
+                      setLastSeenTs(now);
+                    }
                   }}
                   overlayClassName="eh-popover"
                 >
-
+                  <button
+                    type="button"
+                    className="eh-bell-btn electron-no-drag"
+                    aria-label="Notificaciones"
+                    style={{ position: "relative" }}
+                  >
+                    <BellFilled style={{ fontSize: 18 }} />
+                    {unreadCount > 0 && (
+                      <span className="eh-bell-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                    )}
+                  </button>
                 </Popover>
-                </div>
+                )}
 
                 <div className="eh-app-menu-wrapper electron-no-drag" ref={appMenuRef}>
                   <button
@@ -424,11 +480,28 @@ const connectWS = useCallback(() => {
                             {userAvatar ? <img src={userAvatar} alt="avatar" /> : userInitials}
                           </div>
                           <div className="eh-user-email">{userEmail}</div>
+                          {isAdmin && (
+                            <span style={{
+                              display: "inline-block",
+                              margin: "10px auto 4px",
+                              padding: "4px 16px",
+                              borderRadius: 999,
+                              background: "rgba(96,165,250,0.15)",
+                              color: "#93c5fd",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              letterSpacing: ".10em",
+                              border: "1px solid rgba(96,165,250,0.35)",
+                              textTransform: "uppercase",
+                            }}>
+                              Admin
+                            </span>
+                          )}
                           <div className="eh-user-actions">
                             <button
                               type="button"
                               className="eh-user-btn"
-                              onClick={() => { setUserOpen(false); navigate("/perfil"); }}
+                              onClick={() => { setUserOpen(false); navigate("/app/perfil"); }}
                             >
                               Perfil
                             </button>
@@ -436,9 +509,17 @@ const connectWS = useCallback(() => {
                               type="button"
                               className="eh-user-btn danger"
                               onClick={() => {
-                                localStorage.removeItem("token");
-                                setUserOpen(false);
-                                navigate("/login");
+                                if (isAdmin) {
+                                  localStorage.removeItem("tokenadmin");
+                                  setUserOpen(false);
+                                  navigate("/admin-login");
+                                } else {
+                                  ["token", "tokenadmin", "email", "role", "activeButtonAdmin", "activeButtonUser"].forEach(
+                                    (k) => localStorage.removeItem(k)
+                                  );
+                                  setUserOpen(false);
+                                  navigate("/login");
+                                }
                               }}
                             >
                               Cerrar sesión

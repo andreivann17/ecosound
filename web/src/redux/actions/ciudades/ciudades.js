@@ -50,7 +50,7 @@ const fetchCiudadesFailure = (message) => ({
 export const actionCiudadesGet = () => {
   return async (dispatch) => {
     try {
-      const resp = await apiServiceGet.get("ciudades", {
+      const resp = await apiServiceGet.get("general/ciudades", {
         headers: { ...authHeader() },
       });
       dispatch(fetchCiudadesSuccess(resp.data));

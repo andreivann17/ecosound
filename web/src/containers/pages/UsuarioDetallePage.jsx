@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -23,8 +23,8 @@ import {
   MailOutlined,
   CalendarOutlined,
   SafetyOutlined,
-  TeamOutlined,
-  AppstoreOutlined,
+  DollarOutlined,
+  BellOutlined,
   SaveOutlined,
   ScheduleOutlined,
   BarChartOutlined,
@@ -53,8 +53,8 @@ const fmtFechaCorta = (v) => {
 
 const MODULES = [
   { key: "eventos",        label: "Eventos",        icon: <CalendarOutlined /> },
-  { key: "trabajadores",   label: "Trabajadores",    icon: <TeamOutlined /> },
-  { key: "inventario",     label: "Inventario",      icon: <AppstoreOutlined /> },
+  { key: "gastos",          label: "Gastos",           icon: <DollarOutlined /> },
+  { key: "notificaciones", label: "Notificaciones",  icon: <BellOutlined /> },
   { key: "usuarios",       label: "Usuarios",        icon: <UserOutlined /> },
   { key: "agenda",         label: "Agenda",          icon: <ScheduleOutlined /> },
   { key: "estadisticas",   label: "Estadísticas",    icon: <BarChartOutlined /> },
@@ -180,7 +180,7 @@ export default function UsuarioDetallePage() {
         { headers: authHeaderUsuarios() }
       );
       notification.success({ message: "Usuario eliminado correctamente" });
-      navigate("/usuarios");
+      navigate("/app/usuarios");
     } catch (err) {
       notification.error({
         message: "Error al eliminar",
@@ -215,7 +215,7 @@ export default function UsuarioDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/usuarios")}
+          onClick={() => navigate("/app/usuarios")}
         >
           Volver a Usuarios
         </Button>
@@ -255,7 +255,7 @@ export default function UsuarioDetallePage() {
                 <Button
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
-                  onClick={() => navigate(`/usuarios/${code}/editar`, { state: { usuario } })}
+                  onClick={() => navigate(`/app/usuarios/${code}/editar`, { state: { usuario } })}
                 >
                   Editar
                 </Button>
@@ -336,7 +336,7 @@ export default function UsuarioDetallePage() {
                 <Button
                   icon={<EditOutlined />}
                   onClick={() => setEditingPermisos(true)}
-                  style={{ background: "#05060a", borderColor: "#05060a", color: "#fff", fontWeight: 600 }}
+                  style={{ background: "#01369e", borderColor: "#01369e", color: "#fff", fontWeight: 600 }}
                 >
                   Editar permisos
                 </Button>
@@ -419,7 +419,7 @@ export default function UsuarioDetallePage() {
                       icon={<SaveOutlined />}
                       loading={savingPermisos}
                       onClick={handleSavePermisos}
-                      style={{ background: "#05060a", borderColor: "#05060a", color: "#fff", fontWeight: 600 }}
+                      style={{ background: "#01369e", borderColor: "#01369e", color: "#fff", fontWeight: 600 }}
                     >
                       Guardar permisos
                     </Button>

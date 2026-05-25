@@ -1,28 +1,16 @@
-import React, { useState } from "react";
-import { Image } from "react-bootstrap/";
+﻿import React from "react";
+import ErrorPage from "./ErrorPage";
 
-//import {actionDivisas,actionEditar} from "../../redux/actions/divisas/divisas.js"
-import { useEffect } from "react";
-import { useDispatch, connect } from "react-redux";
-const token = localStorage.getItem("tokends");
-function Home({}) {
-  const [msg, setMsg] = useState("");
-  const [showtoast, setShowToast] = useState(false);
-
-  useEffect(() => {
-    // dispatch(actionDivisas())   style={{width:"calc(100vw - 60px)"}}
-  }, []);
+export default function Error404() {
   return (
-    <div className="w-100" style={{background:"#0591cf"}}> 
-      {token != null && (
-        <div className="d-flex justify-content-center" style={{background:"#0591cf"}}>
-         
-        </div>
-      )}
-    </div>
+    <ErrorPage
+      code="404"
+      title="Página no encontrada"
+      description="La página que buscas no existe o fue movida a otra ubicación. Verifica la dirección e intenta de nuevo."
+      color="#2e5f4d"
+      icon="🔍"
+      primaryAction={{ label: "Ir al inicio", path: "/app/home" }}
+      secondaryAction={{ label: "Volver atrás" }}
+    />
   );
 }
-
-const mapStateToProps = (state) => ({});
-
-export default connect(mapStateToProps)(Home);

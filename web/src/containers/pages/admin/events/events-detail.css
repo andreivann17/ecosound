@@ -1,0 +1,54 @@
+/* Stat filter cards */
+.eventos-stat-card {
+  border-radius: 10px !important;
+  border: none !important;
+  box-shadow: 0 3px 10px rgba(15, 34, 58, 0.08);
+  padding: 10px 14px !important;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.eventos-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 34, 58, 0.15);
+}
+.eventos-stat-active {
+  box-shadow: 0 0 0 2px #2563eb inset !important;
+}
+.eventos-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.eventos-stat-activos .eventos-stat-icon  { background: #dcfce7; color: #15803d; }
+.eventos-stat-inactivos .eventos-stat-icon { background: #fee2e2; color: #b91c1c; }
+.eventos-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #05060a;
+  line-height: 1.1;
+}
+.eventos-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Client card "Ver detalles" button */
+.events-clients .trab-btn-details        { background: #01369e !important; }
+.events-clients .trab-btn-details:hover  { background: #0147cc !important; }
+
+.events-tabs-wrap .cd-tab-btn-active {
+  background: #01369e !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(1, 54, 158, 0.22) !important;
+}
+
+.events-tabs-wrap .cd-tab-btn:not(.cd-tab-btn-active):hover {
+  background: #e8eefb !important;
+  color: #01369e !important;
+}

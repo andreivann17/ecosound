@@ -1,14 +1,16 @@
-// src/containers/pages/EstadisticasPage.jsx
+﻿// src/containers/pages/EstadisticasPage.jsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { Spin, Empty, Select, DatePicker, Pagination } from "antd";
+import { Spin, Empty, Select, DatePicker, Pagination, Button, Modal } from "antd";
 import {
   DollarOutlined,
   FileTextOutlined,
   WalletOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
+import { previewEstadisticasReportPdf, printEstadisticasReportPdf } from "../../components/utils/printEstadisticasReportPdf";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -103,6 +105,8 @@ export default function EstadisticasPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportHtml, setExportHtml] = useState("");
 
   const fetchStats = useCallback(async (p, range) => {
     setLoading(true);
@@ -303,13 +307,13 @@ export default function EstadisticasPage() {
     }],
   } : null;
 
-  // ── Chart: trabajadores (hbar) ────────────────────────────────────────────
-  const trabajadoresData = data?.trabajadores_stats?.length ? {
-    labels: data.trabajadores_stats.map((t) => t.nombre),
+  // ── Chart: gastos por tipo (hbar) ────────────────────────────────────────
+  const gastosPorTipoData = data?.gastos_por_tipo?.length ? {
+    labels: data.gastos_por_tipo.map((g) => g.tipo),
     datasets: [{
-      label: "Contratos",
-      data: data.trabajadores_stats.map((t) => t.contratos_count),
-      backgroundColor: "#f59e0b",
+      label: "Gasto total",
+      data: data.gastos_por_tipo.map((g) => g.total),
+      backgroundColor: "#f43f5e",
       borderRadius: 4,
       borderSkipped: false,
     }],
@@ -317,9 +321,41 @@ export default function EstadisticasPage() {
 
   const hbarOpts = makeHbarOptions("contratos");
 
+  const hbarMoneyOpts = {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => `  ${fmtMoney(ctx.raw)}` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: "#f1f5f9" },
+        ticks: {
+          font: { size: 11 },
+          callback: (v) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`,
+        },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { font: { size: 11 } },
+      },
+    },
+  };
+
   const periodoDescripcion = data
     ? periodLabel(data.periodo.tipo, data.periodo.date_from, data.periodo.date_to)
     : "";
+
+  const handleExport = () => {
+    if (!data) return;
+    const html = previewEstadisticasReportPdf({ data, periodoDescripcion });
+    setExportHtml(html);
+    setExportOpen(true);
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -327,8 +363,17 @@ export default function EstadisticasPage() {
       <div className="est-content">
 
         {/* ── TITLE ── */}
-        <div className="est-page-header">
+        <div className="est-page-header-card">
           <h1 className="est-page-title">Estadísticas</h1>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExport}
+            disabled={!data || loading}
+            style={{ flex: "none" }}
+            className="laboral-btn-import"
+          >
+            Exportar
+          </Button>
         </div>
 
         {/* ── RESUMEN ── */}
@@ -379,7 +424,7 @@ export default function EstadisticasPage() {
                   <p className="est-kpi-value est-kpi-green">
                     {fmtMoney(data.kpis.ingresos_cobrados)}
                   </p>
-                  <span className="est-kpi-sub">anticipos y abonos cobrados</span>
+                  <span className="est-kpi-sub">anticipos y abonos recibidos en el período</span>
                 </div>
 
                 {/* Card 2: Por cobrar */}
@@ -403,17 +448,21 @@ export default function EstadisticasPage() {
                   <p className="est-kpi-value est-kpi-indigo">
                     {fmtMoney(data.kpis.importe_total)}
                   </p>
-                  <span className="est-kpi-sub">suma de todos los contratos</span>
+                  <span className="est-kpi-sub">
+                    {data.kpis.contratos_count} contrato{data.kpis.contratos_count !== 1 ? "s" : ""} con evento en el período
+                  </span>
                 </div>
 
-                {/* Card 4: Contratos */}
+                {/* Card 4: Gastos */}
                 <div className="est-kpi-card">
-                  <span className="est-kpi-icon-wrap est-kpi-icon-blue">
+                  <span className="est-kpi-icon-wrap est-kpi-icon-rose">
                     <FileTextOutlined />
                   </span>
-                  <span className="est-kpi-label">CONTRATOS</span>
-                  <p className="est-kpi-value">{data.kpis.contratos_count}</p>
-                  <span className="est-kpi-sub">con evento en el período</span>
+                  <span className="est-kpi-label">GASTOS</span>
+                  <p className="est-kpi-value" style={{ color: "#9f1239" }}>
+                    {fmtMoney(data.kpis.gastos_total)}
+                  </p>
+                  <span className="est-kpi-sub">total registrado en el período</span>
                 </div>
               </div>
 
@@ -465,7 +514,7 @@ export default function EstadisticasPage() {
                 </div>
               </div>
               <div className="est-chart-inner">
-                <p className="est-chart-title">Sesiones contratadas</p>
+                <p className="est-chart-title">Tipo de evento más contratado</p>
                 <div className="est-donut-wrap-md">
                   {tipoPaqueteData ? (
                     <Doughnut data={tipoPaqueteData} options={{
@@ -518,18 +567,18 @@ export default function EstadisticasPage() {
               </div>
             </div>
 
-            {/* Fila 3: Trabajadores (full width) */}
+            {/* Fila 3: Gastos por categoría (full width) */}
             <div className="est-analysis-row est-analysis-row-mt">
               <div className="est-chart-inner est-chart-inner-full">
                 <p className="est-chart-title">
-                  <span className="est-chart-dot" style={{ background: "#f59e0b" }} />
-                  Trabajadores por cantidad de contratos
+                  <span className="est-chart-dot" style={{ background: "#f43f5e" }} />
+                  Gastos por categoría en el período
                 </p>
                 <div className="est-hbar-wrap-xl">
-                  {trabajadoresData ? (
-                    <Bar data={trabajadoresData} options={hbarOpts} />
+                  {gastosPorTipoData ? (
+                    <Bar data={gastosPorTipoData} options={hbarMoneyOpts} />
                   ) : (
-                    <Empty description="Sin trabajadores asignados en el período" style={{ margin: "32px 0" }} />
+                    <Empty description="Sin gastos registrados en el período" style={{ margin: "32px 0" }} />
                   )}
                 </div>
               </div>
@@ -670,6 +719,41 @@ export default function EstadisticasPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={exportOpen}
+        onCancel={() => setExportOpen(false)}
+        title="Previsualización — Reporte de Estadísticas"
+        width={1020}
+        centered
+        destroyOnClose
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button
+              onClick={() => setExportOpen(false)}
+              style={{ background: "#374151", borderColor: "#374151", color: "#fff" }}
+            >
+              Cerrar
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              style={{ background: "#01369e", borderColor: "#01369e" }}
+              onClick={() => printEstadisticasReportPdf({ data, periodoDescripcion })}
+            >
+              Exportar PDF
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <iframe
+            title="preview-estadisticas"
+            style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+            srcDoc={exportHtml}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 
 router = APIRouter(prefix="/general", tags=["general"])
 
@@ -22,14 +22,24 @@ class CiudadUpdate(BaseModel):
 
 
 @router.get("/ciudades")
-def list_ciudades(current_user: Dict[str, Any] = Depends(get_current_user)):
+def list_ciudades(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
+):
+    print(tenant_id)
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 ORDER BY nombre"
-            )
+            if tenant_id:
+                cur.execute(
+                    "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
+                    (tenant_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 ORDER BY nombre"
+                )
             return cur.fetchall()
     finally:
         conn.close()
@@ -39,6 +49,7 @@ def list_ciudades(current_user: Dict[str, Any] = Depends(get_current_user)):
 def create_ciudad(
     payload: CiudadCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     nombre = payload.nombre.strip()
@@ -48,8 +59,8 @@ def create_ciudad(
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO ciudades (nombre, color_hex, active) VALUES (%s, %s, 1)",
-                (nombre, payload.color_hex),
+                "INSERT INTO ciudades (nombre, color_hex, active, id_cliente) VALUES (%s, %s, 1, %s)",
+                (nombre, payload.color_hex, tenant_id),
             )
             conn.commit()
             new_id = cur.lastrowid

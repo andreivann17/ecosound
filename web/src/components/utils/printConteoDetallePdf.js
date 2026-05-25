@@ -125,7 +125,7 @@ function buildHtml({ conteo, autoPrint = false }) {
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<title>Conteo ${escapeHtml(TIPO_MAP[conteo?.tipo] || "")} — EcoSound</title>
+<title>Conteo ${escapeHtml(TIPO_MAP[conteo?.tipo] || "")} — HerrSoft Events</title>
 <style>${css}</style>
 </head>
 <body>
@@ -133,7 +133,7 @@ function buildHtml({ conteo, autoPrint = false }) {
 
   <div class="header">
     <div>
-      <div class="header-brand">EcoSound</div>
+      <div class="header-brand">HerrSoft Events</div>
       <div class="header-sub">Producción de eventos</div>
     </div>
     <div class="header-right">

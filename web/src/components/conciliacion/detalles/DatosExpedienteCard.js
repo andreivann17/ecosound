@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/components/DatosExpedienteCard.jsx
+﻿// src/pages/materias/laboral/components/DatosExpedienteCard.jsx
 import React from "react";
 import {
   Card,
@@ -209,7 +209,7 @@ if (esActivo || esDiferimiento) {
               icon={<EditOutlined />}
               onClick={() =>
                 navigate(
-                  `/materias/laboral/centro-conciliacion/${detalle.id}/editar`,
+                  `/app/materias/laboral/centro-conciliacion/${detalle.id}/editar`,
                   {
                     state: {
                       idAutoridad: detalle.id_autoridad,

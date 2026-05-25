@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, message } from "antd";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, notification, Select, Tag } from "antd";
 import {
   CalendarOutlined,
   ToolOutlined,
@@ -17,6 +17,7 @@ import {
   SwapOutlined,
   ScheduleOutlined,
   EnvironmentOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { PATH } from "../../redux/utils";
@@ -30,25 +31,197 @@ const authHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// ── Selector de destinatarios de correo ───────────────────────────────────
+
+const AVATAR_PALETTE = [
+  "#6366f1","#0ea5e9","#10b981","#f59e0b",
+  "#ef4444","#8b5cf6","#ec4899","#14b8a6",
+];
+const avatarColor  = (name = "") => AVATAR_PALETTE[name.charCodeAt(0) % AVATAR_PALETTE.length];
+const avatarInitials = (name = "") =>
+  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || "").join("") || "?";
+
+function AvatarCircle({ name, size = 26 }) {
+  return (
+    <span
+      style={{
+        width: size, height: size, borderRadius: "50%",
+        background: avatarColor(name),
+        color: "#fff",
+        fontSize: size * 0.38,
+        fontWeight: 700,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        lineHeight: 1,
+      }}
+    >
+      {avatarInitials(name)}
+    </span>
+  );
+}
+
+function UserSelectorCorreo({ idModulo, sourceId }) {
+  const [users, setUsers]       = useState([]);
+  const [saved, setSaved]       = useState([]);   // lo que está en BD
+  const [draft, setDraft]       = useState([]);   // borrador mientras edita
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [uResult, dResult] = await Promise.allSettled([
+        api.get("/users", { headers: authHeader() }),
+        api.get(`/config/correo/destinatarios?id_modulo=${idModulo}&source_id=${sourceId}`, { headers: authHeader() }),
+      ]);
+      if (!cancelled) {
+        setUsers(uResult.status === "fulfilled" ? (uResult.value.data || []) : []);
+        const ids = dResult.status === "fulfilled" ? (dResult.value.data?.user_ids || []).map(String) : [];
+        setSaved(ids);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [idModulo, sourceId]);
+
+  const handleEdit = () => { setDraft([...saved]); setIsEditing(true); };
+  const handleCancel = () => { setDraft([]); setIsEditing(false); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put("/config/correo/destinatarios", {
+        id_modulo: idModulo,
+        source_id: sourceId,
+        user_ids: draft.map(Number),
+      }, { headers: authHeader() });
+      setSaved(draft);
+      setIsEditing(false);
+    } catch {
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const userMap = Object.fromEntries(users.map((u) => [String(u.id_user), u]));
+
+  return (
+    <div className="cfg-dest-panel">
+      {/* ── Header ── */}
+      <div className="cfg-dest-header">
+        <UserOutlined className="cfg-dest-icon" />
+        <span>¿A quién notificar?</span>
+        <div className="cfg-dest-actions">
+          {!isEditing ? (
+            <button type="button" className="cfg-dest-btn cfg-dest-btn--edit" onClick={handleEdit}>
+              Editar
+            </button>
+          ) : (
+            <>
+              <button type="button" className="cfg-dest-btn cfg-dest-btn--cancel" onClick={handleCancel}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="cfg-dest-btn cfg-dest-btn--save"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? <Spin size="small" /> : "Guardar"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Vista: chips de solo lectura ── */}
+      {!isEditing && (
+        <div className="cfg-dest-view">
+          {loading ? (
+            <Spin size="small" />
+          ) : saved.length === 0 ? (
+            <span className="cfg-dest-empty">Sin destinatarios — haz clic en Editar para agregar</span>
+          ) : (
+            saved.map((id) => {
+              const u = userMap[id];
+              const name = u ? (u.name || u.email) : id;
+              return (
+                <div key={id} className="cfg-dest-chip-view">
+                  <AvatarCircle name={name} size={30} />
+                  <span className="cfg-dest-chip-name">{name}</span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ── Edición: select ── */}
+      {isEditing && (
+        <Select
+          mode="multiple"
+          style={{ width: "100%" }}
+          placeholder="Busca y selecciona usuarios..."
+          value={draft}
+          onChange={setDraft}
+          loading={loading}
+          optionFilterProp="label"
+          allowClear
+          maxTagCount="responsive"
+          popupMatchSelectWidth
+          options={users.map((u) => ({
+            value: String(u.id_user),
+            label: u.name || u.email,
+          }))}
+          optionRender={(opt) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0" }}>
+              <AvatarCircle name={opt.label} size={26} />
+              <span style={{ fontSize: 13, color: "#111827" }}>{opt.label}</span>
+            </div>
+          )}
+          tagRender={(props) => {
+            const u = userMap[props.value];
+            const name = u ? (u.name || u.email) : props.label;
+            return (
+              <Tag closable onClose={props.onClose} className="cfg-dest-tag">
+                <AvatarCircle name={name} size={18} />
+                <span>{name}</span>
+              </Tag>
+            );
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Panel Eventos ──────────────────────────────────────────────────────────
 
 const CORREO_DEFAULTS = {
-  correo_crear_evento: false,
-  correo_hora_evento:  false,
-  correo_dia_evento:   false,
-  correo_mes_evento:   false,
-  correo_anual_evento: false,
-  correo_hora_misa:    false,
+  correo_crear_evento:  false,
+  correo_hora_evento:   false,
+  correo_dia_evento:    false,
+  correo_hora_sesion:   false,
+  correo_dia_sesion:    false,
+  correo_hora_misa:     false,
 };
 
 const RECORDATORIOS = [
-  { key: "correo_hora_evento",  label: "1 hora antes" },
-  { key: "correo_dia_evento",   label: "1 día antes" },
-  { key: "correo_anual_evento", label: "1 semana antes" },
-  { key: "correo_mes_evento",   label: "1 mes antes" },
+  { key: "correo_hora_evento", label: "1 hora antes", sourceId: 2 },
+  { key: "correo_dia_evento",  label: "1 día antes",  sourceId: 3 },
+];
+
+const SESION_RECORDATORIOS = [
+  { key: "correo_hora_sesion", label: "1 hora antes de la sesión de fotos", sourceId: 7 },
+  { key: "correo_dia_sesion",  label: "1 día antes de la sesión de fotos",  sourceId: 8 },
 ];
 
 function PanelEventos() {
+  const [notifApi, notifHolder] = notification.useNotification();
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
@@ -71,7 +244,7 @@ function PanelEventos() {
       const res = await api.get("/eventos/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      message.error("Error al cargar los tipos de evento");
+      notifApi.error({ message: "Error al cargar los tipos de evento" });
     } finally {
       setLoadingTipos(false);
     }
@@ -83,7 +256,7 @@ function PanelEventos() {
       const res = await api.get("/eventos/config/correo", { headers: authHeader() });
       setCorreo({ ...CORREO_DEFAULTS, ...res.data });
     } catch {
-      message.error("Error al cargar configuración de correo");
+      notifApi.error({ message: "Error al cargar configuración de correo" });
     } finally {
       setLoadingCorreo(false);
     }
@@ -97,10 +270,10 @@ function PanelEventos() {
       const res = await api.post("/eventos/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      message.success(`Tipo "${nombre}" agregado`);
+      notifApi.success({ message: `Tipo "${nombre}" agregado` });
     } catch (err) {
       const detail = err?.response?.data?.detail;
-      message.error(detail || "Error al agregar tipo");
+      notifApi.error({ message: detail || "Error al agregar tipo" });
     } finally {
       setAddingTipo(false);
     }
@@ -121,9 +294,9 @@ function PanelEventos() {
         try {
           await api.delete(`/eventos/config/tipos/${tipo.id_tipo_evento}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_tipo_evento !== tipo.id_tipo_evento));
-          message.success("Tipo eliminado");
+          notifApi.success({ message: "Tipo eliminado" });
         } catch {
-          message.error("Error al eliminar tipo");
+          notifApi.error({ message: "Error al eliminar tipo" });
         }
       },
     });
@@ -139,7 +312,7 @@ function PanelEventos() {
       try {
         await api.put("/eventos/config/correo", next, { headers: authHeader() });
       } catch {
-        message.error("Error al guardar configuración de correo");
+        notifApi.error({ message: "Error al guardar configuración de correo" });
       } finally {
         setSavingCorreo(false);
       }
@@ -148,6 +321,7 @@ function PanelEventos() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
 
       {/* ── Tipos de evento ─────────────────────────── */}
       <div className="cfg-block">
@@ -222,15 +396,18 @@ function PanelEventos() {
         ) : (
           <div className="cfg-correo-list">
 
-            <div className="cfg-correo-row cfg-correo-row--highlight">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Al crear un evento</span>
-                <span className="cfg-correo-row-desc">Envía confirmación al cliente cuando se registra un evento nuevo</span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row cfg-correo-row--highlight">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Al crear un evento</span>
+                  <span className="cfg-correo-row-desc">Envía confirmación al cliente cuando se registra un evento nuevo</span>
+                </div>
+                <Switch
+                  checked={correo.correo_crear_evento}
+                  onChange={(v) => handleCorreoToggle("correo_crear_evento", v)}
+                />
               </div>
-              <Switch
-                checked={correo.correo_crear_evento}
-                onChange={(v) => handleCorreoToggle("correo_crear_evento", v)}
-              />
+              {correo.correo_crear_evento && <UserSelectorCorreo idModulo={1} sourceId={1} />}
             </div>
 
             <div className="cfg-correo-section-label">
@@ -238,28 +415,55 @@ function PanelEventos() {
               Recordatorios automáticos del evento
             </div>
 
-            <div className="cfg-correo-grid">
-              {RECORDATORIOS.map((r) => (
-                <div key={r.key} className="cfg-correo-grid-item">
-                  <span className="cfg-correo-grid-label">{r.label}</span>
+            {RECORDATORIOS.map((r) => (
+              <div key={r.key} className="cfg-correo-entry">
+                <div className="cfg-correo-row cfg-correo-row--recordatorio">
+                  <div className="cfg-correo-row-info">
+                    <span className="cfg-correo-row-label">{r.label}</span>
+                  </div>
                   <Switch
                     size="small"
                     checked={correo[r.key]}
                     onChange={(v) => handleCorreoToggle(r.key, v)}
                   />
                 </div>
-              ))}
+                {correo[r.key] && <UserSelectorCorreo idModulo={1} sourceId={r.sourceId} />}
+              </div>
+            ))}
+
+            <div className="cfg-correo-section-label">
+              <CameraOutlined />
+              Recordatorios sesión de fotografía
             </div>
 
-            <div className="cfg-correo-row">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">1 hora antes de la misa</span>
-                <span className="cfg-correo-row-desc">Recordatorio enviado antes de la hora de misa registrada en el evento</span>
+            {SESION_RECORDATORIOS.map((r) => (
+              <div key={r.key} className="cfg-correo-entry">
+                <div className="cfg-correo-row cfg-correo-row--recordatorio">
+                  <div className="cfg-correo-row-info">
+                    <span className="cfg-correo-row-label">{r.label}</span>
+                  </div>
+                  <Switch
+                    size="small"
+                    checked={correo[r.key]}
+                    onChange={(v) => handleCorreoToggle(r.key, v)}
+                  />
+                </div>
+                {correo[r.key] && <UserSelectorCorreo idModulo={1} sourceId={r.sourceId} />}
               </div>
-              <Switch
-                checked={correo.correo_hora_misa}
-                onChange={(v) => handleCorreoToggle("correo_hora_misa", v)}
-              />
+            ))}
+
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">1 hora antes de la misa</span>
+                  <span className="cfg-correo-row-desc">Recordatorio enviado antes de la hora de misa registrada en el evento</span>
+                </div>
+                <Switch
+                  checked={correo.correo_hora_misa}
+                  onChange={(v) => handleCorreoToggle("correo_hora_misa", v)}
+                />
+              </div>
+              {correo.correo_hora_misa && <UserSelectorCorreo idModulo={1} sourceId={6} />}
             </div>
 
           </div>
@@ -273,12 +477,74 @@ function PanelEventos() {
 // ── Paneles vacíos ─────────────────────────────────────────────────────────
 
 function PanelGeneral() {
+  const [notifApi, notifHolder] = notification.useNotification();
+
+  // ── Avisos ──
+  const [avisos, setAvisos] = useState([]);
+  const [loadingAvisos, setLoadingAvisos] = useState(true);
+  const [inputAviso, setInputAviso] = useState("");
+  const [addingAviso, setAddingAviso] = useState(false);
+
+  // ── Ciudades ──
   const [ciudades, setCiudades] = useState([]);
   const [loadingCiudades, setLoadingCiudades] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
   const [addingCiudad, setAddingCiudad] = useState(false);
 
-  useEffect(() => { fetchCiudades(); }, []);
+  useEffect(() => {
+    fetchAvisos();
+    fetchCiudades();
+  }, []);
+
+  const notif = (type, msg) =>
+    notifApi[type]({ message: type === "success" ? "Listo" : "Error", description: msg, placement: "topRight" });
+
+  const fetchAvisos = async () => {
+    setLoadingAvisos(true);
+    try {
+      const res = await api.get("/avisos", { headers: authHeader() });
+      setAvisos((res.data || []).filter((a) => a.tipo === "app"));
+    } catch {
+      notif("error", "Error al cargar avisos");
+    } finally {
+      setLoadingAvisos(false);
+    }
+  };
+
+  const handleAddAviso = async () => {
+    const texto = inputAviso.trim();
+    if (!texto) return;
+    setAddingAviso(true);
+    try {
+      const res = await api.post("/avisos", { descripcion: texto }, { headers: authHeader() });
+      setAvisos((prev) => [...prev, res.data]);
+      setInputAviso("");
+      notif("success", "Aviso agregado correctamente");
+    } catch (err) {
+      notif("error", err?.response?.data?.detail || "Error al agregar aviso");
+    } finally {
+      setAddingAviso(false);
+    }
+  };
+
+  const handleDeleteAviso = (aviso) => {
+    Modal.confirm({
+      title: "¿Eliminar aviso?",
+      content: <span>Se eliminará el aviso. Esta acción no se puede deshacer.</span>,
+      okText: "Sí, eliminar",
+      okType: "danger",
+      cancelText: "Cancelar",
+      onOk: async () => {
+        try {
+          await api.delete(`/avisos/${aviso.id_aviso}`, { headers: authHeader() });
+          setAvisos((prev) => prev.filter((a) => a.id_aviso !== aviso.id_aviso));
+          notif("success", "Aviso eliminado");
+        } catch {
+          notif("error", "Error al eliminar aviso");
+        }
+      },
+    });
+  };
 
   const fetchCiudades = async () => {
     setLoadingCiudades(true);
@@ -286,7 +552,7 @@ function PanelGeneral() {
       const res = await api.get("/general/ciudades", { headers: authHeader() });
       setCiudades(res.data || []);
     } catch {
-      message.error("Error al cargar ciudades");
+      notif("error", "Error al cargar ciudades");
     } finally {
       setLoadingCiudades(false);
     }
@@ -300,9 +566,9 @@ function PanelGeneral() {
       const res = await api.post("/general/ciudades", { nombre }, { headers: authHeader() });
       setCiudades((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      message.success(`Ciudad "${nombre}" agregada`);
+      notif("success", `Ciudad "${nombre}" agregada`);
     } catch (err) {
-      message.error(err?.response?.data?.detail || "Error al agregar ciudad");
+      notif("error", err?.response?.data?.detail || "Error al agregar ciudad");
     } finally {
       setAddingCiudad(false);
     }
@@ -323,9 +589,9 @@ function PanelGeneral() {
         try {
           await api.delete(`/general/ciudades/${ciudad.id_ciudad}`, { headers: authHeader() });
           setCiudades((prev) => prev.filter((c) => c.id_ciudad !== ciudad.id_ciudad));
-          message.success("Ciudad eliminada");
+          notif("success", "Ciudad eliminada");
         } catch {
-          message.error("Error al eliminar ciudad");
+          notif("error", "Error al eliminar ciudad");
         }
       },
     });
@@ -333,6 +599,64 @@ function PanelGeneral() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
+
+      {/* ── Avisos de inicio ─────────────────────────── */}
+      <div className="cfg-block">
+        <div className="cfg-block-header">
+          <AlertOutlined className="cfg-block-icon" />
+          <div>
+            <div className="cfg-block-title">Avisos de inicio</div>
+            <div className="cfg-block-desc">Mensajes que se muestran en la pantalla de inicio para todos los usuarios</div>
+          </div>
+        </div>
+
+        <div className="cfg-tipo-add-row">
+          <Input
+            value={inputAviso}
+            onChange={(e) => setInputAviso(e.target.value)}
+            placeholder="Escribe el aviso..."
+            className="cfg-tipo-input"
+            onPressEnter={handleAddAviso}
+            maxLength={300}
+          />
+          <Button
+            icon={<PlusOutlined />}
+            onClick={handleAddAviso}
+            loading={addingAviso}
+            disabled={!inputAviso.trim()}
+            className="cfg-tipo-btn-add"
+          >
+            Agregar
+          </Button>
+        </div>
+
+        {loadingAvisos ? (
+          <div className="cfg-loading-row"><Spin size="small" /></div>
+        ) : avisos.length === 0 ? (
+          <div className="cfg-tipo-empty">Sin avisos configurados</div>
+        ) : (
+          <div className="cfg-aviso-list">
+            {avisos.map((a) => (
+              <div key={a.id_aviso} className="cfg-aviso-item">
+                <span className="cfg-aviso-item-text">{a.descripcion}</span>
+                <button
+                  type="button"
+                  className="cfg-tipo-chip-del"
+                  onClick={() => handleDeleteAviso(a)}
+                  title="Eliminar"
+                >
+                  <DeleteOutlined />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="cfg-divider" style={{ marginBottom: 50 }} />
+
+      {/* ── Ciudades ─────────────────────────────────── */}
       <div className="cfg-block">
         <div className="cfg-block-header">
           <EnvironmentOutlined className="cfg-block-icon" />
@@ -395,6 +719,7 @@ const ALERTAS_DEFAULTS = {
 };
 
 function PanelInventario() {
+  const [notifApi, notifHolder] = notification.useNotification();
   // ── Categorías ──
   const [categorias, setCategorias] = useState([]);
   const [loadingCat, setLoadingCat] = useState(true);
@@ -425,7 +750,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/categorias", { headers: authHeader() });
       setCategorias(res.data || []);
     } catch {
-      message.error("Error al cargar categorías");
+      notifApi.error({ message: "Error al cargar categorías" });
     } finally {
       setLoadingCat(false);
     }
@@ -437,7 +762,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/config/estados", { headers: authHeader() });
       setEstados(res.data || []);
     } catch {
-      message.error("Error al cargar estados");
+      notifApi.error({ message: "Error al cargar estados" });
     } finally {
       setLoadingEst(false);
     }
@@ -449,7 +774,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/config/alertas", { headers: authHeader() });
       setAlertas({ ...ALERTAS_DEFAULTS, ...res.data });
     } catch {
-      message.error("Error al cargar configuración de alertas");
+      notifApi.error({ message: "Error al cargar configuración de alertas" });
     } finally {
       setLoadingAlertas(false);
     }
@@ -463,9 +788,9 @@ function PanelInventario() {
       const res = await api.post("/inventario/categorias", { nombre }, { headers: authHeader() });
       setCategorias((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputCat("");
-      message.success(`Categoría "${nombre}" agregada`);
+      notifApi.success({ message: `Categoría "${nombre}" agregada` });
     } catch (err) {
-      message.error(err?.response?.data?.detail || "Error al agregar categoría");
+      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar categoría" });
     } finally {
       setAddingCat(false);
     }
@@ -482,9 +807,9 @@ function PanelInventario() {
         try {
           await api.delete(`/inventario/categorias/${cat.id_categoria_equipo}`, { headers: authHeader() });
           setCategorias((prev) => prev.filter((c) => c.id_categoria_equipo !== cat.id_categoria_equipo));
-          message.success("Categoría eliminada");
+          notifApi.success({ message: "Categoría eliminada" });
         } catch {
-          message.error("Error al eliminar categoría");
+          notifApi.error({ message: "Error al eliminar categoría" });
         }
       },
     });
@@ -498,9 +823,9 @@ function PanelInventario() {
       const res = await api.post("/inventario/config/estados", { nombre }, { headers: authHeader() });
       setEstados((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputEst("");
-      message.success(`Estado "${nombre}" agregado`);
+      notifApi.success({ message: `Estado "${nombre}" agregado` });
     } catch (err) {
-      message.error(err?.response?.data?.detail || "Error al agregar estado");
+      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar estado" });
     } finally {
       setAddingEst(false);
     }
@@ -517,9 +842,9 @@ function PanelInventario() {
         try {
           await api.delete(`/inventario/config/estados/${est.id_inventario_estado}`, { headers: authHeader() });
           setEstados((prev) => prev.filter((e) => e.id_inventario_estado !== est.id_inventario_estado));
-          message.success("Estado eliminado");
+          notifApi.success({ message: "Estado eliminado" });
         } catch {
-          message.error("Error al eliminar estado");
+          notifApi.error({ message: "Error al eliminar estado" });
         }
       },
     });
@@ -532,7 +857,7 @@ function PanelInventario() {
       try {
         await api.put("/inventario/config/alertas", next, { headers: authHeader() });
       } catch {
-        message.error("Error al guardar configuración");
+        notifApi.error({ message: "Error al guardar configuración" });
       } finally {
         setSavingAlertas(false);
       }
@@ -547,6 +872,7 @@ function PanelInventario() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
 
       {/* ── Categorías de equipo ── */}
       <div className="cfg-block">
@@ -677,26 +1003,32 @@ function PanelInventario() {
               />
             </div>
 
-            <div className="cfg-correo-row cfg-correo-row--highlight">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Enviar correo al llegar al mínimo</span>
-                <span className="cfg-correo-row-desc">Notifica por correo cuando el stock de un equipo alcance la cantidad mínima</span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row cfg-correo-row--highlight">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Enviar correo al llegar al mínimo</span>
+                  <span className="cfg-correo-row-desc">Notifica por correo cuando el stock de un equipo alcance la cantidad mínima</span>
+                </div>
+                <Switch
+                  checked={alertas.correo_stock_minimo}
+                  onChange={(v) => handleAlertaChange("correo_stock_minimo", v)}
+                />
               </div>
-              <Switch
-                checked={alertas.correo_stock_minimo}
-                onChange={(v) => handleAlertaChange("correo_stock_minimo", v)}
-              />
+              {alertas.correo_stock_minimo && <UserSelectorCorreo idModulo={3} sourceId={1} />}
             </div>
 
-            <div className="cfg-correo-row">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Enviar correo al registrar un movimiento</span>
-                <span className="cfg-correo-row-desc">Notifica por correo cada vez que se registra una entrada, salida o baja de equipo</span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Enviar correo al registrar un movimiento</span>
+                  <span className="cfg-correo-row-desc">Notifica por correo cada vez que se registra una entrada, salida o baja de equipo</span>
+                </div>
+                <Switch
+                  checked={alertas.correo_movimiento}
+                  onChange={(v) => handleAlertaChange("correo_movimiento", v)}
+                />
               </div>
-              <Switch
-                checked={alertas.correo_movimiento}
-                onChange={(v) => handleAlertaChange("correo_movimiento", v)}
-              />
+              {alertas.correo_movimiento && <UserSelectorCorreo idModulo={3} sourceId={2} />}
             </div>
 
           </div>
@@ -711,18 +1043,15 @@ const SES_CORREO_DEFAULTS = {
   correo_crear_sesion: false,
   correo_hora_antes:   false,
   correo_dia_antes:    false,
-  correo_semana_antes: false,
-  correo_mes_antes:    false,
 };
 
 const SES_RECORDATORIOS = [
-  { key: "correo_hora_antes",   label: "1 hora antes" },
-  { key: "correo_dia_antes",    label: "1 día antes" },
-  { key: "correo_semana_antes", label: "1 semana antes" },
-  { key: "correo_mes_antes",    label: "1 mes antes" },
+  { key: "correo_hora_antes", label: "1 hora antes", sourceId: 2 },
+  { key: "correo_dia_antes",  label: "1 día antes",  sourceId: 3 },
 ];
 
 function PanelSesiones() {
+  const [notifApi, notifHolder] = notification.useNotification();
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
@@ -744,7 +1073,7 @@ function PanelSesiones() {
       const res = await api.get("/sesiones-fotos/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      message.error("Error al cargar los tipos de sesión");
+      notifApi.error({ message: "Error al cargar los tipos de sesión" });
     } finally {
       setLoadingTipos(false);
     }
@@ -756,7 +1085,7 @@ function PanelSesiones() {
       const res = await api.get("/sesiones-fotos/config/correo", { headers: authHeader() });
       setCorreo({ ...SES_CORREO_DEFAULTS, ...res.data });
     } catch {
-      message.error("Error al cargar configuración de correo");
+      notifApi.error({ message: "Error al cargar configuración de correo" });
     } finally {
       setLoadingCorreo(false);
     }
@@ -770,9 +1099,9 @@ function PanelSesiones() {
       const res = await api.post("/sesiones-fotos/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      message.success(`Tipo "${nombre}" agregado`);
+      notifApi.success({ message: `Tipo "${nombre}" agregado` });
     } catch (err) {
-      message.error(err?.response?.data?.detail || "Error al agregar tipo");
+      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
     } finally {
       setAddingTipo(false);
     }
@@ -789,9 +1118,9 @@ function PanelSesiones() {
         try {
           await api.delete(`/sesiones-fotos/config/tipos/${tipo.id_tipo_sesion}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_tipo_sesion !== tipo.id_tipo_sesion));
-          message.success("Tipo eliminado");
+          notifApi.success({ message: "Tipo eliminado" });
         } catch {
-          message.error("Error al eliminar tipo");
+          notifApi.error({ message: "Error al eliminar tipo" });
         }
       },
     });
@@ -806,7 +1135,7 @@ function PanelSesiones() {
       try {
         await api.put("/sesiones-fotos/config/correo", next, { headers: authHeader() });
       } catch {
-        message.error("Error al guardar configuración de correo");
+        notifApi.error({ message: "Error al guardar configuración de correo" });
       } finally {
         setSavingCorreo(false);
       }
@@ -815,6 +1144,7 @@ function PanelSesiones() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
 
       <div className="cfg-block">
         <div className="cfg-block-header">
@@ -882,15 +1212,18 @@ function PanelSesiones() {
         ) : (
           <div className="cfg-correo-list">
 
-            <div className="cfg-correo-row cfg-correo-row--highlight">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Al crear una sesión</span>
-                <span className="cfg-correo-row-desc">Envía confirmación al cliente cuando se registra una sesión nueva</span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row cfg-correo-row--highlight">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Al crear una sesión</span>
+                  <span className="cfg-correo-row-desc">Envía confirmación al cliente cuando se registra una sesión nueva</span>
+                </div>
+                <Switch
+                  checked={correo.correo_crear_sesion}
+                  onChange={(v) => handleCorreoToggle("correo_crear_sesion", v)}
+                />
               </div>
-              <Switch
-                checked={correo.correo_crear_sesion}
-                onChange={(v) => handleCorreoToggle("correo_crear_sesion", v)}
-              />
+              {correo.correo_crear_sesion && <UserSelectorCorreo idModulo={10} sourceId={1} />}
             </div>
 
             <div className="cfg-correo-section-label">
@@ -898,18 +1231,21 @@ function PanelSesiones() {
               Recordatorios automáticos de la sesión
             </div>
 
-            <div className="cfg-correo-grid">
-              {SES_RECORDATORIOS.map((r) => (
-                <div key={r.key} className="cfg-correo-grid-item">
-                  <span className="cfg-correo-grid-label">{r.label}</span>
+            {SES_RECORDATORIOS.map((r) => (
+              <div key={r.key} className="cfg-correo-entry">
+                <div className="cfg-correo-row cfg-correo-row--recordatorio">
+                  <div className="cfg-correo-row-info">
+                    <span className="cfg-correo-row-label">{r.label}</span>
+                  </div>
                   <Switch
                     size="small"
                     checked={correo[r.key]}
                     onChange={(v) => handleCorreoToggle(r.key, v)}
                   />
                 </div>
-              ))}
-            </div>
+                {correo[r.key] && <UserSelectorCorreo idModulo={10} sourceId={r.sourceId} />}
+              </div>
+            ))}
 
           </div>
         )}
@@ -922,6 +1258,7 @@ function PanelSesiones() {
 const TRAB_CORREO_DEFAULTS = { correo_crear_trabajador: false };
 
 function PanelTrabajadores() {
+  const [notifApi, notifHolder] = notification.useNotification();
   const [correo, setCorreo] = useState(TRAB_CORREO_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -930,7 +1267,7 @@ function PanelTrabajadores() {
   useEffect(() => {
     api.get("/trabajadores/config/correo", { headers: authHeader() })
       .then((res) => setCorreo({ ...TRAB_CORREO_DEFAULTS, ...res.data }))
-      .catch(() => message.error("Error al cargar configuración"))
+      .catch(() => notifApi.error({ message: "Error al cargar configuración" }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -943,7 +1280,7 @@ function PanelTrabajadores() {
       try {
         await api.put("/trabajadores/config/correo", next, { headers: authHeader() });
       } catch {
-        message.error("Error al guardar configuración");
+        notifApi.error({ message: "Error al guardar configuración" });
       } finally {
         setSaving(false);
       }
@@ -952,6 +1289,7 @@ function PanelTrabajadores() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
       <div className="cfg-block">
         <div className="cfg-block-header">
           <MailOutlined className="cfg-block-icon" />
@@ -968,15 +1306,18 @@ function PanelTrabajadores() {
           <div className="cfg-loading-row"><Spin size="small" /></div>
         ) : (
           <div className="cfg-correo-list">
-            <div className="cfg-correo-row cfg-correo-row--highlight">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Al registrar un trabajador</span>
-                <span className="cfg-correo-row-desc">Envía una notificación cuando se crea un nuevo trabajador en el sistema</span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row cfg-correo-row--highlight">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Al registrar un trabajador</span>
+                  <span className="cfg-correo-row-desc">Envía una notificación cuando se crea un nuevo trabajador en el sistema</span>
+                </div>
+                <Switch
+                  checked={correo.correo_crear_trabajador}
+                  onChange={(v) => handleToggle("correo_crear_trabajador", v)}
+                />
               </div>
-              <Switch
-                checked={correo.correo_crear_trabajador}
-                onChange={(v) => handleToggle("correo_crear_trabajador", v)}
-              />
+              {correo.correo_crear_trabajador && <UserSelectorCorreo idModulo={2} sourceId={1} />}
             </div>
           </div>
         )}
@@ -993,26 +1334,30 @@ const USR_CORREO_DEFAULTS = {
 
 const USR_SWITCHES = [
   {
-    key:   "correo_crear_usuario",
-    label: "Al crear un usuario",
-    desc:  "Envía un correo de bienvenida cuando se registra un nuevo usuario en el sistema",
+    key:       "correo_crear_usuario",
+    label:     "Al crear un usuario",
+    desc:      "Envía un correo de bienvenida cuando se registra un nuevo usuario en el sistema",
     highlight: true,
+    sourceId:  1,
   },
   {
-    key:   "correo_inicio_sesion",
-    label: "Al iniciar sesión",
-    desc:  "Notifica por correo cada vez que cualquier usuario inicia sesión",
+    key:       "correo_inicio_sesion",
+    label:     "Al iniciar sesión",
+    desc:      "Notifica por correo cada vez que cualquier usuario inicia sesión",
     highlight: false,
+    sourceId:  2,
   },
   {
-    key:   "correo_recuperar_password",
-    label: "Al recuperar contraseña",
-    desc:  "Confirma por correo cuando el proceso de recuperación de contraseña se completa",
+    key:       "correo_recuperar_password",
+    label:     "Al recuperar contraseña",
+    desc:      "Confirma por correo cuando el proceso de recuperación de contraseña se completa",
     highlight: false,
+    sourceId:  3,
   },
 ];
 
 function PanelUsuarios() {
+  const [notifApi, notifHolder] = notification.useNotification();
   const [correo, setCorreo] = useState(USR_CORREO_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1021,7 +1366,7 @@ function PanelUsuarios() {
   useEffect(() => {
     api.get("/users/config/correo", { headers: authHeader() })
       .then((res) => setCorreo({ ...USR_CORREO_DEFAULTS, ...res.data }))
-      .catch(() => message.error("Error al cargar configuración"))
+      .catch(() => notifApi.error({ message: "Error al cargar configuración" }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -1034,7 +1379,7 @@ function PanelUsuarios() {
       try {
         await api.put("/users/config/correo", next, { headers: authHeader() });
       } catch {
-        message.error("Error al guardar configuración");
+        notifApi.error({ message: "Error al guardar configuración" });
       } finally {
         setSaving(false);
       }
@@ -1043,6 +1388,7 @@ function PanelUsuarios() {
 
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
       <div className="cfg-block">
         <div className="cfg-block-header">
           <MailOutlined className="cfg-block-icon" />
@@ -1060,15 +1406,18 @@ function PanelUsuarios() {
         ) : (
           <div className="cfg-correo-list">
             {USR_SWITCHES.map((s) => (
-              <div key={s.key} className={`cfg-correo-row${s.highlight ? " cfg-correo-row--highlight" : ""}`}>
-                <div className="cfg-correo-row-info">
-                  <span className="cfg-correo-row-label">{s.label}</span>
-                  <span className="cfg-correo-row-desc">{s.desc}</span>
+              <div key={s.key} className="cfg-correo-entry">
+                <div className={`cfg-correo-row${s.highlight ? " cfg-correo-row--highlight" : ""}`}>
+                  <div className="cfg-correo-row-info">
+                    <span className="cfg-correo-row-label">{s.label}</span>
+                    <span className="cfg-correo-row-desc">{s.desc}</span>
+                  </div>
+                  <Switch
+                    checked={correo[s.key]}
+                    onChange={(v) => handleToggle(s.key, v)}
+                  />
                 </div>
-                <Switch
-                  checked={correo[s.key]}
-                  onChange={(v) => handleToggle(s.key, v)}
-                />
+                {correo[s.key] && <UserSelectorCorreo idModulo={4} sourceId={s.sourceId} />}
               </div>
             ))}
           </div>
@@ -1080,22 +1429,15 @@ function PanelUsuarios() {
 
 // ── Panel Agenda ───────────────────────────────────────────────────────────
 
-const AGENDA_CORREO_DEFAULTS = { correo_crear_agenda: false };
-
 function PanelAgenda() {
+  const [notifApi, notifHolder] = notification.useNotification();
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
   const [addingTipo, setAddingTipo] = useState(false);
 
-  const [correo, setCorreo] = useState(AGENDA_CORREO_DEFAULTS);
-  const [loadingCorreo, setLoadingCorreo] = useState(true);
-  const [savingCorreo, setSavingCorreo] = useState(false);
-  const debounceRef = useRef(null);
-
   useEffect(() => {
     fetchTipos();
-    fetchCorreo();
   }, []);
 
   const fetchTipos = async () => {
@@ -1104,21 +1446,9 @@ function PanelAgenda() {
       const res = await api.get("/agenda/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      message.error("Error al cargar los tipos de agenda");
+      notifApi.error({ message: "Error al cargar los tipos de agenda" });
     } finally {
       setLoadingTipos(false);
-    }
-  };
-
-  const fetchCorreo = async () => {
-    setLoadingCorreo(true);
-    try {
-      const res = await api.get("/agenda/config/correo", { headers: authHeader() });
-      setCorreo({ ...AGENDA_CORREO_DEFAULTS, ...res.data });
-    } catch {
-      message.error("Error al cargar configuración de correo");
-    } finally {
-      setLoadingCorreo(false);
     }
   };
 
@@ -1130,9 +1460,9 @@ function PanelAgenda() {
       const res = await api.post("/agenda/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      message.success(`Tipo "${nombre}" agregado`);
+      notifApi.success({ message: `Tipo "${nombre}" agregado` });
     } catch (err) {
-      message.error(err?.response?.data?.detail || "Error al agregar tipo");
+      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
     } finally {
       setAddingTipo(false);
     }
@@ -1153,32 +1483,17 @@ function PanelAgenda() {
         try {
           await api.delete(`/agenda/config/tipos/${tipo.id_agenda_evento}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_agenda_evento !== tipo.id_agenda_evento));
-          message.success("Tipo eliminado");
+          notifApi.success({ message: "Tipo eliminado" });
         } catch {
-          message.error("Error al eliminar tipo");
+          notifApi.error({ message: "Error al eliminar tipo" });
         }
       },
     });
   };
 
-  const handleCorreoToggle = (key, value) => {
-    const next = { ...correo, [key]: value };
-    setCorreo(next);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setSavingCorreo(true);
-      try {
-        await api.put("/agenda/config/correo", next, { headers: authHeader() });
-      } catch {
-        message.error("Error al guardar configuración de correo");
-      } finally {
-        setSavingCorreo(false);
-      }
-    }, 600);
-  };
-
   return (
     <div className="cfg-panel-body">
+      {notifHolder}
 
       <div className="cfg-block">
         <div className="cfg-block-header">
@@ -1232,8 +1547,169 @@ function PanelAgenda() {
         )}
       </div>
 
+    </div>
+  );
+}
+
+// ── Panel Gastos ───────────────────────────────────────────────────────────
+
+function PanelGastos() {
+  const [notifApi, notifHolder] = notification.useNotification();
+
+  const [tipos, setTipos] = useState([]);
+  const [loadingTipos, setLoadingTipos] = useState(true);
+  const [inputNombre, setInputNombre] = useState("");
+  const [addingTipo, setAddingTipo] = useState(false);
+
+  const [correo, setCorreo] = useState({ correo_registrar_gasto: false });
+  const [loadingCorreo, setLoadingCorreo] = useState(true);
+  const [savingCorreo, setSavingCorreo] = useState(false);
+  const saveDebounceRef = useRef(null);
+
+  useEffect(() => {
+    fetchTipos();
+    fetchCorreo();
+  }, []);
+
+  const fetchTipos = async () => {
+    setLoadingTipos(true);
+    try {
+      const res = await api.get("/gastos/config/tipos", { headers: authHeader() });
+      setTipos(res.data || []);
+    } catch {
+      notifApi.error({ message: "Error al cargar los tipos de gasto" });
+    } finally {
+      setLoadingTipos(false);
+    }
+  };
+
+  const fetchCorreo = async () => {
+    setLoadingCorreo(true);
+    try {
+      const res = await api.get("/gastos/config/correo", { headers: authHeader() });
+      setCorreo({ correo_registrar_gasto: false, ...res.data });
+    } catch {
+      notifApi.error({ message: "Error al cargar configuración de correo" });
+    } finally {
+      setLoadingCorreo(false);
+    }
+  };
+
+  const handleAddTipo = async () => {
+    const nombre = inputNombre.trim();
+    if (!nombre) return;
+    setAddingTipo(true);
+    try {
+      const res = await api.post("/gastos/config/tipos", { nombre }, { headers: authHeader() });
+      setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setInputNombre("");
+      notifApi.success({ message: `Tipo "${nombre}" agregado` });
+    } catch (err) {
+      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
+    } finally {
+      setAddingTipo(false);
+    }
+  };
+
+  const handleDeleteTipo = (tipo) => {
+    Modal.confirm({
+      title: "¿Eliminar tipo de gasto?",
+      content: (
+        <span>
+          Se eliminará <strong>{tipo.nombre}</strong>. Esta acción no se puede deshacer.
+        </span>
+      ),
+      okText: "Sí, eliminar",
+      okType: "danger",
+      cancelText: "Cancelar",
+      onOk: async () => {
+        try {
+          await api.delete(`/gastos/config/tipos/${tipo.id_tipo_gasto}`, { headers: authHeader() });
+          setTipos((prev) => prev.filter((t) => t.id_tipo_gasto !== tipo.id_tipo_gasto));
+          notifApi.success({ message: "Tipo eliminado" });
+        } catch {
+          notifApi.error({ message: "Error al eliminar tipo" });
+        }
+      },
+    });
+  };
+
+  const handleCorreoToggle = (key, value) => {
+    const next = { ...correo, [key]: value };
+    setCorreo(next);
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    saveDebounceRef.current = setTimeout(async () => {
+      setSavingCorreo(true);
+      try {
+        await api.put("/gastos/config/correo", next, { headers: authHeader() });
+      } catch {
+        notifApi.error({ message: "Error al guardar configuración de correo" });
+      } finally {
+        setSavingCorreo(false);
+      }
+    }, 600);
+  };
+
+  return (
+    <div className="cfg-panel-body">
+      {notifHolder}
+
+      {/* ── Tipos de gasto ──────────────────────────── */}
+      <div className="cfg-block">
+        <div className="cfg-block-header">
+          <TagOutlined className="cfg-block-icon" />
+          <div>
+            <div className="cfg-block-title">Tipos de gasto</div>
+            <div className="cfg-block-desc">Categorías que se asignan al registrar un gasto</div>
+          </div>
+        </div>
+
+        <div className="cfg-tipo-add-row">
+          <Input
+            value={inputNombre}
+            onChange={(e) => setInputNombre(e.target.value)}
+            placeholder="Nombre del nuevo tipo..."
+            className="cfg-tipo-input"
+            onPressEnter={handleAddTipo}
+            maxLength={60}
+          />
+          <Button
+            icon={<PlusOutlined />}
+            onClick={handleAddTipo}
+            loading={addingTipo}
+            disabled={!inputNombre.trim()}
+            className="cfg-tipo-btn-add"
+          >
+            Agregar
+          </Button>
+        </div>
+
+        {loadingTipos ? (
+          <div className="cfg-loading-row"><Spin size="small" /></div>
+        ) : tipos.length === 0 ? (
+          <div className="cfg-tipo-empty">Sin tipos registrados</div>
+        ) : (
+          <div className="cfg-tipo-chips">
+            {tipos.map((t) => (
+              <div key={t.id_tipo_gasto} className="cfg-tipo-chip">
+                <span className="cfg-tipo-chip-label">{t.nombre}</span>
+                <button
+                  type="button"
+                  className="cfg-tipo-chip-del"
+                  onClick={() => handleDeleteTipo(t)}
+                  title="Eliminar"
+                >
+                  <DeleteOutlined />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="cfg-divider" style={{ marginBottom: 50 }} />
 
+      {/* ── Notificaciones ───────────────────────────── */}
       <div className="cfg-block">
         <div className="cfg-block-header">
           <MailOutlined className="cfg-block-icon" />
@@ -1242,7 +1718,7 @@ function PanelAgenda() {
               Notificaciones de correo
               {savingCorreo && <Spin size="small" style={{ marginLeft: 8 }} />}
             </div>
-            <div className="cfg-block-desc">Correos automáticos relacionados al módulo de agenda</div>
+            <div className="cfg-block-desc">Correos automáticos relacionados al módulo de gastos</div>
           </div>
         </div>
 
@@ -1250,17 +1726,20 @@ function PanelAgenda() {
           <div className="cfg-loading-row"><Spin size="small" /></div>
         ) : (
           <div className="cfg-correo-list">
-            <div className="cfg-correo-row cfg-correo-row--highlight">
-              <div className="cfg-correo-row-info">
-                <span className="cfg-correo-row-label">Al crear una agenda manualmente</span>
-                <span className="cfg-correo-row-desc">
-                  Envía una notificación cuando se registra un nuevo evento de agenda
-                </span>
+            <div className="cfg-correo-entry">
+              <div className="cfg-correo-row cfg-correo-row--highlight">
+                <div className="cfg-correo-row-info">
+                  <span className="cfg-correo-row-label">Al registrar un gasto</span>
+                  <span className="cfg-correo-row-desc">
+                    Envía una notificación cuando se registra un nuevo gasto
+                  </span>
+                </div>
+                <Switch
+                  checked={correo.correo_registrar_gasto}
+                  onChange={(v) => handleCorreoToggle("correo_registrar_gasto", v)}
+                />
               </div>
-              <Switch
-                checked={correo.correo_crear_agenda}
-                onChange={(v) => handleCorreoToggle("correo_crear_agenda", v)}
-              />
+              {correo.correo_registrar_gasto && <UserSelectorCorreo idModulo={9} sourceId={1} />}
             </div>
           </div>
         )}
@@ -1287,27 +1766,7 @@ const MODULES = [
     color: "#0f766e",
     bg: "linear-gradient(140deg, #065f46 0%, #10b981 100%)",
   },
-  {
-    key: "inventario",
-    label: "Inventario",
-    icon: <ToolOutlined />,
-    color: "#1d4ed8",
-    bg: "linear-gradient(140deg, #1d4ed8 0%, #3b82f6 100%)",
-  },
-  {
-    key: "sesiones",
-    label: "Sesiones",
-    icon: <CameraOutlined />,
-    color: "#be185d",
-    bg: "linear-gradient(140deg, #be185d 0%, #f472b6 100%)",
-  },
-  {
-    key: "trabajadores",
-    label: "Trabajadores",
-    icon: <TeamOutlined />,
-    color: "#6d28d9",
-    bg: "linear-gradient(140deg, #6d28d9 0%, #a78bfa 100%)",
-  },
+
   {
     key: "usuarios",
     label: "Usuarios",
@@ -1322,16 +1781,23 @@ const MODULES = [
     color: "#0369a1",
     bg: "linear-gradient(140deg, #0369a1 0%, #38bdf8 100%)",
   },
+  {
+    key: "gastos",
+    label: "Gastos",
+    icon: <DollarOutlined />,
+    color: "#9f1239",
+    bg: "linear-gradient(140deg, #9f1239 0%, #f43f5e 100%)",
+  },
 ];
 
 const PANELS = {
   general: PanelGeneral,
   eventos: PanelEventos,
   inventario: PanelInventario,
-  sesiones: PanelSesiones,
   trabajadores: PanelTrabajadores,
   usuarios: PanelUsuarios,
   agenda: PanelAgenda,
+  gastos: PanelGastos,
 };
 
 // ── Página ─────────────────────────────────────────────────────────────────

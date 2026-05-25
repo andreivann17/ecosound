@@ -16,7 +16,21 @@ AUDIT_ALLOWED_COLS = {
     "id_modulo",
     "id_key",
     "message",
+    "id_cliente",
 }
+
+_audit_id_cliente_checked = False
+
+def _ensure_audit_id_cliente(conn):
+    global _audit_id_cliente_checked
+    if _audit_id_cliente_checked:
+        return
+    with conn.cursor() as cur:
+        cur.execute("SHOW COLUMNS FROM audit_log LIKE 'id_cliente'")
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE audit_log ADD COLUMN id_cliente INT NOT NULL DEFAULT 0")
+    conn.commit()
+    _audit_id_cliente_checked = True
 
 LEN_LIMITS = {
     "action": 50,
@@ -65,7 +79,7 @@ def _sanitize_payload(data: Dict[str, Any]) -> Dict[str, Any]:
         if k in ("action", "ip_address", "user_agent", "message"):
             v = _trim(v) if isinstance(v, str) else v
 
-        if k in ("id_user", "id_modulo") and v is not None:
+        if k in ("id_user", "id_modulo", "id_cliente") and v is not None:
             try:
                 v = int(v)
             except Exception:
@@ -85,13 +99,13 @@ def create_audit_log(*, data: Dict[str, Any]) -> int:
     if errs:
         raise ValueError(", ".join(errs))
 
-    # Validaciones obligatorias
     if not payload.get("action"):
         raise ValueError("action es requerido")
     if not payload.get("message"):
         raise ValueError("message es requerido")
 
     conn = get_connection()
+    _ensure_audit_id_cliente(conn)
     
     try:
         with conn.cursor() as cur:
@@ -139,19 +153,22 @@ def get_audit_log_by_id(*, id_audit_log: int) -> Optional[Dict[str, Any]]:
             cur.execute(
                 """
                 SELECT
-                    id_audit_log,
-                    action,
-                    changes,
-                    extra,
-                    ip_address,
-                    user_agent,
-                    id_user,
-                    datetime,
-                    id_modulo,
-                    id_key,
-                    message
-                FROM audit_log
-                WHERE id_audit_log = %s
+                    al.id_audit_log,
+                    al.action,
+                    al.changes,
+                    al.extra,
+                    al.ip_address,
+                    al.user_agent,
+                    al.id_user,
+                    al.datetime,
+                    al.id_modulo,
+                    al.id_key,
+                    al.message,
+                    u.name AS user_name,
+                    u.email AS user_email
+                FROM audit_log al
+                LEFT JOIN users u ON u.id_user = al.id_user
+                WHERE al.id_audit_log = %s
                 """,
                 (id_audit_log,),
             )
@@ -165,6 +182,7 @@ def list_audit_logs(
     filters: Dict[str, Any],
     limit: int = 50,
     offset: int = 0,
+    id_cliente: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], int]:
     """
     Filtros soportados:
@@ -212,9 +230,14 @@ def list_audit_logs(
         where.append("al.datetime <= %s")
         params.append(date_to)
 
+    if id_cliente is not None:
+        where.append("al.id_cliente = %s")
+        params.append(id_cliente)
+
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
     conn = get_connection()
+    _ensure_audit_id_cliente(conn)
     try:
         with conn.cursor(dictionary=True) as cur:
             # total (IMPORTANTE: mismo alias al)

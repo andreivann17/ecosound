@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
+﻿// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -163,7 +163,7 @@ const handleDeleteExpediente = () => {
               message: "Desvinculación eliminada",
               description: "Se eliminó correctamente.",
             });
-            navigate("/materias/laboral/desvinculaciones");
+            navigate("/app/materias/laboral/desvinculaciones");
           })
         );
       } catch (error) {

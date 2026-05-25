@@ -4,7 +4,7 @@ from pydantic import Field
 from urllib.parse import quote_plus
 
 class Settings(BaseSettings):
-    APP_NAME: str = "ecosound API"
+    APP_NAME: str = "HerrSoft Events API"
     API_V1_PREFIX: str = "/api"
     ENV: str = "dev"
 

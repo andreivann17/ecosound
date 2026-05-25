@@ -65,7 +65,7 @@ def _table_has_column(table: str, column: str) -> bool:
     cnx = get_connection()
     try:
         db_name = getattr(cnx, "database", None) or os.getenv("MYSQL_DATABASE", "")
-        with cnx.cursor() as cur:
+        with cnx.cursor(buffered=True) as cur:
             cur.execute(
                 """
                 SELECT COUNT(*)
@@ -77,7 +77,10 @@ def _table_has_column(table: str, column: str) -> bool:
             (count,) = cur.fetchone()
             return count > 0
     finally:
-        cnx.close()
+        try:
+            cnx.close()
+        except Exception:
+            pass
 
 
 def _fetch_credentials(table: str, email: str) -> Optional[Tuple[int, bytes]]:
@@ -90,9 +93,9 @@ def _fetch_credentials(table: str, email: str) -> Optional[Tuple[int, bytes]]:
 
     cnx = get_connection()
     try:
-        with cnx.cursor() as cur:
+        with cnx.cursor(buffered=True) as cur:
             if table == "users":
-                cur.execute("SELECT id_user, password FROM users WHERE email = %s", (email,))
+                cur.execute("SELECT id_user, password FROM users WHERE email = %s ORDER BY id_user DESC LIMIT 1", (email,))
             elif table == "patients":
                 cur.execute("SELECT id_patient, password FROM patients WHERE email = %s", (email,))
             else:
@@ -106,7 +109,10 @@ def _fetch_credentials(table: str, email: str) -> Optional[Tuple[int, bytes]]:
             stored = _to_bytes(row[1])  # hace strip + bytes
             return (user_id, stored)
     finally:
-        cnx.close()
+        try:
+            cnx.close()
+        except Exception:
+            pass
 
 
 def _verify_password(plain: str, stored: bytes) -> bool:

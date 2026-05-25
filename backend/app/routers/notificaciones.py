@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import notificaciones as notificaciones_model
 
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
@@ -59,6 +59,7 @@ class NotificacionUpdate(NotificacionBase):
 def create_notificacion(
     payload: NotificacionCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ) -> Dict[str, Any]:
     user_id = current_user.get("id")
     if not user_id:
@@ -67,8 +68,9 @@ def create_notificacion(
     try:
         data = payload.model_dump(exclude_none=True)
 
-        # Forzamos id_user desde el token (no del cliente)
         data["id_user"] = user_id
+        if tenant_id is not None:
+            data["id_cliente"] = tenant_id
 
         new_id = notificaciones_model.create_notificacion(data=data)
         return {"id": new_id}
@@ -79,17 +81,19 @@ def create_notificacion(
 @router.get("", summary="Listado de notificaciones (sin filtros)")
 def list_notificaciones(
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ) -> Dict[str, Any]:
     user_id = current_user.get("id")
-    items = notificaciones_model.list_notificaciones()
+    items = notificaciones_model.list_notificaciones(id_cliente=tenant_id)
     return {"items": items, "count": len(items),"user_id":user_id}
 
 
 @router.get("/cards", summary="Cards de notificaciones (sin filtros)")
 def list_notificaciones_cards(
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ) -> Dict[str, Any]:
-    items = notificaciones_model.list_notificaciones()
+    items = notificaciones_model.list_notificaciones(id_cliente=tenant_id)
     return {"items": items, "count": len(items)}
 
 

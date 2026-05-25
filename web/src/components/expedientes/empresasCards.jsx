@@ -1,4 +1,4 @@
-// src/components/expedientes/ExpedienteCards.jsx
+﻿// src/components/expedientes/ExpedienteCards.jsx
 
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -107,7 +107,7 @@ export default function ExpedienteCards({
   };
 
   const handleView = (row) => {
-    navigate(`/empresas/${row.id}`, {
+    navigate(`/app/empresas/${row.id}`, {
       state: {
         id: row.id,
         code: row.code,

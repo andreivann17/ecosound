@@ -1,4 +1,4 @@
-// src/components/expedientes/ExpedienteCards.jsx
+﻿// src/components/expedientes/ExpedienteCards.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -83,7 +83,7 @@ export default function ExpedienteCards({
   };
 
   const handleView = (exp) => {
-    navigate(`/materias/laboral/convenios/${exp.id}`, {
+    navigate(`/app/materias/laboral/convenios/${exp.id}`, {
       state: {
         id: exp.id,
         code: exp.code,

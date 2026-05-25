@@ -5,13 +5,57 @@ from pydantic import BaseModel, ConfigDict
 from pathlib import Path as FsPath
 import re
 import shutil
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import inventario as inv_model
+from ..models import audit as audit_model
+from ..models import notificaciones as noti_model
+from ..realtime.ws_manager import manager
 import datetime as dt
 
 router = APIRouter(prefix="/inventario", tags=["inventario"])
 
 UPLOADS_EQUIPO = FsPath("uploads/equipo")
+INVENTARIO_MODULO = 6
+TIPO_CREACION = 1
+TIPO_ACTUALIZACION = 2
+TIPO_ELIMINACION = 3
+
+
+def _log_audit_equipo(action: str, message: str, id_equipo: int, user_id: int, changes=None):
+    try:
+        audit_model.create_audit_log(data={
+            "action": action,
+            "message": message,
+            "id_user": user_id,
+            "id_modulo": INVENTARIO_MODULO,
+            "id_key": str(id_equipo),
+            "changes": changes,
+        })
+    except Exception:
+        pass
+
+
+async def _notify_equipo(tipo: int, descripcion: str, id_equipo: int, user_id: int, id_cliente: Optional[int] = None):
+    try:
+        _data = {
+            "id_tipo_notificacion": tipo,
+            "id_modulo": INVENTARIO_MODULO,
+            "descripcion": descripcion,
+            "id_user": user_id,
+            "urgente": 0,
+            "id_key": str(id_equipo),
+        }
+        if id_cliente:
+            _data["id_cliente"] = id_cliente
+        noti_model.create_notificacion(data=_data)
+    except Exception:
+        pass
+    await manager.broadcast_json({
+        "type": "NOTIFICACION_INVALIDATE",
+        "source": "inventario",
+        "id_equipo": id_equipo,
+        "descripcion_notificacion": descripcion,
+    })
 
 
 # ================== CONFIG: ESTADOS ==================
@@ -271,20 +315,21 @@ class DetalleUpdate(BaseModel):
 
 @router.get("/categorias")
 def get_categorias(
-    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return inv_model.list_categorias()
+    return inv_model.list_categorias(id_cliente=tenant_id)
 
 
 @router.post("/categorias", status_code=201)
 def crear_categoria(
     payload: CategoriaCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
-    return inv_model.create_categoria(payload.model_dump(), int(user_id))
+    return inv_model.create_categoria(payload.model_dump(), int(user_id), id_cliente=tenant_id)
 
 
 @router.patch("/categorias/{id_categoria}")
@@ -318,22 +363,27 @@ def get_equipo(
     search: Optional[str] = Query(None),
     id_categoria: Optional[int] = Query(None),
     estado: Optional[str] = Query(None),
-    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return inv_model.list_equipo(search=search, id_categoria=id_categoria, estado=estado)
+    return inv_model.list_equipo(search=search, id_categoria=id_categoria, estado=estado, id_cliente=tenant_id)
 
 
 @router.post("/equipo", status_code=201)
-def crear_equipo(
+async def crear_equipo(
     payload: EquipoCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
-    result = inv_model.create_equipo(payload.model_dump(), int(user_id))
-    item = inv_model.get_equipo_by_id(result["id_equipo"])
-    return {"id_equipo": result["id_equipo"], "item": item}
+    result = inv_model.create_equipo(payload.model_dump(), int(user_id), id_cliente=tenant_id)
+    new_id = result["id_equipo"]
+    nombre = payload.model_dump().get("nombre") or f"#{new_id}"
+    _log_audit_equipo("CREATE", f"Equipo '{nombre}' registrado en inventario", new_id, int(user_id))
+    await _notify_equipo(TIPO_CREACION, f"Nuevo equipo '{nombre}' registrado en inventario", new_id, int(user_id), id_cliente=tenant_id)
+    item = inv_model.get_equipo_by_id(new_id)
+    return {"id_equipo": new_id, "item": item}
 
 
 @router.get("/equipo/{id_equipo}")
@@ -348,7 +398,7 @@ def get_equipo_detail(
 
 
 @router.patch("/equipo/{id_equipo}")
-def actualizar_equipo(
+async def actualizar_equipo(
     id_equipo: int,
     payload: EquipoUpdate,
     _cu: Dict[str, Any] = Depends(get_current_user),
@@ -358,6 +408,9 @@ def actualizar_equipo(
         raise HTTPException(status_code=404, detail="Equipo no encontrado")
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     inv_model.update_equipo(id_equipo, data)
+    nombre = row.get("nombre") or f"#{id_equipo}"
+    _log_audit_equipo("UPDATE", f"Equipo '{nombre}' actualizado", id_equipo, _cu.get("id", 0), changes=data)
+    await _notify_equipo(TIPO_ACTUALIZACION, f"Equipo '{nombre}' actualizado en inventario", id_equipo, _cu.get("id", 0), id_cliente=row.get("id_cliente"))
     item = inv_model.get_equipo_by_id(id_equipo)
     return {"updated": 1, "item": item}
 
@@ -412,7 +465,23 @@ def eliminar_equipo(
     if not row:
         raise HTTPException(status_code=404, detail="Equipo no encontrado")
     inv_model.delete_equipo(id_equipo)
+    _log_audit_equipo("DELETE", f"Equipo #{id_equipo} eliminado del inventario", id_equipo, _cu.get("id", 0))
     return {"deleted": 1, "id_equipo": id_equipo}
+
+
+@router.get("/equipo/{id_equipo}/actividad")
+def get_actividad_equipo(
+    id_equipo: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    items, total = audit_model.list_audit_logs(
+        filters={"id_modulo": INVENTARIO_MODULO, "id_key": str(id_equipo)},
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total}
 
 
 # ================== MOVIMIENTOS ==================

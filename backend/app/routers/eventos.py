@@ -10,15 +10,82 @@ from pathlib import Path as FsPath
 from ..realtime.ws_manager import manager
 
 from fastapi import status
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import eventos as evento_model
 from ..models import agenda as agenda_model
 from ..models import audit as audit_model
 from ..models import trabajadores as trab_model
+from ..models import notificaciones as noti_model
 from ..db import get_connection
 import datetime as dt
 
 EVENTO_MODULO = 2
+EVENTO_MODULO_CORREO = 1   # id in user's modulos table (configuracion_correos)
+EVENTO_TIPO_CREACION = 1
+EVENTO_TIPO_ACTUALIZACION = 2
+
+
+def _send_correo_evento(evento: dict, accion: str) -> None:
+    """Send email when an event is created or updated (source_id=1)."""
+    try:
+        from ..utils.email import send_email_bg, get_destinatarios_emails
+        from ..db import get_connection as _gc
+
+        conn = _gc()
+        try:
+            with conn.cursor(dictionary=True) as cur:
+                cur.execute(
+                    "SELECT correo_crear_evento FROM configuracion_eventos "
+                    "WHERE active=1 ORDER BY id_configuracion_evento DESC LIMIT 1"
+                )
+                cfg = cur.fetchone()
+        finally:
+            conn.close()
+
+        if not cfg or not cfg.get("correo_crear_evento"):
+            return
+
+        emails = get_destinatarios_emails(EVENTO_MODULO_CORREO, 1)
+        if not emails:
+            return
+
+        from ..utils.scheduler import _evento_html
+
+        accion_label = "registrado" if accion == "CREATE" else "actualizado"
+        accion_badge = "NUEVO" if accion == "CREATE" else "ACTUALIZADO"
+        icon         = "🎉" if accion == "CREATE" else "✏️"
+        cliente      = evento.get("cliente_nombre") or "Evento"
+        subject      = f"{icon} Evento {accion_label}: {cliente}"
+
+        banner = f"Evento {accion_label} correctamente"
+        html   = _evento_html(evento, f"Evento {accion_label}: {cliente}", icon, banner)
+        send_email_bg(emails, subject, html)
+    except Exception:
+        pass
+
+
+async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id: int, id_cliente: Optional[int] = None):
+    """Crea notificación en DB y emite NOTIFICACION_INVALIDATE por WS."""
+    try:
+        _data = {
+            "id_tipo_notificacion": action,
+            "id_modulo": EVENTO_MODULO,
+            "descripcion": descripcion,
+            "id_user": user_id,
+            "urgente": 0,
+            "id_key": str(id_evento),
+        }
+        if id_cliente:
+            _data["id_cliente"] = id_cliente
+        noti_model.create_notificacion(data=_data)
+    except Exception:
+        pass
+    await manager.broadcast_json({
+        "type": "NOTIFICACION_INVALIDATE",
+        "source": "eventos",
+        "id_evento": id_evento,
+        "descripcion_notificacion": descripcion,
+    })
 
 
 def _log_audit(
@@ -56,10 +123,9 @@ def _log_audit(
         pass
 
 router = APIRouter(prefix="/eventos", tags=["eventos"])
-BASE_UPLOADS_EVENTOS = FsPath("uploads/eventos")
 
 
-@router.post("/extraer-ai", status_code=status.HTTP_200_OK, summary="Extraer campos de contrato EcoSound con OCR")
+@router.post("/extraer-ai", status_code=status.HTTP_200_OK, summary="Extraer campos de contrato HerrSoft con OCR")
 async def extraer_ai(
     file: UploadFile = File(...),
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -285,6 +351,7 @@ def _cap_end_same_day(start_dt: dt.datetime) -> dt.datetime:
 async def crear_evento(
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
@@ -296,23 +363,23 @@ async def crear_evento(
     if payload_dict.get("datetime_fotografia"):
         payload_dict["datetime_fotografia"] = _parse_dt(payload_dict["datetime_fotografia"])
 
-    # Use fecha_evento for sound event, fallback to datetime_fotografia for agenda
     fecha_base = payload_dict.get("fecha_evento")
-    fecha_agenda = fecha_base or payload_dict.get("datetime_fotografia")
-    if not fecha_agenda:
+    dt_foto = payload_dict.get("datetime_fotografia")
+
+    if not fecha_base and not dt_foto:
         raise HTTPException(status_code=400, detail="Se requiere fecha_evento o datetime_fotografia")
 
-    start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
-    if not start_dt:
-        start_dt = _parse_dt(fecha_agenda)
-
-    end_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_final"))
-    if not end_dt:
-        end_dt = _cap_end_same_day(start_dt)
-    elif end_dt <= start_dt:
-        end_dt += dt.timedelta(days=1)
-
+    # Sound event: compute start/end only when fecha_evento is present
+    start_dt = None
+    end_dt = None
     if fecha_base:
+        start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
+        if start_dt:
+            end_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_final"))
+            if not end_dt:
+                end_dt = _cap_end_same_day(start_dt)
+            elif end_dt <= start_dt:
+                end_dt += dt.timedelta(days=1)
         payload_dict["hora_inicio"] = start_dt
         payload_dict["hora_final"] = end_dt
     else:
@@ -320,7 +387,13 @@ async def crear_evento(
         payload_dict["hora_final"] = None
 
     if payload_dict.get("hora_misa"):
-        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base or fecha_agenda, payload_dict["hora_misa"])
+        fecha_ref = fecha_base or (dt_foto.isoformat() if dt_foto else None)
+        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_ref, payload_dict["hora_misa"])
+
+    id_agenda: Optional[int] = None
+    id_agenda_foto: Optional[int] = None
+    id_ciudad: Optional[int] = None
+    id_ciudad_foto: Optional[int] = None
 
     conn = get_connection()
 
@@ -342,48 +415,81 @@ async def crear_evento(
             with conn.cursor() as cur:
                 cur.execute("START TRANSACTION")
 
+            # id_cliente desde JWT (siempre presente), fallback a tenant_id
+            _raw_id_cliente = current_user.get("id_cliente")
+            id_cliente = int(_raw_id_cliente) if _raw_id_cliente else tenant_id
+
             result = evento_model.create_evento(
                 data=payload.model_dump(exclude_none=True),
                 id_user_created=user_id,
                 conn=conn,
+                id_cliente=id_cliente,
             )
             new_id = result["id_evento"]
             code = result["code"]
 
             lugar = (payload_dict.get("lugar_evento") or "").strip()
             cliente = (payload_dict.get("cliente_nombre") or "").strip()
-            title = f"Evento {cliente}".strip() if cliente else "Evento"
-
-            desc = (
-                f"Evento {code} para {cliente}. "
-                f"Evento el {start_dt.strftime('%Y-%m-%d')} de {start_dt.strftime('%H:%M')} "
-                f"a {end_dt.strftime('%H:%M')}. Lugar: {lugar}."
-            )
-
             id_ciudad = payload_dict.get("id_ciudad")
-            id_agenda_evento = payload.id_tipo_evento or 1
+            id_ciudad_foto = payload_dict.get("id_ciudad_fotografia")
 
-            agenda_payload = {
-                "start_at": start_dt,
-                "end_at": end_dt,
-                "title": title,
-                "source_table": "eventos",
-                "all_day": 0,
-                "status": "active",
-                "location": lugar,
-                "description": desc,
-                "source_id": new_id,
-                "ciudad_id": id_ciudad,
-                "reminder": "15m",
-                "url": f"/eventos/{new_id}",
-                "in_person": 1,
-                "recurrence": None,
-            }
+            # Agenda de evento/sonido - solo si hay fecha_evento e id_ciudad
+            if start_dt and end_dt and id_ciudad:
+                title_ev = f"Evento {cliente}".strip() if cliente else "Evento"
+                desc_ev = (
+                    f"Evento {code} para {cliente}. "
+                    f"Evento el {start_dt.strftime('%Y-%m-%d')} de {start_dt.strftime('%H:%M')} "
+                    f"a {end_dt.strftime('%H:%M')}. Lugar: {lugar}."
+                )
+                agenda_ev = {
+                    "start_at": start_dt,
+                    "end_at": end_dt,
+                    "title": title_ev,
+                    "source_table": "eventos",
+                    "all_day": 0,
+                    "status": "active",
+                    "location": lugar,
+                    "description": desc_ev,
+                    "source_id": new_id,
+                    "ciudad_id": id_ciudad,
+                    "reminder": "15m",
+                    "url": f"/eventos/{new_id}",
+                    "in_person": 1,
+                    "recurrence": None,
+                }
+                row_ev = agenda_model.create_agenda_conn(conn, user_id, payload.id_tipo_evento or 1, agenda_ev, id_cliente=id_cliente)
+                id_agenda = row_ev.get("id_agenda") or row_ev.get("id")
 
-            agenda_row = agenda_model.create_agenda_conn(conn, user_id, id_agenda_evento, agenda_payload)
-            id_agenda = agenda_row.get("id_agenda") or agenda_row.get("id")
-            if not id_agenda:
-                raise ValueError("No se pudo obtener id_agenda")
+            # Agenda de sesión fotográfica - solo si hay datetime_fotografia e id_ciudad_fotografia
+            if dt_foto and id_ciudad_foto:
+                foto_end = dt_foto + dt.timedelta(hours=1)
+                if foto_end.date() != dt_foto.date():
+                    foto_end = dt_foto.replace(hour=23, minute=59, second=0, microsecond=0)
+                lugar_foto = (payload_dict.get("lugar_fotografia") or "").strip()
+                title_foto = f"Fotografía {cliente}".strip() if cliente else "Sesión Fotografía"
+                desc_foto = (
+                    f"Sesión de fotografía {code} para {cliente}. "
+                    f"El {dt_foto.strftime('%Y-%m-%d')} a las {dt_foto.strftime('%H:%M')}. "
+                    f"Lugar: {lugar_foto}."
+                )
+                agenda_foto = {
+                    "start_at": dt_foto,
+                    "end_at": foto_end,
+                    "title": title_foto,
+                    "source_table": "eventos",
+                    "all_day": 0,
+                    "status": "active",
+                    "location": lugar_foto,
+                    "description": desc_foto,
+                    "source_id": new_id,
+                    "ciudad_id": id_ciudad_foto,
+                    "reminder": "15m",
+                    "url": f"/eventos/{new_id}",
+                    "in_person": 1,
+                    "recurrence": None,
+                }
+                row_foto = agenda_model.create_agenda_conn(conn, user_id, 10, agenda_foto, id_cliente=id_cliente)
+                id_agenda_foto = row_foto.get("id_agenda") or row_foto.get("id")
 
             conn.commit()
 
@@ -397,13 +503,22 @@ async def crear_evento(
     finally:
         conn.close()
 
-    await manager.broadcast_json({
-        "type": "AGENDA_INVALIDATE",
-        "source": "eventos",
-        "id_evento": new_id,
-        "id_agenda": int(id_agenda),
-        "ciudad_id": id_ciudad,
-    })
+    if id_agenda:
+        await manager.broadcast_json({
+            "type": "AGENDA_INVALIDATE",
+            "source": "eventos",
+            "id_evento": new_id,
+            "id_agenda": int(id_agenda),
+            "ciudad_id": id_ciudad,
+        })
+    if id_agenda_foto:
+        await manager.broadcast_json({
+            "type": "AGENDA_INVALIDATE",
+            "source": "eventos",
+            "id_evento": new_id,
+            "id_agenda": int(id_agenda_foto),
+            "ciudad_id": id_ciudad_foto,
+        })
 
     _log_audit(
         "CREATE",
@@ -414,7 +529,17 @@ async def crear_evento(
         request=request,
     )
 
+    await _notify_evento(
+        EVENTO_TIPO_CREACION,
+        f"Evento creado para {payload.cliente_nombre}",
+        new_id,
+        user_id,
+        id_cliente=id_cliente,
+    )
+
     item = evento_model.get_evento_by_id(new_id)
+    if item:
+        _send_correo_evento(item, "CREATE")
     return {"id": new_id, "code": code, "item": item}
 
 
@@ -428,7 +553,9 @@ def list_eventos(
     limit: Optional[int] = Query(None, ge=1, le=500),
     offset: Optional[int] = Query(None, ge=0),
     _current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
+    print(tenant_id)
     return evento_model.list_eventos(
         cliente_nombre=cliente_nombre,
         date_from=date_from,
@@ -437,6 +564,7 @@ def list_eventos(
         search=search,
         limit=limit,
         offset=offset,
+        id_cliente=tenant_id,
     )
 
 
@@ -444,21 +572,34 @@ def list_eventos(
 def search_eventos(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     q_like = f"%{q.strip()}%"
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                """
-                SELECT id_contrato AS id_evento, code, cliente_nombre, fecha_evento
-                FROM contratos
-                WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1
-                ORDER BY fecha_evento DESC
-                LIMIT %s
-                """,
-                (q_like, q_like, limit),
-            )
+            if tenant_id is not None:
+                cur.execute(
+                    """
+                    SELECT id_contrato AS id_evento, code, cliente_nombre, fecha_evento
+                    FROM contratos
+                    WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1 AND id_cliente = %s
+                    ORDER BY fecha_evento DESC
+                    LIMIT %s
+                    """,
+                    (q_like, q_like, tenant_id, limit),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT id_contrato AS id_evento, code, cliente_nombre, fecha_evento
+                    FROM contratos
+                    WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1
+                    ORDER BY fecha_evento DESC
+                    LIMIT %s
+                    """,
+                    (q_like, q_like, limit),
+                )
             return cur.fetchall() or []
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -470,6 +611,7 @@ def search_eventos(
 def evento_cards(
     payload: EventoCardsReq,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     return evento_model.cards_evento(
         cliente_nombre=payload.cliente_nombre,
@@ -477,6 +619,7 @@ def evento_cards(
         date_to=payload.date_to,
         active=payload.active,
         search=payload.search,
+        id_cliente=tenant_id,
     )
 
 
@@ -616,13 +759,20 @@ class TipoEventoCreate(BaseModel):
 @router.get("/config/tipos")
 def list_tipos_evento(
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 ORDER BY nombre ASC"
-            )
+            if tenant_id:
+                cur.execute(
+                    "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 AND id_cliente = %s ORDER BY nombre ASC",
+                    (tenant_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 ORDER BY nombre ASC"
+                )
             return cur.fetchall() or []
     finally:
         conn.close()
@@ -632,6 +782,7 @@ def list_tipos_evento(
 def create_tipo_evento(
     payload: TipoEventoCreate,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     nombre = (payload.nombre or "").strip()
     if not nombre:
@@ -639,16 +790,22 @@ def create_tipo_evento(
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                "SELECT id_tipo_evento FROM tipo_eventos WHERE nombre = %s AND active = 1 LIMIT 1",
-                (nombre,),
-            )
+            if tenant_id:
+                cur.execute(
+                    "SELECT id_tipo_evento FROM tipo_eventos WHERE nombre = %s AND id_cliente = %s AND active = 1 LIMIT 1",
+                    (nombre, tenant_id),
+                )
+            else:
+                cur.execute(
+                    "SELECT id_tipo_evento FROM tipo_eventos WHERE nombre = %s AND active = 1 LIMIT 1",
+                    (nombre,),
+                )
             if cur.fetchone():
                 raise HTTPException(status_code=409, detail="Ya existe un tipo con ese nombre")
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO tipo_eventos (nombre, active) VALUES (%s, 1)",
-                (nombre,),
+                "INSERT INTO tipo_eventos (nombre, active, id_cliente) VALUES (%s, 1, %s)",
+                (nombre, tenant_id),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -681,11 +838,11 @@ def delete_tipo_evento(
 
 _CORREO_DEFAULTS = {
     "correo_crear_evento": False,
-    "correo_hora_evento": False,
-    "correo_dia_evento": False,
-    "correo_mes_evento": False,
-    "correo_anual_evento": False,
-    "correo_hora_misa": False,
+    "correo_hora_evento":  False,
+    "correo_dia_evento":   False,
+    "correo_hora_sesion":  False,
+    "correo_dia_sesion":   False,
+    "correo_hora_misa":    False,
 }
 
 
@@ -699,7 +856,7 @@ def get_config_correo(
             cur.execute(
                 """
                 SELECT correo_crear_evento, correo_hora_evento, correo_dia_evento,
-                       correo_mes_evento, correo_anual_evento, correo_hora_misa
+                       correo_hora_sesion, correo_dia_sesion, correo_hora_misa
                 FROM configuracion_eventos
                 WHERE active = 1
                 ORDER BY id_configuracion_evento DESC
@@ -716,11 +873,11 @@ def get_config_correo(
 
 class ConfigCorreoEvento(BaseModel):
     correo_crear_evento: bool = False
-    correo_hora_evento: bool = False
-    correo_dia_evento: bool = False
-    correo_mes_evento: bool = False
-    correo_anual_evento: bool = False
-    correo_hora_misa: bool = False
+    correo_hora_evento:  bool = False
+    correo_dia_evento:   bool = False
+    correo_hora_sesion:  bool = False
+    correo_dia_sesion:   bool = False
+    correo_hora_misa:    bool = False
     model_config = ConfigDict(extra="ignore")
 
 
@@ -754,8 +911,8 @@ def save_config_correo(
                         correo_crear_evento = %s,
                         correo_hora_evento  = %s,
                         correo_dia_evento   = %s,
-                        correo_mes_evento   = %s,
-                        correo_anual_evento = %s,
+                        correo_hora_sesion  = %s,
+                        correo_dia_sesion   = %s,
                         correo_hora_misa    = %s,
                         datetime            = %s
                     WHERE id_configuracion_evento = %s
@@ -764,8 +921,8 @@ def save_config_correo(
                         int(payload.correo_crear_evento),
                         int(payload.correo_hora_evento),
                         int(payload.correo_dia_evento),
-                        int(payload.correo_mes_evento),
-                        int(payload.correo_anual_evento),
+                        int(payload.correo_hora_sesion),
+                        int(payload.correo_dia_sesion),
                         int(payload.correo_hora_misa),
                         now,
                         existing["id_configuracion_evento"],
@@ -777,7 +934,7 @@ def save_config_correo(
                     """
                     INSERT INTO configuracion_eventos
                         (correo_crear_evento, correo_hora_evento, correo_dia_evento,
-                         correo_mes_evento, correo_anual_evento, correo_hora_misa,
+                         correo_hora_sesion, correo_dia_sesion, correo_hora_misa,
                          id_user, active, datetime)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)
                     """,
@@ -785,8 +942,8 @@ def save_config_correo(
                         int(payload.correo_crear_evento),
                         int(payload.correo_hora_evento),
                         int(payload.correo_dia_evento),
-                        int(payload.correo_mes_evento),
-                        int(payload.correo_anual_evento),
+                        int(payload.correo_hora_sesion),
+                        int(payload.correo_dia_sesion),
                         int(payload.correo_hora_misa),
                         user_id,
                         now,
@@ -990,7 +1147,17 @@ async def actualizar_evento(
         request=request,
     )
 
+    await _notify_evento(
+        EVENTO_TIPO_ACTUALIZACION,
+        f"Evento #{id_evento} actualizado",
+        id_evento,
+        user_id,
+        id_cliente=row.get("id_cliente"),
+    )
+
     item = evento_model.get_evento_by_id(id_evento)
+    if item:
+        _send_correo_evento(item, "UPDATE")
     return {"updated": 1, "code": code, "item": item}
 
 
@@ -1232,9 +1399,6 @@ def eliminar_evento(
 
 # ================== DOCUMENTOS ==================
 
-UPLOADS_DIR = FsPath("uploads/eventos")
-
-
 @router.get("/{id_evento}/documentos")
 def list_documentos(
     id_evento: int,
@@ -1277,7 +1441,8 @@ async def upload_documento(
     if not row:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
 
-    dest_dir = UPLOADS_DIR / str(id_evento)
+    id_cliente = row.get("id_cliente") or 0
+    dest_dir = FsPath("uploads") / str(id_cliente) / "eventos" / str(id_evento)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     original_filename = file.filename

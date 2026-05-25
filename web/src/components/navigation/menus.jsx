@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import "./../../assets/css/menu.css";
 import "./../../assets/css/utils.css";
 import "./../../assets/css/fontawesome-free-6.1.0-web/css/all.css";
@@ -10,10 +10,10 @@ import { connect } from "react-redux";
 
 const icons = [ "fas fa-calendar", 'fas fa-file','fas fa-chart-line', 'fas fa-user', 'fas fa-cogs']
 const botones = [
-  [["Agenda", "/agenda"],[]],
+  [["Agenda", "/app/agenda"],[]],
   [["Expedientes", "/expedientes"], []],
-  [["Estadisticas", '/estadisticas'], []],
-  [["Usuarios", '/usuarios'], []],
+  [["Estadisticas", '/app/estadisticas'], []],
+  [["Usuarios", '/app/usuarios'], []],
   [["Ajustes", "/ajustes"],[]],
 ]
 

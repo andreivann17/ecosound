@@ -1,4 +1,4 @@
-// src/components/expedientes/ExpedienteCards.jsx
+﻿// src/components/expedientes/ExpedienteCards.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -111,7 +111,7 @@ const handleView = (exp) => {
 
   if (!conciliacionId) return;
 
-  navigate(`/materias/laboral/centro-conciliacion/${conciliacionId}`, {
+  navigate(`/app/materias/laboral/centro-conciliacion/${conciliacionId}`, {
     state: {
       id_conciliacion: conciliacionId,
       tipo,

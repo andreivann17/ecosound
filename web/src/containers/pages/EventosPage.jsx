@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -282,7 +282,7 @@ export default function EventosPage() {
     setExportPreviewOpen(true);
   };
 
-  const handleOpenCreate = () => navigate("/eventos/crear");
+  const handleOpenCreate = () => navigate("/app/eventos/crear");
 
   const getBottomStrip = (row) => {
     const resta = calcResta(row);
@@ -302,8 +302,8 @@ export default function EventosPage() {
     <main className="eventos-main">
       <div className="eventos-content">
 
-        <section className="eventos-header-section">
-          <div>
+        <section className="eventos-header-card">
+          <div className="eventos-header-section">
             <Space direction="vertical" size={2}>
               <Title level={2} className="eventos-title">
                 Eventos
@@ -313,9 +313,6 @@ export default function EventosPage() {
               </Text>
             </Space>
           </div>
-        </section>
-
-        <section className="eventos-section">
 
           <div className="eventos-filters-panel">
             <Row gutter={[16, 14]}>
@@ -397,8 +394,9 @@ export default function EventosPage() {
               </Col>
             </Row>
           </div>
+        </section>
 
-          <div className="eventos-stats-row eventos-stats-row-3">
+        <div className="eventos-stats-row eventos-stats-row-3">
             <Card
               className={`eventos-stat-card eventos-stat-activos ${
                 statFilter === "activos" ? "eventos-stat-active" : ""
@@ -677,7 +675,7 @@ export default function EventosPage() {
                       </div>
                       <button
                         className="evento-btn-details"
-                        onClick={() => canConsultar ? navigate(`/eventos/${row.id_evento}`) : undefined}
+                        onClick={() => canConsultar ? navigate(`/app/eventos/${row.id_evento}`) : undefined}
                         style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
                         title={!canConsultar ? "Sin permiso de consulta" : undefined}
                       >
@@ -717,7 +715,6 @@ export default function EventosPage() {
               </div>
             )}
           </div>
-        </section>
       </div>
 
       <Modal
@@ -733,6 +730,7 @@ export default function EventosPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
+              style={{ background: "#01369e", borderColor: "#01369e" }}
               onClick={() => {
                 printEventosReportPdf({
                   items: filteredItems,

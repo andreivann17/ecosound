@@ -1,4 +1,4 @@
-// src/components/tribunal/detalles/DatosExpedienteCard.jsx
+﻿// src/components/tribunal/detalles/DatosExpedienteCard.jsx
 
 import React, { useMemo } from "react";
 import { Card, Row, Col, Descriptions, Typography, Button, Space, Tag, Divider } from "antd";
@@ -81,7 +81,7 @@ export default function DatosExpedienteCard({
     const id = d?.id ?? dg?.num_unico ?? null;
     if (!id) return;
 
-    navigate(`/materias/laboral/tribunal/${id}/editar`, {
+    navigate(`/app/materias/laboral/tribunal/${id}/editar`, {
       state: {
         isEdit: true,
         idExpediente: id,

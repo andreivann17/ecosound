@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -251,7 +251,7 @@ export default function InventarioPage() {
             <div className="inv-toolbar-right">
               <Button
                 icon={<UnorderedListOutlined />}
-                onClick={() => navigate("/inventario/conteos")}
+                onClick={() => navigate("/app/inventario/conteos")}
                 className="inv-btn-clean"
                 style={{ height: 36, borderRadius: 10 }}
               >
@@ -259,7 +259,7 @@ export default function InventarioPage() {
               </Button>
               <Button
                 icon={<AppstoreOutlined />}
-                onClick={() => navigate("/inventario/conteos/nuevo")}
+                onClick={() => navigate("/app/inventario/conteos/nuevo")}
                 style={{
                   height: 36,
                   borderRadius: 10,
@@ -275,7 +275,7 @@ export default function InventarioPage() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => navigate("/inventario/equipo/crear")}
+                  onClick={() => navigate("/app/inventario/equipo/crear")}
                   className="laboral-btn-create custom-button"
                 >
                   Nuevo equipo
@@ -352,7 +352,7 @@ export default function InventarioPage() {
                       <div className="equipo-card-footer">
                         <button
                           className="equipo-btn-details"
-                          onClick={() => canConsultar ? navigate(`/inventario/equipo/${eq.id_equipo}`) : undefined}
+                          onClick={() => canConsultar ? navigate(`/app/inventario/equipo/${eq.id_equipo}`) : undefined}
                           style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
                           title={!canConsultar ? "Sin permiso de consulta" : undefined}
                         >

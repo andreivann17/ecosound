@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import audit as audit_log_model
 
 router = APIRouter(prefix="/audit-log", tags=["audit_log"])
@@ -50,19 +50,18 @@ class AuditLogCreate(AuditLogBase):
 def create_audit_log(
     payload: AuditLogCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ) -> Dict[str, Any]:
-    """
-    Crea un registro en audit_log.
-    Nota: si no mandas id_user, se toma del token.
-    """
     data = payload.model_dump(exclude_none=True)
 
-    # Si tu get_current_user trae id_user, lo amarras aquí:
     if "id_user" not in data or data["id_user"] is None:
         try:
             data["id_user"] = int(current_user.get("id_user", 0) or 0)
         except Exception:
             data["id_user"] = 0
+
+    if tenant_id is not None:
+        data["id_cliente"] = tenant_id
 
     try:
         new_id = audit_log_model.create_audit_log(data=data)
@@ -74,7 +73,7 @@ def create_audit_log(
 @router.get("", summary="Listado de audit_log (con filtros por query params)")
 def list_audit_logs(
     id_modulo: Optional[int] = Query(default=None),
-    id_key: Optional[str] = Query(default=None),  # <- CAMBIO (era Optional[int])
+    id_key: Optional[str] = Query(default=None),
     action: Optional[str] = Query(default=None),
     id_user: Optional[int] = Query(default=None),
     date_from: Optional[str] = Query(default=None, description="YYYY-MM-DD o YYYY-MM-DD HH:MM:SS"),
@@ -82,11 +81,12 @@ def list_audit_logs(
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ) -> Dict[str, Any]:
     items, total = audit_log_model.list_audit_logs(
         filters={
             "id_modulo": id_modulo,
-            "id_key": id_key,  # ahora puede ser "UAC-CI-2025-123"
+            "id_key": id_key,
             "action": action,
             "id_user": id_user,
             "date_from": date_from,
@@ -94,6 +94,7 @@ def list_audit_logs(
         },
         limit=limit,
         offset=offset,
+        id_cliente=tenant_id,
     )
     return {"items": items, "count": len(items), "total": total}
 

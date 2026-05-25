@@ -6,31 +6,32 @@ import datetime as dt
 
 # ================== CATEGORIAS ==================
 
-def list_categorias(id_user: Optional[int] = None) -> List[Dict[str, Any]]:
+def list_categorias(id_user: Optional[int] = None, id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if id_user:
-                cur.execute(
-                    "SELECT * FROM categorias_equipo WHERE actve = 1 AND id_user = %s ORDER BY nombre ASC",
-                    (id_user,),
-                )
-            else:
-                cur.execute(
-                    "SELECT * FROM categorias_equipo WHERE actve = 1 ORDER BY nombre ASC"
-                )
+            conditions = ["actve = 1"]
+            params: List[Any] = []
+            if id_cliente is not None:
+                conditions.append("id_cliente = %s")
+                params.append(id_cliente)
+            elif id_user:
+                conditions.append("id_user = %s")
+                params.append(id_user)
+            where = " AND ".join(conditions)
+            cur.execute(f"SELECT * FROM categorias_equipo WHERE {where} ORDER BY nombre ASC", params)
             return cur.fetchall() or []
     finally:
         conn.close()
 
 
-def create_categoria(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
+def create_categoria(data: Dict[str, Any], id_user: int, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO categorias_equipo (nombre, actve, id_user) VALUES (%s, 1, %s)",
-                (data["nombre"], id_user),
+                "INSERT INTO categorias_equipo (nombre, actve, id_user, id_cliente) VALUES (%s, 1, %s, %s)",
+                (data["nombre"], id_user, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -107,9 +108,14 @@ def list_equipo(
     id_categoria: Optional[int] = None,
     estado: Optional[str] = None,
     active: int = 1,
+    id_cliente: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     conditions = ["e.active = %s"]
     params: List[Any] = [active]
+
+    if id_cliente is not None:
+        conditions.append("e.id_cliente = %s")
+        params.append(id_cliente)
 
     if search:
         conditions.append("(e.nombre LIKE %s OR e.descripcion LIKE %s)")
@@ -177,15 +183,15 @@ def get_equipo_by_id(id_equipo: int) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
-def create_equipo(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
+def create_equipo(data: Dict[str, Any], id_user: int, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     now = dt.datetime.now()
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO equipo (nombre, id_categoria_equipo, descripcion, id_user, estado, active, datetime)
-                VALUES (%s, %s, %s, %s, %s, 1, %s)
+                INSERT INTO equipo (nombre, id_categoria_equipo, descripcion, id_user, estado, active, datetime, id_cliente)
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
                 """,
                 (
                     data.get("nombre"),
@@ -194,6 +200,7 @@ def create_equipo(data: Dict[str, Any], id_user: int) -> Dict[str, Any]:
                     id_user,
                     data.get("estado", "activo"),
                     now,
+                    id_cliente,
                 ),
             )
             new_id = cur.lastrowid

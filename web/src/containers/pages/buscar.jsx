@@ -1,4 +1,4 @@
-// src/components/expedientes/BuscarExpedienteModal.jsx
+﻿// src/components/expedientes/BuscarExpedienteModal.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, Card, Row, Col, Typography, AutoComplete, Input, notification } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -31,7 +31,7 @@ const STATIC_COMMANDS = [
     type: "route",
     label: "Centro de conciliación (Laboral)",
     description: "Ir al panel de Centro de conciliación",
-    route: "/materias/laboral/centro-conciliacion",
+    route: "/app/materias/laboral/centro-conciliacion",
     keywords: ["centro", "conciliacion", "conciliación", "laboral", "prejudicial"],
   },
   {
@@ -39,7 +39,7 @@ const STATIC_COMMANDS = [
     type: "route",
     label: "Tribunal laboral",
     description: "Ir al panel de Tribunal laboral",
-    route: "/materias/laboral/tribunal",
+    route: "/app/materias/laboral/tribunal",
     keywords: ["tribunal", "juicio", "tri", "laboral"],
   },
   {
@@ -47,7 +47,7 @@ const STATIC_COMMANDS = [
     type: "route",
     label: "Documentación laboral",
     description: "Ir al módulo de documentación",
-    route: "/materias/laboral/documentacion",
+    route: "/app/materias/laboral/documentacion",
     keywords: ["documentacion", "documentación", "docs", "archivos", "laboral"],
   },
 ];
@@ -247,7 +247,7 @@ const fetchExpedientes = async (q) => {
 
       // Aquí defines cómo se construye la ruta a detalle
       navigate(
-          `/materias/${materia}/${procedimiento}/${option.key}`
+          `/app/materias/${materia}/${procedimiento}/${option.key}`
       );
 
       handleCloseInternal();

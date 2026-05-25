@@ -1,4 +1,4 @@
-// src/components/empresas/detalles/DatosCard.jsx
+﻿// src/components/empresas/detalles/DatosCard.jsx
 import React, { useMemo } from "react";
 import { Card, Row, Col, Descriptions, Divider, Typography, Button, Space, Tag } from "antd";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
@@ -89,7 +89,7 @@ export default function DatosEmpresaCard({
             <Button
               type="default"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/empresas/${idEmpresa}/editar`)}
+              onClick={() => navigate(`/app/empresas/${idEmpresa}/editar`)}
               disabled={!idEmpresa}
             >
               Editar

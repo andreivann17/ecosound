@@ -17,7 +17,7 @@ import {
   Drawer,
   Checkbox,
   Grid,
-  message,
+  notification,
 } from "antd";
 import {
   ReloadOutlined,
@@ -282,9 +282,9 @@ function ExpedientesTable({ items, densityState, onOpenColumns, onEdit }) {
               ],
               onClick: ({ key }) => {
                 if (key === "edit") {
-                  onEdit ? onEdit(row) : message.info(`edit – id ${row.id}`);
+                  onEdit ? onEdit(row) : notification.info({ message: `edit – id ${row.id}` });
                 } else {
-                  message.info(`${key} – id ${row.id}`);
+                  notification.info({ message: `${key} – id ${row.id}` });
                 }
               },
             }}

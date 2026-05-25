@@ -1,7 +1,7 @@
 /* ===== 05 ===== */
 .ol-viewTabs.ant-segmented {
-  background: #f3f6fb;
-  border: 1px solid #e6ebf2;
+  background: #eef2f9;
+  border: 1px solid #c3cfe8;
   padding: 4px;
   border-radius: 12px;
 }
@@ -9,10 +9,11 @@
 .ol-viewTabs .ant-segmented-item {
   border-radius: 10px;
   font-weight: 700;
+  color: #01369e;
 }
 
 .ol-viewTabs .ant-segmented-item-selected {
-  background: #05060a !important;
+  background: #01369e !important;
   color: #fff !important;
 }
 
@@ -21,13 +22,13 @@
 }
 
 .ol-viewTabs .ant-segmented-thumb {
-  background: #05060a !important;
+  background: #01369e !important;
   border-radius: 10px !important;
 }
 
 /* hover suave */
 .ol-viewTabs .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
-  background: rgba(5, 6, 10, 0.08);
+  background: rgba(1, 54, 158, 0.10);
 }
 
 /* CONTENEDOR del toolbar */
@@ -104,15 +105,14 @@
   top: 0;
   z-index: 50;
   background: #f5f7fb;
-  border-bottom: 1px solid #e6eaf0;
 }
 
 .ol-ribbon {
-  height: 54px;
+  height: 58px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 14px 12px 8px;
   /* scroll horizontally when screen is too small rather than clipping */
   overflow-x: auto;
   overflow-y: hidden;
@@ -424,24 +424,25 @@
 }
 
 .ol-root .ant-btn-default:hover{
-  border-color: #05060a;
-  color: #05060a;
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .ol-root .ant-btn-primary{
-  background: #05060a;
-  border-color: #05060a;
+  background: #2563eb;
+  border-color: #2563eb;
   font-weight: 700;
 }
 
 .ol-root .ant-btn-primary:hover{
-  background: #2a2b30;
-  border-color: #2a2b30;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
+
 .ol-viewTabs.ant-segmented{
-  background: #f3f6fb;
-  border: 1px solid #dfe3ea;
+  background: #eef2f9;
+  border: 1px solid #c3cfe8;
   padding: 4px;
   border-radius: 12px;
 }
@@ -449,10 +450,11 @@
 .ol-viewTabs .ant-segmented-item{
   border-radius: 10px;
   font-weight: 700;
+  color: #01369e;
 }
 
 .ol-viewTabs .ant-segmented-item-selected{
-  background: #05060a !important;
+  background: #01369e !important;
   color: #fff !important;
 }
 
@@ -461,8 +463,12 @@
 }
 
 .ol-viewTabs .ant-segmented-thumb{
-  background: #05060a !important;
+  background: #01369e !important;
   border-radius: 10px !important;
+}
+
+.ol-viewTabs .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  background: rgba(1, 54, 158, 0.10);
 }
 
 .ol-month,
@@ -787,4 +793,33 @@ html, body, #root {
 .ol-sidebar .ant-checkbox:hover .ant-checkbox-inner,
 .ol-sidebar .ant-checkbox-wrapper:hover .ant-checkbox-inner {
   border-color: #05060a !important;
+}
+
+/* ===== Checkboxes filtro ribbon = azul marino #01369e ===== */
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #01369e !important;
+  border-color: #01369e !important;
+}
+.ant-checkbox-checked::after {
+  border-color: #01369e !important;
+}
+.ant-checkbox:hover .ant-checkbox-inner,
+.ant-checkbox-wrapper:hover .ant-checkbox-inner,
+.ant-checkbox-input:focus + .ant-checkbox-inner {
+  border-color: #01369e !important;
+}
+
+/* ===== DatePicker: día seleccionado = azul marino #01369e ===== */
+.ant-picker-cell-selected .ant-picker-cell-inner,
+.ant-picker-cell-selected:hover .ant-picker-cell-inner {
+  background: #01369e !important;
+}
+.ant-picker-today-btn {
+  color: #01369e !important;
+}
+.ant-picker-header-view button:hover {
+  color: #01369e !important;
+}
+.ant-picker-cell-in-view.ant-picker-cell-today .ant-picker-cell-inner::before {
+  border-color: #01369e !important;
 }

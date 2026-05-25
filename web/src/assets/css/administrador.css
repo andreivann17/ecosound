@@ -237,37 +237,56 @@ height: 100vh;
   box-shadow: 0 0 15px #007bff; /* Aumentamos el tamaño del resplandor */
 }
 
+/* Switches — active state primary blue */
+.ant-switch.ant-switch-checked {
+  background: #01369e !important;
+}
+
 .custom-button {
-    background-color: #05060a !important;
-    border-color: #05060a !important;
+    background-color: #01369e !important;
+    border-color: #01369e !important;
     color: white !important;
     transition: all 0.3s ease-out;
   }
-  
+
   .custom-button:hover {
     transform: scale(1.1);
-    background-color: #030407 !important;
-    border-color: #030407 !important;
+    background-color: #0a2a7a !important;
+    border-color: #0a2a7a !important;
   }
-  
+
   .custom-button:active {
     transform: scale(1.0);
   }
   /* Mantener el color de hover cuando está ACTIVO */
 .custom-button.active {
-  background-color: #030407 !important;  /* mismo color que hover */
-  border-color: #000000 !important;
+  background-color: #0a2a7a !important;
+  border-color: #01369e !important;
   color: #ffffff !important;
-  transform: none !important;            /* evita el zoom al estar activo */
+  transform: none !important;
   box-shadow: none !important;
-  border-left: 4px solid #000000 !important; /* azul más oscuro en el borde izq */
+  border-left: 4px solid #01369e !important;
 }
 
 /* Que el hover NO cambie el tamaño cuando ya está activo */
 .custom-button.active:hover {
   transform: none !important;
-  background-color: #030407 !important;
-  border-color: #000000 !important;
+  background-color: #0a2a7a !important;
+  border-color: #01369e !important;
+}
+
+/* Exportar / botones secundarios */
+.laboral-btn-import {
+  background-color: #6280a3 !important;
+  border-color: #6280a3 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.laboral-btn-import:hover {
+  background-color: #597494 !important;
+  border-color: #597494 !important;
+  color: #fff !important;
 }
 
 .custom-button-primary {

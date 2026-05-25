@@ -1,4 +1,4 @@
-// src/components/conciliacion/ConciliacionCards.js
+﻿// src/components/conciliacion/ConciliacionCards.js
 import React, { useMemo } from "react";
 import { Card, Row, Col, Tag, Button, Space, Typography, Tooltip, Divider } from "antd";
 import {
@@ -44,7 +44,7 @@ export default function ConciliacionCards({
   const handleView = (exp) => {
     alert(1)
     navigate(
-      `/materias/laboral/${tipo}/estado/${idEstado}/ciudad/${idCiudad}/expediente/${exp.id}`,
+      `/app/materias/laboral/${tipo}/estado/${idEstado}/ciudad/${idCiudad}/expediente/${exp.id}`,
       { state: { expediente: exp } }
     );
   };

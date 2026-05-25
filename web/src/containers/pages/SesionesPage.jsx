@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { actionSesionesFotosGet } from "../../redux/actions/sesiones_fotos/sesiones_fotos";
@@ -242,7 +242,7 @@ export default function SesionesFotosPage() {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => navigate("/sesiones/crear")}
+                onClick={() => navigate("/app/sesiones/crear")}
                 className="laboral-btn-create custom-button"
               >
                 Nueva Sesión
@@ -321,7 +321,7 @@ export default function SesionesFotosPage() {
                       </div>
                       <button
                         className="evento-btn-details"
-                        onClick={() => navigate(`/sesiones/${row.id_sesion}`)}
+                        onClick={() => navigate(`/app/sesiones/${row.id_sesion}`)}
                       >
                         VER DETALLES
                         <ArrowRightOutlined />

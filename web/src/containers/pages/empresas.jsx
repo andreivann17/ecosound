@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
+﻿// src/pages/materias/laboral/LaboralProcedimientoPage/LaboralProcedimientoPage.jsx
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -59,7 +59,7 @@ export default function LaboralProcedimientoPage() {
   });
 
   const handleCrearExpediente = () => {
-    navigate(`/empresas/crear/`, {});
+    navigate(`/app/empresas/crear/`, {});
   };
 
   return (

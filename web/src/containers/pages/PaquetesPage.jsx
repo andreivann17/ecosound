@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -6,12 +6,14 @@ import { actionPaquetesGet } from "../../redux/actions/paquetes/paquetes";
 
 import {
   Button,
+  Card,
   Input,
   Select,
   Space,
   Typography,
   Row,
   Col,
+  Modal,
 } from "antd";
 import {
   PlusOutlined,
@@ -21,8 +23,10 @@ import {
   ArrowRightOutlined,
   CheckCircleOutlined,
   UnorderedListOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 
+import { previewPaquetesReportPdf, printPaquetesReportPdf } from "../../components/utils/printPaquetesReportPdf";
 import "./PaquetesPage.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -43,6 +47,9 @@ export default function PaquetesPage() {
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [tipoFilter, setTipoFilter] = useState("todos");
+
+  const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
+  const [exportPreviewHtml, setExportPreviewHtml] = useState("");
 
   const lastFetchKey = useRef("");
 
@@ -92,20 +99,33 @@ export default function PaquetesPage() {
     return result;
   }, [filteredItems]);
 
+  const TIPO_LABEL_MAP = {
+    todos: "Todos",
+    fotografia: "Fotografía",
+    sonido: "Sonido",
+  };
+
+  const handleExportNow = () => {
+    const html = previewPaquetesReportPdf({
+      items: filteredItems,
+      tipoLabel: TIPO_LABEL_MAP[tipoFilter] || "Todos",
+    });
+    setExportPreviewHtml(html);
+    setExportPreviewOpen(true);
+  };
+
   return (
     <main className="paq-main">
       <div className="paq-content">
 
-        <section className="paq-header-section">
-          <Space direction="vertical" size={2}>
-            <Title level={2} className="paq-title">Paquetes</Title>
-            <Text className="paq-subtitle">Catálogo de paquetes de fotografía y sonido</Text>
-          </Space>
-        </section>
-
         <section className="paq-section">
 
           <div className="paq-filters-panel">
+            <Space direction="vertical" size={2} style={{ marginBottom: 16 }}>
+              <Title level={2} className="paq-title">Paquetes</Title>
+              <Text className="paq-subtitle">Catálogo de paquetes de fotografía y sonido</Text>
+            </Space>
+
             <Row gutter={[16, 14]}>
               <Col xs={24} lg={12}>
                 <div className="paq-field-label">Buscador</div>
@@ -152,27 +172,33 @@ export default function PaquetesPage() {
           </div>
 
           <div className="paq-stats-row">
-            <div
+            <Card
               className={`paq-stat-card paq-stat-foto ${tipoFilter === "fotografia" ? "paq-stat-active" : ""}`}
+              hoverable
               onClick={() => setTipoFilter((p) => (p === "fotografia" ? "todos" : "fotografia"))}
             >
-              <div className="paq-stat-icon paq-stat-icon-foto"><CameraOutlined /></div>
-              <div>
-                <div className="paq-stat-value">{counts.foto}</div>
-                <div className="paq-stat-label">Fotografía</div>
-              </div>
-            </div>
+              <Space align="center" size={10}>
+                <div className="paq-stat-icon paq-stat-icon-foto"><CameraOutlined /></div>
+                <div>
+                  <div className="paq-stat-value">{counts.foto}</div>
+                  <div className="paq-stat-label">Fotografía</div>
+                </div>
+              </Space>
+            </Card>
 
-            <div
+            <Card
               className={`paq-stat-card paq-stat-sonido ${tipoFilter === "sonido" ? "paq-stat-active" : ""}`}
+              hoverable
               onClick={() => setTipoFilter((p) => (p === "sonido" ? "todos" : "sonido"))}
             >
-              <div className="paq-stat-icon paq-stat-icon-sonido"><SoundOutlined /></div>
-              <div>
-                <div className="paq-stat-value">{counts.sonido}</div>
-                <div className="paq-stat-label">Sonido</div>
-              </div>
-            </div>
+              <Space align="center" size={10}>
+                <div className="paq-stat-icon paq-stat-icon-sonido"><SoundOutlined /></div>
+                <div>
+                  <div className="paq-stat-value">{counts.sonido}</div>
+                  <div className="paq-stat-label">Sonido</div>
+                </div>
+              </Space>
+            </Card>
           </div>
 
           <div className="paq-toolbar">
@@ -183,11 +209,18 @@ export default function PaquetesPage() {
               <Text type="secondary">{filteredItems.length} paquetes encontrados</Text>
             </div>
             <div className="paq-toolbar-right">
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExportNow}
+                className="laboral-btn-import laboral-btn-create"
+              >
+                Exportar
+              </Button>
               {canInsertar && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => navigate("/paquetes/crear")}
+                  onClick={() => navigate("/app/paquetes/crear")}
                   className="laboral-btn-create custom-button"
                 >
                   Nuevo paquete
@@ -202,13 +235,8 @@ export default function PaquetesPage() {
             </div>
           )}
 
-          {grouped.map(({ key, label, items: paquetes }) => (
+          {grouped.map(({ key, items: paquetes }) => (
             <div key={key} className="paq-category-block">
-              <div className="paq-category-title">
-                {key === "fotografia" ? <CameraOutlined /> : <SoundOutlined />}
-                {label}
-                <span className="paq-category-count">{paquetes.length}</span>
-              </div>
               <div className="paq-grid">
                 {paquetes.map((paq) => (
                   <div key={`${paq.is_paquete_sonido}-${paq.id_paquete}`} className="paq-card">
@@ -255,7 +283,7 @@ export default function PaquetesPage() {
                         className="paq-btn-details"
                         onClick={() =>
                           canConsultar
-                            ? navigate(`/paquetes/${paq.id_paquete}?is_sonido=${paq.is_paquete_sonido}`)
+                            ? navigate(`/app/paquetes/${paq.id_paquete}?is_sonido=${paq.is_paquete_sonido}`)
                             : undefined
                         }
                         style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
@@ -273,6 +301,41 @@ export default function PaquetesPage() {
 
         </section>
       </div>
+
+      <Modal
+        open={exportPreviewOpen}
+        onCancel={() => setExportPreviewOpen(false)}
+        title="Previsualización — Reporte de Paquetes"
+        width={1020}
+        centered
+        destroyOnClose
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button onClick={() => setExportPreviewOpen(false)}>Cerrar</Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              style={{ background: "#01369e", borderColor: "#01369e" }}
+              onClick={() => {
+                printPaquetesReportPdf({
+                  items: filteredItems,
+                  tipoLabel: TIPO_LABEL_MAP[tipoFilter] || "Todos",
+                });
+              }}
+            >
+              Exportar PDF
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <iframe
+            title="preview-paquetes"
+            style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+            srcDoc={exportPreviewHtml}
+          />
+        </div>
+      </Modal>
     </main>
   );
 }

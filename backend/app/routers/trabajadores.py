@@ -6,12 +6,55 @@ from pathlib import Path as FsPath
 import re
 import datetime as dt
 import shutil
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import trabajadores as trab_model
+from ..models import audit as audit_model
+from ..models import notificaciones as noti_model
+from ..realtime.ws_manager import manager
 
-UPLOADS_TRAB = FsPath("uploads/trabajadores")
+TRABAJADOR_MODULO = 5
+TIPO_CREACION = 1
+TIPO_ACTUALIZACION = 2
+TIPO_ELIMINACION = 3
 
 router = APIRouter(prefix="/trabajadores", tags=["trabajadores"])
+
+
+def _log_audit_trabajador(action: str, message: str, id_trabajador: int, user_id: int, changes=None):
+    try:
+        audit_model.create_audit_log(data={
+            "action": action,
+            "message": message,
+            "id_user": user_id,
+            "id_modulo": TRABAJADOR_MODULO,
+            "id_key": str(id_trabajador),
+            "changes": changes,
+        })
+    except Exception:
+        pass
+
+
+async def _notify_trabajador(tipo: int, descripcion: str, id_trabajador: int, user_id: int, id_cliente: Optional[int] = None):
+    try:
+        _data = {
+            "id_tipo_notificacion": tipo,
+            "id_modulo": TRABAJADOR_MODULO,
+            "descripcion": descripcion,
+            "id_user": user_id,
+            "urgente": 0,
+            "id_key": str(id_trabajador),
+        }
+        if id_cliente:
+            _data["id_cliente"] = id_cliente
+        noti_model.create_notificacion(data=_data)
+    except Exception:
+        pass
+    await manager.broadcast_json({
+        "type": "NOTIFICACION_INVALIDATE",
+        "source": "trabajadores",
+        "id_trabajador": id_trabajador,
+        "descripcion_notificacion": descripcion,
+    })
 
 
 # ================== CONFIG: CORREO ==================
@@ -169,22 +212,27 @@ def crear_puesto(
 @router.get("")
 def get_trabajadores(
     search: Optional[str] = Query(None),
-    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return trab_model.list_trabajadores(search=search)
+    return trab_model.list_trabajadores(search=search, id_cliente=tenant_id)
 
 
 @router.post("", status_code=201)
-def crear_trabajador(
+async def crear_trabajador(
     payload: TrabajadorCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
-    result = trab_model.create_trabajador(payload.model_dump(), int(user_id))
-    item = trab_model.get_trabajador_by_id(result["id_trabajador"])
-    return {"id_trabajador": result["id_trabajador"], "item": item}
+    result = trab_model.create_trabajador(payload.model_dump(), int(user_id), id_cliente=tenant_id)
+    new_id = result["id_trabajador"]
+    nombre = payload.model_dump().get("nombre") or f"#{new_id}"
+    _log_audit_trabajador("CREATE", f"Trabajador '{nombre}' registrado", new_id, int(user_id))
+    await _notify_trabajador(TIPO_CREACION, f"Nuevo trabajador '{nombre}' registrado", new_id, int(user_id), id_cliente=tenant_id)
+    item = trab_model.get_trabajador_by_id(new_id)
+    return {"id_trabajador": new_id, "item": item}
 
 
 @router.get("/{id_trabajador}")
@@ -199,7 +247,7 @@ def get_trabajador(
 
 
 @router.patch("/{id_trabajador}")
-def actualizar_trabajador(
+async def actualizar_trabajador(
     id_trabajador: int,
     payload: TrabajadorUpdate,
     _cu: Dict[str, Any] = Depends(get_current_user),
@@ -209,6 +257,9 @@ def actualizar_trabajador(
         raise HTTPException(status_code=404, detail="Trabajador no encontrado")
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     trab_model.update_trabajador(id_trabajador, data)
+    nombre = row.get("nombre") or f"#{id_trabajador}"
+    _log_audit_trabajador("UPDATE", f"Trabajador '{nombre}' actualizado", id_trabajador, _cu.get("id", 0), changes=data)
+    await _notify_trabajador(TIPO_ACTUALIZACION, f"Trabajador '{nombre}' actualizado", id_trabajador, _cu.get("id", 0), id_cliente=row.get("id_cliente"))
     item = trab_model.get_trabajador_by_id(id_trabajador)
     return {"updated": 1, "item": item}
 
@@ -223,7 +274,8 @@ async def subir_imagen_trabajador(
     if not row:
         raise HTTPException(status_code=404, detail="Trabajador no encontrado")
 
-    dest_dir = UPLOADS_TRAB / str(id_trabajador)
+    id_cliente = row.get("id_cliente") or 0
+    dest_dir = FsPath("uploads") / str(id_cliente) / "trabajadores" / str(id_trabajador)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     original_filename = file.filename
@@ -263,4 +315,20 @@ def eliminar_trabajador(
     if not row:
         raise HTTPException(status_code=404, detail="Trabajador no encontrado")
     trab_model.delete_trabajador(id_trabajador)
+    _log_audit_trabajador("DELETE", f"Trabajador #{id_trabajador} eliminado", id_trabajador, _cu.get("id", 0))
     return {"deleted": 1, "id_trabajador": id_trabajador}
+
+
+@router.get("/{id_trabajador}/actividad")
+def get_actividad_trabajador(
+    id_trabajador: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    items, total = audit_model.list_audit_logs(
+        filters={"id_modulo": TRABAJADOR_MODULO, "id_key": str(id_trabajador)},
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total}

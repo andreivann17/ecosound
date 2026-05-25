@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useNavigate } from "react-router-dom";
 import HeaderNavbar from "../../components/navigation/header_navbar.jsx"; // ajusta la ruta si es necesario
 
@@ -50,7 +50,7 @@ function MateriaLaboral() {
       description:
         "Gestiones, negociaciones y acuerdos previos a la presentación formal de una demanda laboral.",
       icon: <SolutionOutlined />,
-      route: "/materias/laboral/fuera-juicio",
+      route: "/app/materias/laboral/fuera-juicio",
       disabled: true,
     },
     {
@@ -60,7 +60,7 @@ function MateriaLaboral() {
       description:
         "Asuntos tramitados ante los Centros de Conciliación laboral, desde la cita inicial hasta el convenio.",
       icon: <TeamOutlined />,
-      route: "/materias/laboral/centro-conciliacion",
+      route: "/app/materias/laboral/centro-conciliacion",
       disabled: false,
     },
     {
@@ -70,7 +70,7 @@ function MateriaLaboral() {
       description:
         "Juicios laborales radicados ante el Tribunal laboral, incluyendo demandas, audiencias y resoluciones.",
       icon: <BankOutlined />,
-      route: "/materias/laboral/tribunal",
+      route: "/app/materias/laboral/tribunal",
       disabled: true,
     },
     {
@@ -80,7 +80,7 @@ function MateriaLaboral() {
       description:
         "Asuntos heredados o en trámite ante Juntas de Conciliación y Arbitraje, aún en proceso o en ejecución.",
       icon: <TeamOutlined />,
-      route: "/materias/laboral/junta-conciliacion",
+      route: "/app/materias/laboral/junta-conciliacion",
       disabled: true,
     },
     {
@@ -90,7 +90,7 @@ function MateriaLaboral() {
       description:
         "Control de expedientes físicos y digitales, renuncias, convenios, contratos y evidencia laboral.",
       icon: <FolderOpenOutlined />,
-      route: "/materias/laboral/documentacion",
+      route: "/app/materias/laboral/documentacion",
       disabled: true,
     },
     {
@@ -99,7 +99,7 @@ function MateriaLaboral() {
       tag: "Expedientes",
       description: "Registro y control de bajas de empleados.",
       icon: <UserDeleteOutlined />,
-      route: "/materias/laboral/desvinculaciones",
+      route: "/app/materias/laboral/desvinculaciones",
       disabled: false,
     },
   
@@ -125,7 +125,7 @@ function MateriaLaboral() {
               <Button
                   type="link"
                   icon={<ArrowLeftOutlined />}
-                  onClick={() => navigate("/materias")}
+                  onClick={() => navigate("/app/materias")}
                   className="laboral-back-btn"
                 >
                   Volver a Materia

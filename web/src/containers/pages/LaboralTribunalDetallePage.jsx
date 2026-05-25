@@ -1,4 +1,4 @@
-// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
+﻿// src/pages/materias/laboral/LaboralExpedienteDetallePage.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Modal, notification } from "antd";
@@ -230,7 +230,7 @@ const ct = isFlat
           setDeletingExp(true);
 
           // ✅ Conecta aquí tu action real:
-          // await dispatch(actionTribunalDelete(idToDelete, () => navigate("/materias/laboral/tribunal")));
+          // await dispatch(actionTribunalDelete(idToDelete, () => navigate("/app/materias/laboral/tribunal")));
 
           notification.success({
             message: "Pendiente",
@@ -337,7 +337,7 @@ const informesAutoridadActora = safeArr(informeAutoridadActora?.documentos);
             {/* breadcrumb */}
             <div className="lxp-breadcrumb">
               <a className="lxp-bc-link" href="#"
-                  onClick={() => navigate(`/materias/laboral/tribunal${location.search}`)}
+                  onClick={() => navigate(`/app/materias/laboral/tribunal${location.search}`)}
                  
                  >
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -450,7 +450,7 @@ const informesAutoridadActora = safeArr(informeAutoridadActora?.documentos);
 
                    <div
   className="lxp-edit-link"
-  onClick={() => navigate(`/materias/laboral/tribunal/${idExpediente}/editar`)}
+  onClick={() => navigate(`/app/materias/laboral/tribunal/${idExpediente}/editar`)}
 >
   <span className="material-symbols-outlined">edit</span>
   Editar

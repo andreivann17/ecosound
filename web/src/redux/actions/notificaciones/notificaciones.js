@@ -78,9 +78,9 @@ export const actionNotificacionesGet = (params = {}) => {
   return async (dispatch) => {
     dispatch(fetchNotificacionesRequest());
     try {
-      const resp = await apiServiceGet.get("notificaciones", {
+      const resp = await apiServiceGet.get("audit-log", {
         headers: { ...authHeader() },
-        params,
+        params: { limit: 200, ...params },
       });
       dispatch(fetchNotificacionesSuccess(resp.data));
       return resp.data;
@@ -98,7 +98,7 @@ export const actionNotificacionesGet = (params = {}) => {
 export const actionNotificacionesGetById = (idNotificaciones) => {
   return async (dispatch) => {
     try {
-      const resp = await apiServiceGet.get(`notificaciones/${idNotificaciones}`, {
+      const resp = await apiServiceGet.get(`audit-log/${idNotificaciones}`, {
         headers: { ...authHeader() },
       });
       return resp.data;

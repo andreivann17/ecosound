@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+﻿import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -255,7 +255,20 @@ export default function EventoDetallePage() {
         { headers: authHeaderEventos() }
       );
       const docs = Array.isArray(data) ? data : [];
-      setEventoPdfs(docs.filter((d) => d.id_tipo_documento === 1));
+      const pdfs = docs.filter((d) => d.id_tipo_documento === 1);
+      const validPdfs = (
+        await Promise.all(
+          pdfs.map(async (d) => {
+            try {
+              const res = await fetch(`${API_BASE}/${d.path}`, { method: "HEAD" });
+              return res.ok ? d : null;
+            } catch {
+              return null;
+            }
+          })
+        )
+      ).filter(Boolean);
+      setEventoPdfs(validPdfs);
       setDocumentos(docs.filter((d) => d.id_tipo_documento !== 1));
     } catch {
       setEventoPdfs([]);
@@ -515,7 +528,10 @@ export default function EventoDetallePage() {
     return total - anticipo - totalPagosAdicionales;
   })();
 
-  const tipoLabel = TIPO_EVENTO_MAP[evento.id_tipo_evento] || "—";
+  const tipoLabel = TIPO_EVENTO_MAP[evento.id_tipo_evento] ||
+    (evento.id_paquete_fotografia || evento.lugar_fotografia || evento.datetime_fotografia
+      ? "Fotografía"
+      : "Sesión");
   const ciudadLabel = CIUDAD_MAP[evento.id_ciudad] || "—";
   const horaInicio = fmtHora(evento.hora_inicio);
   const horaFinal = fmtHora(evento.hora_final);
@@ -657,20 +673,8 @@ export default function EventoDetallePage() {
               <DollarOutlined />
               Abonos y Pagos
             </button>
-              <button
-              className={`cd-tab-btn ${activeTab === "equipo" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("equipo")}
-            >
-              <AppstoreOutlined />
-              Equipo
-            </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "trabajadores" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("trabajadores")}
-            >
-              <TeamOutlined />
-              Trabajadores
-            </button>
+             
+           
             <button
               className={`cd-tab-btn ${activeTab === "historial" ? "cd-tab-btn-active" : ""}`}
               onClick={() => setActiveTab("historial")}
@@ -811,29 +815,75 @@ export default function EventoDetallePage() {
                 )}
               </div>
 
-              {(evento.id_paquete_sonido || evento.id_paquete_fotografia) && (
+              <div className="cd-misa-block">
+                <div className="cd-misa-title">
+                  <FileImageOutlined style={{ fontSize: 13, color: "#6b7280" }} />
+                  Sesión de Fotografía
+                </div>
+                {(evento.datetime_fotografia || evento.id_ciudad_fotografia || evento.lugar_fotografia || evento.comentarios_fotografia || evento.id_paquete_fotografia) ? (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20, marginBottom: 16 }}>
+                      <div>
+                        <span className="cd-field-label">Paquete Fotografía</span>
+                        <div className="cd-field-icon-row">
+                          <GiftOutlined className="cd-field-row-icon" />
+                          <span className="cd-field-value">
+                            {evento.id_paquete_fotografia
+                              ? (evento.nombre_paquete_fotografia ||
+                                  paquetesFoto.find(p => p.id_paquete_fotografia === evento.id_paquete_fotografia)?.nombre ||
+                                  `Paquete #${evento.id_paquete_fotografia}`)
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="cd-field-label">Fecha y Hora de Sesión</span>
+                        <div className="cd-field-icon-row">
+                          <CalendarOutlined className="cd-field-row-icon" />
+                          <span className="cd-field-value">
+                            {evento.datetime_fotografia ? fmtDatetime(evento.datetime_fotografia) : "—"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="cd-event-location" style={{ marginBottom: evento.comentarios_fotografia ? 12 : 0 }}>
+                      <EnvironmentOutlined className="cd-location-icon" />
+                      <div>
+                        <span className="cd-field-label">Lugar de la Sesión</span>
+                        <p className="cd-location-text">
+                          {[CIUDAD_MAP[evento.id_ciudad_fotografia], evento.lugar_fotografia].filter(Boolean).join(" - ") || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    {evento.comentarios_fotografia && (
+                      <div style={{ marginTop: 12 }}>
+                        <span className="cd-field-label">Comentarios</span>
+                        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#595c5e", lineHeight: 1.5 }}>
+                          {evento.comentarios_fotografia}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="cd-misa-none">
+                    <span>No hay sesión de fotografía contratada para este evento</span>
+                  </div>
+                )}
+              </div>
+
+              {evento.id_paquete_sonido && (
                 <div className="cd-misa-block">
                   <div className="cd-misa-title">
                     <GiftOutlined style={{ fontSize: 13, color: "#6b7280" }} />
-                    Paquetes contratados
+                    Paquete Sonido
                   </div>
                   <div className="cd-misa-fields">
-                    {evento.id_paquete_sonido && (
-                      <div>
-                        <span className="cd-field-label">Paquete Sonido</span>
-                        <span className="cd-field-value">
-                          {paquetesSonido.find(p => p.id_paquete_sonido === evento.id_paquete_sonido)?.nombre || `Paquete #${evento.id_paquete_sonido}`}
-                        </span>
-                      </div>
-                    )}
-                    {evento.id_paquete_fotografia && (
-                      <div>
-                        <span className="cd-field-label">Paquete Fotografía</span>
-                        <span className="cd-field-value">
-                          {paquetesFoto.find(p => p.id_paquete_fotografia === evento.id_paquete_fotografia)?.nombre || `Paquete #${evento.id_paquete_fotografia}`}
-                        </span>
-                      </div>
-                    )}
+                    <div>
+                      <span className="cd-field-label">Paquete Sonido</span>
+                      <span className="cd-field-value">
+                        {paquetesSonido.find(p => p.id_paquete_sonido === evento.id_paquete_sonido)?.nombre || `Paquete #${evento.id_paquete_sonido}`}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1433,7 +1483,7 @@ export default function EventoDetallePage() {
         title="Registrar abono"
         confirmLoading={savingPago}
         centered
-        okButtonProps={{ style: { background: "#05060a", borderColor: "#05060a" } }}
+        okButtonProps={{ style: { background: "#01369e", borderColor: "#01369e" } }}
       >
         <Form form={pagoForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
@@ -1856,6 +1906,7 @@ export default function EventoDetallePage() {
         style={{ maxWidth: 1100 }}
         bodyStyle={{ padding: 0, height: "82vh" }}
         destroyOnClose
+        classNames={{ content: "ev-viewer-modal" }}
       >
         {viewerDoc && (() => {
           const type = getFileType(viewerDoc.filename);
@@ -1894,7 +1945,7 @@ export default function EventoDetallePage() {
                 Vista previa no disponible para este tipo de archivo.
               </p>
               <a href={url} download={viewerDoc.filename}>
-                <Button type="primary" style={{ background: "#05060a", borderColor: "#05060a" }}>
+                <Button type="primary" style={{ background: "#01369e", borderColor: "#01369e" }}>
                   Descargar archivo
                 </Button>
               </a>
