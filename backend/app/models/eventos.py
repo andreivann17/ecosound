@@ -260,16 +260,17 @@ def create_evento_abono(
     id_user: int,
     importe: str,
     fecha: dt.datetime,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO contratos_abonos (importe, fecha, active, id_user, id_contrato)
-                VALUES (%s, %s, 1, %s, %s)
+                INSERT INTO contratos_abonos (importe, fecha, active, id_user, id_contrato, id_cliente)
+                VALUES (%s, %s, 1, %s, %s, %s)
                 """,
-                (importe, fecha, id_user, id_evento),
+                (importe, fecha, id_user, id_evento, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -446,8 +447,8 @@ def add_evento_equipo(id_evento: int, data: Dict[str, Any]) -> Dict[str, Any]:
             cur.execute(
                 """
                 INSERT INTO contratos_equipos
-                    (id_contrato, id_equipo, cantidad, fecha_salida, fecha_regreso, descripcion, datetime)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (id_contrato, id_equipo, cantidad, fecha_salida, fecha_regreso, descripcion, datetime, id_cliente)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     id_evento,
@@ -457,6 +458,7 @@ def add_evento_equipo(id_evento: int, data: Dict[str, Any]) -> Dict[str, Any]:
                     fecha_regreso,
                     data.get("descripcion") or None,
                     now,
+                    data.get("id_cliente"),
                 ),
             )
             new_id = cur.lastrowid

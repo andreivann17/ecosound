@@ -326,6 +326,7 @@ def add_contrato_trabajador(
     id_trabajador: int,
     id_puesto: Optional[int],
     id_user: int,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     now = dt.datetime.now()
     conn = get_connection()
@@ -334,10 +335,10 @@ def add_contrato_trabajador(
             cur.execute(
                 """
                 INSERT INTO contratos_trabajadores
-                    (id_contrato, id_trabajador, id_puesto, active, datetime, id_user)
-                VALUES (%s, %s, %s, 1, %s, %s)
+                    (id_contrato, id_trabajador, id_puesto, active, datetime, id_user, id_cliente)
+                VALUES (%s, %s, %s, 1, %s, %s, %s)
                 """,
-                (id_contrato, id_trabajador, id_puesto or None, now, id_user),
+                (id_contrato, id_trabajador, id_puesto or None, now, id_user, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()

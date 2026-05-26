@@ -1205,6 +1205,7 @@ def create_abono(
         id_user=int(user_id),
         importe=payload.monto,
         fecha=fecha_dt,
+        id_cliente=row.get("id_cliente"),
     )
     _log_audit(
         "ABONO_ADD",
@@ -1309,6 +1310,7 @@ def add_equipo_evento(
         "cantidad": payload.cantidad,
         "fecha_salida": fecha_salida_str,
         "descripcion": payload.descripcion,
+        "id_cliente": row.get("id_cliente"),
     })
     items = evento_model.list_evento_equipo(id_evento)
     return {"id_contrato_equipo": result["id_contrato_equipo"], "items": items}
@@ -1354,8 +1356,10 @@ def add_trabajador_evento(
             detail="Este trabajador ya está asignado a este evento",
         )
     user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    evento_row = evento_model.get_evento_by_id(id_evento)
+    id_cliente = evento_row.get("id_cliente") if evento_row else None
     result = trab_model.add_contrato_trabajador(
-        id_evento, payload.id_trabajador, payload.id_puesto, user_id
+        id_evento, payload.id_trabajador, payload.id_puesto, user_id, id_cliente
     )
     items = trab_model.list_contrato_trabajadores(id_evento)
     return {"id_contrato_trabajador": result["id_contrato_trabajador"], "items": items}
