@@ -1454,6 +1454,8 @@ async def upload_documento(
     with dest_path.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
 
+    from ..utils.comprimir import compress_file_best_effort
+    dest_path = compress_file_best_effort(dest_path)
     rel_path = str(dest_path).replace("\\", "/")
 
     conn = get_connection()

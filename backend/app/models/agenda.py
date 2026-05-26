@@ -334,11 +334,6 @@ def list_agenda_post(
             cur.close()
     finally:
         conn.close()
-def _row_to_api(r: dict) -> dict:
-    r = dict(r or {})
-    r["documento_filename"] = r.get("documento_filename")
-    r["documento_url"] = r.get("documento_url")
-    return r
 def get_agenda_raw_by_id_conn(conn, id_user: int, id_agenda: int) -> Optional[Dict[str, Any]]:
     """
     Row crudo (DB) para comparaciones. NO mapea a API.

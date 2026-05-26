@@ -25,63 +25,64 @@ _POOL: Optional[pooling.MySQLConnectionPool] = None
 _POOL_ADMIN: Optional[pooling.MySQLConnectionPool] = None
 
 
-def init_pool() -> None:
-    """Initialize the MySQL connection pool.
+def _get_base_config() -> dict:
+    return {
+        "host":     os.getenv("DB_HOST", "localhost"),
+        "port":     int(os.getenv("DB_PORT", "3306")),
+        "user":     os.getenv("DB_USER", "root"),
+        "password": os.getenv("DB_PASSWORD", ""),
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "20")),
+        "autocommit": True,
+        "consume_results": True,
+    }
 
-    Reads the database connection settings from environment variables
-    and creates a pool of connections. This function should be
-    idempotent; calling it multiple times will reinitialize the pool.
 
-    Environment variables used:
-
-    - ``DB_HOST``: the database host (default: ``"localhost"``)
-    - ``DB_PORT``: the database port (default: ``3308``)
-    - ``DB_NAME``: the database name (default: ``"ecosound"``)
-    - ``DB_USER``: the database user (default: ``"root"``)
-    - ``DB_PASSWORD``: the database password (default: ``"fifolin123"``)
-    - ``DB_POOL_SIZE``: the number of connections in the pool (default: ``5``)
-    """
+def _init_main_pool() -> None:
     global _POOL
-
-    host = os.getenv("DB_HOST", "localhost")
-    port = int(os.getenv("DB_PORT", "3306"))
-    database = os.getenv("DB_NAME", "ecosound")
-    user = os.getenv("DB_USER", "root")
-    password = os.getenv("DB_PASSWORD", "")
-    pool_size = int(os.getenv("DB_POOL_SIZE", "20"))
-
+    cfg = _get_base_config()
     _POOL = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="fastapi_pool",
-        pool_size=pool_size,
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-        autocommit=True,
-        consume_results=True,
+        pool_size=cfg["pool_size"],
+        host=cfg["host"],
+        port=cfg["port"],
+        database=os.getenv("DB_NAME", "ecosound"),
+        user=cfg["user"],
+        password=cfg["password"],
+        autocommit=cfg["autocommit"],
+        consume_results=cfg["consume_results"],
     )
 
+
+def _init_admin_pool() -> None:
     global _POOL_ADMIN
-    admin_database = os.getenv("DB_ADMIN_NAME", "administrador")
+    cfg = _get_base_config()
     _POOL_ADMIN = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="fastapi_admin_pool",
-        pool_size=pool_size,
-        host=host,
-        port=port,
-        database=admin_database,
-        user=user,
-        password=password,
-        autocommit=True,
-        consume_results=True,
+        pool_size=cfg["pool_size"],
+        host=cfg["host"],
+        port=cfg["port"],
+        database=os.getenv("DB_ADMIN_NAME", "administrador"),
+        user=cfg["user"],
+        password=cfg["password"],
+        autocommit=cfg["autocommit"],
+        consume_results=cfg["consume_results"],
     )
+
+
+def init_pool() -> None:
+    """Initialize both MySQL connection pools independently."""
+    _init_main_pool()
+    try:
+        _init_admin_pool()
+    except Exception:
+        pass
 
 
 def get_admin_connection() -> mysql.connector.connection.MySQLConnection:
     """Get a connection from the admin pool (database: administrador)."""
     global _POOL_ADMIN
     if _POOL_ADMIN is None:
-        init_pool()
+        _init_admin_pool()
     assert _POOL_ADMIN is not None
     return _POOL_ADMIN.get_connection()
 
@@ -100,6 +101,6 @@ def get_connection() -> mysql.connector.connection.MySQLConnection:
     """
     global _POOL
     if _POOL is None:
-        init_pool()
+        _init_main_pool()
     assert _POOL is not None  # mypy/linters
     return _POOL.get_connection()

@@ -437,6 +437,8 @@ async def subir_imagen_equipo(
     with dest_path.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
 
+    from ..utils.comprimir import compress_file_best_effort
+    dest_path = compress_file_best_effort(dest_path, max_image_dimension=1920)
     rel_path = str(dest_path).replace("\\", "/")
     inv_model.update_equipo_imagen(id_equipo, original_filename, rel_path)
 

@@ -5,6 +5,74 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".gif", ".webp"}
+
+
+def compress_image_inplace(
+    input_path: "str | Path",
+    max_dimension: int = 1920,
+    quality: int = 85,
+) -> Path:
+    """
+    Comprime una imagen en disco usando Pillow.
+    - PNG  → optimiza en PNG (preserva transparencia)
+    - Resto → convierte a JPEG quality=85 y reemplaza el archivo original.
+    Redimensiona si algún lado supera max_dimension (mantiene proporción).
+    Retorna el Path final (puede cambiar extensión a .jpg).
+    """
+    from PIL import Image as _Image
+
+    in_path = Path(input_path)
+    ext = in_path.suffix.lower()
+
+    img = _Image.open(in_path)
+
+    w, h = img.size
+    if max(w, h) > max_dimension:
+        ratio = max_dimension / max(w, h)
+        img = img.resize((int(w * ratio), int(h * ratio)), _Image.LANCZOS)
+
+    if ext == ".png":
+        if img.mode not in ("RGB", "RGBA", "P", "L"):
+            img = img.convert("RGBA")
+        img.save(in_path, format="PNG", optimize=True)
+        return in_path
+    else:
+        out_path = in_path.with_suffix(".jpg")
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.save(out_path, format="JPEG", quality=quality, optimize=True)
+        if out_path != in_path:
+            in_path.unlink(missing_ok=True)
+        return out_path
+
+
+def compress_file_best_effort(
+    path: "str | Path",
+    max_image_dimension: int = 1920,
+    image_quality: int = 85,
+) -> Path:
+    """
+    Detecta tipo de archivo y aplica la compresión adecuada (best-effort, nunca revienta).
+    - Imagen: Pillow (redimensiona + recomprime)
+    - PDF: Ghostscript
+    - Otros: sin cambio
+    Retorna el Path final (puede diferir si se convirtió a .jpg).
+    """
+    p = Path(path)
+    ext = p.suffix.lower()
+
+    if ext in _IMAGE_EXTS:
+        try:
+            return compress_image_inplace(p, max_dimension=max_image_dimension, quality=image_quality)
+        except Exception as e:
+            print(f"WARN compress_image_inplace: {e}")
+            return p
+    elif ext == ".pdf":
+        return compress_pdf_best_effort_inplace(p)
+
+    return p
+
 
 def _resolve_gs_path() -> str:
     """

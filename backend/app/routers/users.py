@@ -523,6 +523,8 @@ async def upload_my_imagen(
     with dest_path.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
 
+    from ..utils.comprimir import compress_file_best_effort
+    dest_path = compress_file_best_effort(dest_path, max_image_dimension=800)
     rel_path = str(dest_path).replace("\\", "/")
     users_model.update_perfil_imagen(id_user, original_filename, rel_path)
     return {"path": rel_path, "filename": original_filename}
@@ -602,6 +604,10 @@ async def upload_user_imagen(
     dest = folder / filename
     with dest.open("wb") as f:
         shutil.copyfileobj(file.file, f)
+
+    from ..utils.comprimir import compress_file_best_effort
+    dest = compress_file_best_effort(dest, max_image_dimension=800)
+    filename = dest.name
     path_str = f"uploads/usuarios/{code}/{filename}"
     users_model.update_user_imagen(code=code, filename=filename, path=path_str)
     return {"path": path_str, "filename": filename}

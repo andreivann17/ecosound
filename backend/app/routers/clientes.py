@@ -337,6 +337,9 @@ async def upload_archivo(
     with dest_path.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
 
+    from ..utils.comprimir import compress_file_best_effort
+    dest_path = compress_file_best_effort(dest_path)
+    stored_name = dest_path.name
     stat = dest_path.stat()
     user_id = _uid(current_user)
     clientes_model.save_archivo_db(

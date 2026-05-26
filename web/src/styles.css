@@ -597,12 +597,12 @@ body { background: #f0f2f5; }
 .profile-dot{ background: #d1d3f5; width: 64px; height: 64px; border-radius: 50%; }
 .profile-dot.small{ width: 20px; height: 20px; border-radius: 50%; }
 
-.win-controls{ display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.win-controls{ display: inline-flex; align-items: stretch; gap: 0; margin-left: 8px; align-self: stretch; }
 .electron-btn{
-  width: 28px; height: 28px;
+  width: 46px; height: 100%;
   display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: none; color: #fff; font-size: 15px;
-  border-radius: 4px; cursor: pointer; transition: background .15s ease;
+  background: transparent; border: none; color: #fff; font-size: 18px;
+  border-radius: 0; cursor: pointer; transition: background .15s ease;
 }
 .electron-btn:hover{ background: #ffffff26; }
 .electron-btn-close:hover{ background:#e53935; color:#fff; }

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pip show:*)",
-      "Bash(./venv/Scripts/pip install:*)"
+      "Bash(./venv/Scripts/pip install:*)",
+      "PowerShell(Get-Command python3, python, py -ErrorAction SilentlyContinue)"
     ]
   }
 }

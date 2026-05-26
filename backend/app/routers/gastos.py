@@ -466,15 +466,9 @@ async def upload_documento_gasto(
     with dest_path.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
 
+    from ..utils.comprimir import compress_file_best_effort
+    dest_path = compress_file_best_effort(dest_path)
     rel_path = str(dest_path).replace("\\", "/")
-
-    # Compress PDF with Ghostscript (best-effort)
-    if FsPath(original_filename).suffix.lower() == ".pdf":
-        try:
-            from ..utils.comprimir import compress_pdf_best_effort_inplace
-            compress_pdf_best_effort_inplace(dest_path)
-        except Exception:
-            pass
 
     gastos_model.update_gasto(id_gasto, {"filename": original_filename, "path": rel_path})
     _log_audit_gasto("DOCUMENTO_ADD", f"Documento adjunto: {original_filename}", id_gasto, cu["id"])
