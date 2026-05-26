@@ -171,7 +171,7 @@ const estadoOptions = useMemo(() => {
 
   const handleBack = () => {
  
-    navigate("/materias/laboral/desvinculaciones");
+    navigate("/app/materias/laboral/desvinculaciones");
   };
 
   // ===== Carga catálogos (para que el HIJO pueda pintar selects)

@@ -162,7 +162,7 @@ export default function CrearUsuarioPage() {
           type="link"
           className="cc-back-btn"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/usuarios")}
+          onClick={() => navigate("/app/usuarios")}
         >
           Volver a Usuarios
         </Button>
@@ -180,7 +180,7 @@ export default function CrearUsuarioPage() {
             </Text>
           </div>
           <Space>
-            <Button className="eventos-btn-clean" onClick={() => navigate("/usuarios")} disabled={saving}>
+            <Button className="eventos-btn-clean" onClick={() => navigate("/app/usuarios")} disabled={saving}>
               Cancelar
             </Button>
             <Button

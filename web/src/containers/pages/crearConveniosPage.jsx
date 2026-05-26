@@ -155,7 +155,7 @@ const idCiudad =
 
   const handleBack = () => {
  
-    navigate("/materias/laboral/convenios");
+    navigate("/app/materias/laboral/convenios");
   };
 
   // ===== Carga catálogos (para que el HIJO pueda pintar selects)

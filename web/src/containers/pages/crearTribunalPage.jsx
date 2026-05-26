@@ -324,10 +324,10 @@ onSubmit={async (payload, filesMap) => {
   });
 
   if (newId) {
-    navigate(`/materias/laboral/tribunal/${newId}`);
+    navigate(`/app/materias/laboral/tribunal/${newId}`);
   } else {
     // fallback seguro si tu backend no manda id
-    navigate("/materias/laboral/tribunal");
+    navigate("/app/materias/laboral/tribunal");
   }
 }
 

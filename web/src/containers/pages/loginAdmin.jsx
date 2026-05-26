@@ -2,7 +2,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { notification, Button, Spin } from "antd";
-import logo from "../../assets/img/logo_hersom_event_2.png";
+import logo from "../../assets/img/logo_herrsoft.jpeg";
 import { actionLoginAdmin } from "../../redux/actions/login/login";
 import { Form, FloatingLabel } from 'react-bootstrap';
 import ModalOlvidar from "../../components/modals/modalOlvidarPassword";
@@ -85,9 +85,9 @@ openNotification("Please complete all fields correctly.");
       <div className="login-container">
         <div className="login-left">
           <div className="text-center">
-            <img src={logo} alt="UABC logo" style={{ width: 140 }} />
-           <h2 className="login-title">Administración</h2>
-<p className="login-subtitle">Panel de administración del sistema</p>
+            <img src={logo} alt="UABC logo" style={{ width: 180 }} />
+           <h3 className="login-title">Admin</h3>
+
 
           </div>
 

@@ -7,6 +7,10 @@ import {
   apiEventosInstance,
   authHeaderEventos,
 } from "../../redux/actions/eventos/eventos";
+import {
+  apiPaquetesInstance,
+  authHeaderPaquetes,
+} from "../../redux/actions/paquetes/paquetes";
 import { actionCiudadesGet } from "../../redux/actions/ciudades/ciudades";
 
 import {
@@ -149,26 +153,13 @@ export default function CrearEventoPage() {
   useEffect(() => {
     const fetchPaquetes = async () => {
       try {
-        const [rs, rf] = await Promise.all([
-          apiEventosInstance.get("/eventos/config/paquetes-sonido", {
-            headers: authHeaderEventos(),
-          }),
-          apiEventosInstance.get("/eventos/config/paquetes-fotografia", {
-            headers: authHeaderEventos(),
-          }),
-        ]);
-        setPaquetesSonido(
-          (rs.data || []).map((p) => ({
-            label: p.nombre,
-            value: p.id_paquete_sonido,
-          }))
-        );
-        setPaquetesFoto(
-          (rf.data || []).map((p) => ({
-            label: p.nombre,
-            value: p.id_paquete_fotografia,
-          }))
-        );
+        const res = await apiPaquetesInstance.get("/paquetes", {
+          headers: authHeaderPaquetes(),
+        });
+        const todos = res.data || [];
+        const toOption = (p) => ({ label: p.nombre, value: p.id_paquete });
+        setPaquetesSonido(todos.filter((p) => p.is_paquete_sonido).map(toOption));
+        setPaquetesFoto(todos.filter((p) => !p.is_paquete_sonido).map(toOption));
       } catch {}
     };
     fetchPaquetes();
@@ -470,7 +461,7 @@ export default function CrearEventoPage() {
       notification.success({
         message: isEditing ? "Evento actualizado correctamente" : "Evento creado exitosamente",
       });
-      navigate("/eventos");
+      navigate("/app/eventos");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -488,7 +479,7 @@ export default function CrearEventoPage() {
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/eventos")}
+          onClick={() => navigate("/app/eventos")}
           className="cc-back-btn"
         >
           Volver a Eventos
@@ -511,7 +502,7 @@ export default function CrearEventoPage() {
           <Space>
             <Button
               className="eventos-btn-clean"
-              onClick={() => navigate("/eventos")}
+              onClick={() => navigate("/app/eventos")}
               disabled={saving}
             >
               Cancelar

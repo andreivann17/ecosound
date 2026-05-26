@@ -287,7 +287,7 @@ export default function ContratosPage() {
   }, [items]);
 
   // ── navegación a crear / editar ──────────────────────────
-  const handleOpenCreate = () => navigate("/contratos/crear");
+  const handleOpenCreate = () => navigate("/app/contratos/crear");
 
   // ── bottom strip de la card ───────────────────────────────
   const getBottomStrip = (row) => {

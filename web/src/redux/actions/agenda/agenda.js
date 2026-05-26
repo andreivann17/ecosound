@@ -117,6 +117,25 @@ export const actionAgendaGet = (params = {}) => {
 };
 
 /**
+ * GET BY SOURCE (GET /agenda/by-source?source_table=&source_id=)
+ */
+export const actionAgendaGetBySource = (sourceTable, sourceId) => {
+  return async (dispatch) => {
+    try {
+      const resp = await apiServiceGet.get("agenda/by-source", {
+        headers: { ...authHeader() },
+        params: { source_table: sourceTable, source_id: sourceId },
+      });
+      return resp.data;
+    } catch (error) {
+      const msg = handleApiError(dispatch, error, "Error al buscar evento por origen");
+      dispatch(fetchAgendaFailure(msg));
+      throw error;
+    }
+  };
+};
+
+/**
  * GET ONE (GET /agenda/{id})
  */
 export const actionAgendaGetById = (idAgenda) => {
@@ -139,39 +158,24 @@ export const actionAgendaGetById = (idAgenda) => {
  */
 export const actionAgendaCreate = (
   payload,
-  refreshParams = {},
+  _refreshParams = {},
   onDone = () => {},
   filesMap = null
 ) => {
   return async (dispatch) => {
     try {
-      // Si hay documento -> multipart
-      if (filesMap && filesMap.documento) {
-        const jsonPayload = { ...payload };
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify(payload));
 
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(jsonPayload));
-
-        const doc = filesMap.documento?.originFileObj || filesMap.documento;
-        if (doc) {
-          fd.append("documento", doc, doc.name || "documento");
-        }
-
-        const resp = await apiForm.post("agenda", fd, {
-          headers: { ...authHeader() },
-        });
-
-        await dispatch(actionAgendaGet(refreshParams));
-        onDone(resp.data);
-        return resp.data;
+      const doc = filesMap?.documento?.originFileObj || filesMap?.documento;
+      if (doc) {
+        fd.append("documento", doc, doc.name || "documento");
       }
 
-      // Si NO hay documento -> JSON normal
-      const resp = await apiServicePost.post("agenda", payload, {
+      const resp = await apiForm.post("agenda", fd, {
         headers: { ...authHeader() },
       });
 
-      await dispatch(actionAgendaGet(refreshParams));
       onDone(resp.data);
       return resp.data;
     } catch (error) {
@@ -187,39 +191,16 @@ export const actionAgendaCreate = (
 export const actionAgendaUpdate = (
   idAgenda,
   payload,
-  refreshParams = {},
+  _refreshParams = {},
   onDone = () => {},
   filesMap = null
 ) => {
   return async (dispatch) => {
     try {
-      // Si hay documento -> multipart
-      if (filesMap && filesMap.documento) {
-        const jsonPayload = { ...payload };
-
-        const fd = new FormData();
-        fd.append("payload", JSON.stringify(jsonPayload));
-
-        const doc = filesMap.documento?.originFileObj || filesMap.documento;
-        if (doc) {
-          fd.append("documento", doc, doc.name || "documento");
-        }
-
-        const resp = await apiForm.put(`agenda/${encodeURIComponent(idAgenda)}`, fd, {
-          headers: { ...authHeader() },
-        });
-
-        await dispatch(actionAgendaGet(refreshParams));
-        onDone(resp.data);
-        return resp.data;
-      }
-
-      // Si NO hay documento -> JSON normal
       const resp = await apiServicePost.put(`agenda/${idAgenda}`, payload, {
         headers: { ...authHeader() },
       });
 
-      await dispatch(actionAgendaGet(refreshParams));
       onDone(resp.data);
       return resp.data;
     } catch (error) {

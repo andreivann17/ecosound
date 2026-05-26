@@ -135,7 +135,7 @@ export default function UsuariosPage() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => navigate("/usuarios/crear")}
+                  onClick={() => navigate("/app/usuarios/crear")}
                   className="laboral-btn-create custom-button"
                 >
                   Crear Usuario

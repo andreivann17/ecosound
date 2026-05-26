@@ -18,7 +18,9 @@
       "PowerShell(Get-ChildItem \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\\\\containers\\\\pages\\\\\" | Where-Object { $_.Name -match \"notif\" -or $_.Name -match \"Notif\" })",
       "PowerShell(Get-ChildItem \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\\\\components\\\\\" -Recurse | Where-Object { $_.Extension -eq \".jsx\" -or $_.Extension -eq \".js\" } | Select-Object Name | Format-Table -AutoSize)",
       "PowerShell(Get-ChildItem \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\" -Recurse -File | Where-Object { $_.Name -match \"api|axios|auth|store|slice\" } | Select-Object FullName)",
-      "PowerShell(head -50)"
+      "PowerShell(head -50)",
+      "PowerShell(Get-ChildItem \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\" -Recurse | Where-Object { $_.Name -match \"login\" } | Select-Object FullName)",
+      "PowerShell(dir \"d:\\\\proyectos\\\\ecosound\\\\web\\\\src\\\\containers\\\\pages\\\\\" | Where-Object { $_.Name -match \"login\" })"
     ]
   }
 }

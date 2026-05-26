@@ -149,7 +149,7 @@ export default function CrearPaquetePage() {
       notification.success({
         message: isEditing ? "Paquete actualizado correctamente" : "Paquete creado exitosamente",
       });
-      navigate("/paquetes");
+      navigate("/app/paquetes");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -167,7 +167,7 @@ export default function CrearPaquetePage() {
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/paquetes")}
+          onClick={() => navigate("/app/paquetes")}
           className="cc-back-btn"
         >
           Volver a Paquetes
@@ -188,7 +188,7 @@ export default function CrearPaquetePage() {
           <Space>
             <Button
               className="eventos-btn-clean"
-              onClick={() => navigate("/paquetes")}
+              onClick={() => navigate("/app/paquetes")}
               disabled={saving}
             >
               Cancelar

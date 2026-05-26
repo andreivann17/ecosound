@@ -225,7 +225,7 @@ export default function PaqueteDetallePage() {
             { headers: authHeaderPaquetes() }
           );
           notification.success({ message: "Paquete eliminado" });
-          navigate("/paquetes");
+          navigate("/app/paquetes");
         } catch (err) {
           notification.error({
             message: "Error al eliminar",
@@ -374,7 +374,7 @@ export default function PaqueteDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/paquetes")}
+          onClick={() => navigate("/app/paquetes")}
         >
           Volver a Paquetes
         </Button>

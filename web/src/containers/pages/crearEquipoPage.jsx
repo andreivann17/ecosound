@@ -136,7 +136,7 @@ export default function CrearEquipoPage() {
       notification.success({
         message: isEditing ? "Equipo actualizado correctamente" : "Equipo creado exitosamente",
       });
-      navigate("/inventario");
+      navigate("/app/inventario");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -157,7 +157,7 @@ export default function CrearEquipoPage() {
               <Button
                 type="link"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/inventario")}
+                onClick={() => navigate("/app/inventario")}
                 style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
               >
                 Volver a Inventario
@@ -175,7 +175,7 @@ export default function CrearEquipoPage() {
             <Space style={{ marginTop: 4 }}>
               <Button
                 className="inv-btn-clean"
-                onClick={() => navigate("/inventario")}
+                onClick={() => navigate("/app/inventario")}
                 disabled={saving}
               >
                 Cancelar

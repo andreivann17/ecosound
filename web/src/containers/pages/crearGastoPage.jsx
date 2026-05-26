@@ -99,7 +99,7 @@ export default function CrearGastoPage() {
           ? "Los cambios se guardaron correctamente."
           : "El gasto fue registrado en el sistema.",
       });
-      navigate("/gastos");
+      navigate("/app/gastos");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -120,7 +120,7 @@ export default function CrearGastoPage() {
               <Button
                 type="link"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/gastos")}
+                onClick={() => navigate("/app/gastos")}
                 style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
               >
                 Volver a Gastos
@@ -138,7 +138,7 @@ export default function CrearGastoPage() {
             <Space style={{ marginTop: 4 }}>
               <Button
                 className="gas-btn-clean"
-                onClick={() => navigate("/gastos")}
+                onClick={() => navigate("/app/gastos")}
                 disabled={saving}
               >
                 Cancelar

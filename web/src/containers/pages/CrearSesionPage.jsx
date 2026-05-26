@@ -125,7 +125,7 @@ export default function CrearSesionPage() {
               <Button
                 type="link"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/sesiones")}
+                onClick={() => navigate("/app/sesiones")}
                 style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
               >
                 Volver a Sesiones
@@ -145,7 +145,7 @@ export default function CrearSesionPage() {
             <Space style={{ marginTop: 4 }}>
               <Button
                 className="eventos-btn-clean"
-                onClick={() => navigate("/sesiones")}
+                onClick={() => navigate("/app/sesiones")}
                 disabled={saving}
               >
                 Cancelar

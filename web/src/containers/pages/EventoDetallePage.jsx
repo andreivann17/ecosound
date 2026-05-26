@@ -359,7 +359,7 @@ export default function EventoDetallePage() {
             headers: authHeaderEventos(),
           });
           notification.success({ message: "Evento eliminado" });
-          navigate("/eventos");
+          navigate("/app/eventos");
         } catch (err) {
           notification.error({
             message: "Error al eliminar",
@@ -591,7 +591,7 @@ export default function EventoDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/eventos")}
+          onClick={() => navigate("/app/eventos")}
         >
           Volver a Eventos
         </Button>

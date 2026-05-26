@@ -427,9 +427,9 @@ def get_agenda_by_id_conn(conn, id_user: int, id_agenda: int) -> dict | None:
                 GROUP BY id_agenda
               ) x ON x.id_agenda = d1.id_agenda AND x.max_id = d1.id_agenda_documento
             ) ad ON ad.id_agenda = a.id_agenda
-            WHERE a.id_agenda = %s AND a.id_user = %s
+            WHERE a.id_agenda = %s
             """,
-            (id_agenda, id_user),
+            (id_agenda,),
         )
         return cur.fetchone()
 

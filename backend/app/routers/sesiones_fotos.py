@@ -585,13 +585,13 @@ def eliminar_sesion(
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT id_sesion FROM sesiones WHERE id_sesion = %s LIMIT 1",
+                "SELECT id_contrato FROM contratos WHERE id_contrato = %s AND datetime_fotografia IS NOT NULL LIMIT 1",
                 (id_sesion,),
             )
             if not cur.fetchone():
                 raise HTTPException(status_code=404, detail="Sesión no encontrada")
             cur.execute(
-                "UPDATE sesiones SET active = 0 WHERE id_sesion = %s",
+                "UPDATE contratos SET active = 0 WHERE id_contrato = %s",
                 (id_sesion,),
             )
         conn.commit()

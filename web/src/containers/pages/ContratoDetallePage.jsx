@@ -257,7 +257,7 @@ export default function ContratoDetallePage() {
             headers: authHeaderContratos(),
           });
           notification.success({ message: "Contrato eliminado" });
-          navigate("/contratos");
+          navigate("/app/contratos");
         } catch (err) {
           notification.error({
             message: "Error al eliminar",
@@ -470,7 +470,7 @@ export default function ContratoDetallePage() {
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/contratos")}
+          onClick={() => navigate("/app/contratos")}
         >
           Volver a Contratos
         </Button>

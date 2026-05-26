@@ -24,7 +24,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { usePermisos } from "./context/PermisosContext";
 import BuscarExpedienteModal from "./containers/pages/buscar.jsx";
 import logoPng from "./assets/img/logo_hersom_event_2.png";
-import logoAdminPng from "./assets/img/logo_hersom.png";
+import logoAdminPng from "./assets/img/logo_herrsoft.png";
 import "./styles.css";
 import { actionNotificacionesGet } from "./redux/actions/notificaciones/notificaciones";
 import { WS_PATH } from "./redux/utils.js";
@@ -56,7 +56,7 @@ export default function ElectronHeader({ hideUserPopover }) {
     return typeof window !== "undefined" && !!window.electronAPI;
   }, []);
 
-  const isLoginPage = location.pathname.includes("/login");
+  const isLoginPage = ["/login", "/admin-login", "/signup", "/prelogin"].includes(location.pathname);
   const canShowUser = !isLoginPage;
 
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email") || "—");

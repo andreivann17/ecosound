@@ -10,6 +10,7 @@ import {
   actionAgendaUpdate,
   actionAgendaDelete,
   actionAgendaGetById,
+  actionAgendaGetBySource,
 } from "../../redux/actions/agenda/agenda";
 import { actionSesionesFotosGet } from "../../redux/actions/sesiones_fotos/sesiones_fotos";
 
@@ -209,8 +210,8 @@ export default function OutlookCalendarPage() {
   }, []);
 
   const [filters, setFilters] = useState({
-    tipoContratoIds: null,
-    cityIds: null,
+    tipoContratoIds: [],
+    cityIds: [],
     showSesiones: true,
   });
 
@@ -280,11 +281,11 @@ export default function OutlookCalendarPage() {
   const ciudadOptions = useMemo(() => {
     return ciudadesItems
       .map((c) => ({
-        label: c?.nombre || c?.code || `Ciudad ${c?.id}`,
-        value: c?.id,
-        id_estado: c?.id_estado,
+        label: c?.nombre || `Ciudad ${c?.id_ciudad}`,
+        value: c?.id_ciudad,
+        id_estado: c?.id_estado ?? null,
       }))
-      .filter((o) => o.label && o.value != null && o.id_estado != null);
+      .filter((o) => o.label && o.value != null);
   }, [ciudadesItems]);
 
   const estadosSlice = useSelector((state) => state.estados || {});
@@ -411,10 +412,14 @@ export default function OutlookCalendarPage() {
           : null;
 
       if (isUpdate) {
-        await dispatch(actionAgendaUpdate(draft.id, payload, rangeParams, () => {}, filesMap));
+        await dispatch(actionAgendaUpdate(draft.id, payload, {}, () => {}, filesMap));
       } else {
-        await dispatch(actionAgendaCreate(payload, rangeParams, () => {}, filesMap));
+        await dispatch(actionAgendaCreate(payload, {}, () => {}, filesMap));
       }
+
+      // Refresca con los filtros activos (ciudad, tipo contrato, rango)
+      const refreshPayload = lastPayloadRef.current ?? buildAgendaPayload({ rangeParams, filters });
+      dispatch(actionAgendaPost(refreshPayload));
 
       setModalOpen(false);
       setDraft(null);
@@ -437,15 +442,55 @@ export default function OutlookCalendarPage() {
   };
 
   const onEditEvent = async (ev) => {
+    if (ev?.source === "sesiones_fotos") {
+      const sesionId = ev?.source_id ?? ev?.id_sesion;
+      // Buscar si ya existe un evento de agenda para esta sesión
+      try {
+        const existing = await dispatch(actionAgendaGetBySource("sesiones_fotos", sesionId));
+        const existingId = existing?.id ?? existing?.id_agenda;
+        if (existingId) {
+          // Ya existe → editarlo directamente
+          const full = await dispatch(actionAgendaGetById(existingId));
+          setDraft({ ...full, id: full?.id ?? full?.id_agenda ?? existingId });
+          setModalOpen(true);
+          return;
+        }
+      } catch {}
+      // No existe → abrir modal para crear uno nuevo, vinculado a la sesión
+      setDraft({
+        id: null,
+        title: ev?.title || "",
+        start: ev?.start || null,
+        end: ev?.end || null,
+        allDay: ev?.allDay ?? false,
+        ciudad_id: ev?.ciudad_id ?? null,
+        location: ev?.location || "",
+        description: ev?.description || "",
+        calendarId: "cal_main",
+        showAs: "busy",
+        recurring: false,
+        canceled: false,
+        reminder: "15m",
+        inPerson: false,
+        id_agenda_evento: null,
+        source_table: "sesiones_fotos",
+        source_id: sesionId,
+        recurrence: null,
+      });
+      setModalOpen(true);
+      return;
+    }
     const id = ev?.id ?? ev?.id_agenda;
     const full = await dispatch(actionAgendaGetById(id));
-    setDraft(full);
+    setDraft({ ...full, id: full?.id ?? full?.id_agenda ?? id });
     setModalOpen(true);
   };
 
   const onDeleteEvent = async (data) => {
     try {
-      await dispatch(actionAgendaDelete(data.id, rangeParams));
+      await dispatch(actionAgendaDelete(data.id, {}));
+      const refreshPayload = lastPayloadRef.current ?? buildAgendaPayload({ rangeParams, filters });
+      dispatch(actionAgendaPost(refreshPayload));
       notification.info({
         message: "Evento eliminado",
         description: "",

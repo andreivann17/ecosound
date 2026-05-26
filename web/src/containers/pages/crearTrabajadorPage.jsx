@@ -136,7 +136,7 @@ const handleSave = async () => {
       notification.success({
         message: isEditing ? "Trabajador actualizado correctamente" : "Trabajador creado exitosamente",
       });
-      navigate("/trabajadores");
+      navigate("/app/trabajadores");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -157,7 +157,7 @@ const handleSave = async () => {
               <Button
                 type="link"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/trabajadores")}
+                onClick={() => navigate("/app/trabajadores")}
                 style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
               >
                 Volver a Trabajadores
@@ -177,7 +177,7 @@ const handleSave = async () => {
             <Space style={{ marginTop: 4 }}>
               <Button
                 className="trab-btn-clean"
-                onClick={() => navigate("/trabajadores")}
+                onClick={() => navigate("/app/trabajadores")}
                 disabled={saving}
               >
                 Cancelar

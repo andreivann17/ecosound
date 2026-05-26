@@ -1,10 +1,28 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from ..db import get_connection
 import datetime as dt
 
+_SELECT_COLS = """
+    s.id_contrato          AS id_sesion,
+    s.cliente_nombre       AS nombre_cliente,
+    s.datetime_fotografia  AS fecha_sesion,
+    s.lugar_fotografia     AS lugar,
+    s.id_ciudad_fotografia AS id_ciudad,
+    s.comentarios_fotografia AS comentarios,
+    s.datetime,
+    s.active,
+    s.id_cliente
+"""
 
-# ================== CRUD ==================
+_FIELD_MAP = {
+    "nombre_cliente": "cliente_nombre",
+    "id_ciudad":      "id_ciudad_fotografia",
+    "lugar":          "lugar_fotografia",
+    "fecha_sesion":   "datetime_fotografia",
+    "comentarios":    "comentarios_fotografia",
+}
+
 
 def create_sesion(
     data: Dict[str, Any],
@@ -14,26 +32,31 @@ def create_sesion(
 ) -> Dict[str, Any]:
     now = dt.datetime.now()
     sql = """
-        INSERT INTO sesiones (
-            nombre_cliente,
-            id_ciudad,
-            lugar,
-            fecha_sesion,
-            comentarios,
+        INSERT INTO contratos (
+            id_user,
+            cliente_nombre,
+            datetime_fotografia,
+            lugar_fotografia,
+            id_ciudad_fotografia,
+            comentarios_fotografia,
+            importe,
+            importe_anticipo,
             datetime,
-            id_cliente,
-            active
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
+            code,
+            active,
+            id_cliente
+        ) VALUES (%s, %s, %s, %s, %s, %s, '0', '0', %s, '', 1, %s)
     """
     with conn.cursor() as cur:
         cur.execute(sql, (
+            id_user_created,
             data.get("nombre_cliente", ""),
-            data.get("id_ciudad") or None,
-            data.get("lugar") or None,
             data.get("fecha_sesion"),
+            data.get("lugar") or None,
+            data.get("id_ciudad") or None,
             data.get("comentarios") or None,
             now,
-            id_cliente,
+            id_cliente or 0,
         ))
         new_id = cur.lastrowid
 
@@ -45,11 +68,12 @@ def get_sesion_by_id(id_sesion) -> Optional[Dict[str, Any]]:
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                """
-                SELECT s.*, c.nombre AS nombre_ciudad
-                FROM sesiones s
-                LEFT JOIN ciudades c ON c.id_ciudad = s.id_ciudad
-                WHERE s.id_sesion = %s
+                f"""
+                SELECT {_SELECT_COLS},
+                       ci.nombre AS nombre_ciudad
+                FROM contratos s
+                LEFT JOIN ciudades ci ON ci.id_ciudad = s.id_ciudad_fotografia
+                WHERE s.id_contrato = %s AND s.datetime_fotografia IS NOT NULL
                 LIMIT 1
                 """,
                 (int(id_sesion),),
@@ -69,41 +93,37 @@ def list_sesiones(
     offset: Optional[int] = None,
     id_cliente: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
-    conditions = []
+    conditions = ["s.datetime_fotografia IS NOT NULL", "s.active = 1"]
     params: List[Any] = []
 
     if id_cliente is not None:
         conditions.append("s.id_cliente = %s")
         params.append(id_cliente)
 
-    conditions.append("s.active = 1")
-
     if nombre_cliente:
-        conditions.append("s.nombre_cliente LIKE %s")
+        conditions.append("s.cliente_nombre LIKE %s")
         params.append(f"%{nombre_cliente}%")
 
     if search:
-        conditions.append(
-            "(s.nombre_cliente LIKE %s OR s.lugar LIKE %s)"
-        )
+        conditions.append("(s.cliente_nombre LIKE %s OR s.lugar_fotografia LIKE %s)")
         like = f"%{search}%"
         params.extend([like, like])
 
     if date_from:
-        conditions.append("s.fecha_sesion >= %s")
+        conditions.append("s.datetime_fotografia >= %s")
         params.append(date_from)
 
     if date_to:
-        conditions.append("s.fecha_sesion <= %s")
+        conditions.append("s.datetime_fotografia <= %s")
         params.append(date_to)
 
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    where = "WHERE " + " AND ".join(conditions)
 
     sql = f"""
-        SELECT s.*
-        FROM sesiones s
+        SELECT {_SELECT_COLS}
+        FROM contratos s
         {where}
-        ORDER BY s.fecha_sesion DESC
+        ORDER BY s.datetime_fotografia DESC
     """
 
     if limit is not None:
@@ -125,9 +145,7 @@ def update_sesion(
     data: Dict[str, Any],
     conn,
 ) -> int:
-    """Actualiza campos permitidos. Devuelve rows_affected."""
-    allowed = {"nombre_cliente", "id_ciudad", "lugar", "fecha_sesion", "comentarios"}
-    updates = {k: v for k, v in data.items() if k in allowed}
+    updates = {_FIELD_MAP[k]: v for k, v in data.items() if k in _FIELD_MAP}
     if not updates:
         return 0
 
@@ -136,7 +154,7 @@ def update_sesion(
 
     with conn.cursor() as cur:
         cur.execute(
-            f"UPDATE sesiones SET {set_clause} WHERE id_sesion = %s",
+            f"UPDATE contratos SET {set_clause} WHERE id_contrato = %s",
             vals,
         )
         return cur.rowcount

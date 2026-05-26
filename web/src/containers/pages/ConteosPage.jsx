@@ -164,7 +164,7 @@ export default function ConteosPage() {
             <Button
               type="link"
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/inventario")}
+              onClick={() => navigate("/app/inventario")}
               style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
             >
               Volver a Inventario
@@ -264,7 +264,7 @@ export default function ConteosPage() {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => navigate("/inventario/conteos/nuevo")}
+                onClick={() => navigate("/app/inventario/conteos/nuevo")}
                 className="laboral-btn-create custom-button"
               >
                 Nuevo conteo
@@ -290,7 +290,7 @@ export default function ConteosPage() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={() => navigate("/inventario/conteos/nuevo")}
+                  onClick={() => navigate("/app/inventario/conteos/nuevo")}
                   className="custom-button"
                   style={{ marginTop: 16 }}
                 >
