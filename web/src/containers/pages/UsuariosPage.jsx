@@ -181,7 +181,7 @@ export default function UsuariosPage() {
                     <div className="usr-card-footer">
                       <button
                         className="usr-btn-detail"
-                        onClick={() => canConsultar ? navigate(`/usuarios/${user.code}`) : undefined}
+                        onClick={() => canConsultar ? navigate(`/app/usuarios/${user.code}`) : undefined}
                         style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
                         title={!canConsultar ? "Sin permiso de consulta" : undefined}
                       >

@@ -142,7 +142,7 @@ export default function CrearUsuarioPage() {
         });
       }
 
-      navigate(`/usuarios/${savedCode}`);
+      navigate(`/app/usuarios/${savedCode}`);
     } catch (err) {
       notification.error({
         message: "Error al guardar",
