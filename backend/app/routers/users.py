@@ -85,7 +85,7 @@ def send_reset_code(payload: EmailRequest):
         return {"status": False}
 
     token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token)
+    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user["id_cliente"])
 
     try:
         send_reset_email(payload.email, token)
@@ -135,7 +135,7 @@ def send_admin_reset_code(payload: EmailRequest):
         return {"status": False}
 
     token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token, use_admin=True)
+    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user["id_cliente"], use_admin=True)
 
     try:
         send_reset_email(payload.email, token)

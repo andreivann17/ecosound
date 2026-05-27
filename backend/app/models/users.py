@@ -528,10 +528,10 @@ def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None, us
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users_reset_tokens (email, code, created_at, used)
-                VALUES (%s, %s, NOW(), 0)
+                INSERT INTO users_reset_tokens (email, code, id_cliente, created_at, used)
+                VALUES (%s, %s, %s, NOW(), 0)
                 """,
-                (email, code),
+                (email, code, id_cliente),
             )
             conn.commit()
     finally:
