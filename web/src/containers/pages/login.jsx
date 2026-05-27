@@ -85,7 +85,7 @@ openNotification("Please complete all fields correctly.");
       <div className="login-container">
         <div className="login-left">
           <div className="text-center">
-            <img src={logo} alt="UABC logo" style={{ width: 140 }} />
+            <img src={logo} alt="HerrSoft Events logo" style={{ width: 140 }} />
            <h2 className="login-title">Iniciar sesión</h2>
 <p className="login-subtitle">Professional Management System</p>
 

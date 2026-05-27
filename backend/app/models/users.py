@@ -356,6 +356,13 @@ def _ensure_perfil(conn):
     conn.commit()
 
 
+def _get_id_cliente_from_user(conn, id_user: int) -> Optional[int]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT id_cliente FROM users WHERE id_user=%s LIMIT 1", (id_user,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
 def get_user_full_by_id(id_user: int) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     try:
@@ -409,12 +416,13 @@ def upsert_user_perfil(id_user: int, data: Dict[str, Any]) -> None:
             with conn.cursor() as cur:
                 cur.execute(f"UPDATE perfil SET {sets} WHERE id_user=%s", params)
         else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
             cols = ", ".join(filtered.keys())
             vals = ", ".join(["%s"] * len(filtered))
-            params = list(filtered.values()) + [id_user]
+            params = list(filtered.values()) + [id_user, id_cliente]
             with conn.cursor() as cur:
                 cur.execute(
-                    f"INSERT INTO perfil ({cols}, id_user, active, datetime) VALUES ({vals}, %s, 1, NOW())",
+                    f"INSERT INTO perfil ({cols}, id_user, active, datetime, id_cliente) VALUES ({vals}, %s, 1, NOW(), %s)",
                     params,
                 )
         conn.commit()
@@ -436,10 +444,11 @@ def update_perfil_imagen(id_user: int, filename: str, path: str) -> None:
                     (filename, path, id_user),
                 )
         else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, filename, path) VALUES (%s, '', '', 1, NOW(), %s, %s)",
-                    (id_user, filename, path),
+                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, filename, path, id_cliente) VALUES (%s, '', '', 1, NOW(), %s, %s, %s)",
+                    (id_user, filename, path, id_cliente),
                 )
         conn.commit()
     finally:
@@ -458,10 +467,11 @@ def update_ultima_sesion(id_user: int) -> None:
             with conn.cursor() as cur:
                 cur.execute("UPDATE perfil SET ultima_sesion=%s WHERE id_user=%s", (now, id_user))
         else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, ultima_sesion) VALUES (%s, '', '', 1, %s, %s)",
-                    (id_user, now, now),
+                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, ultima_sesion, id_cliente) VALUES (%s, '', '', 1, %s, %s, %s)",
+                    (id_user, now, now, id_cliente),
                 )
         with conn.cursor() as cur:
             cur.execute("UPDATE users SET ultmo_inicio_sesion=%s WHERE id_user=%s", (now, id_user))
@@ -508,16 +518,16 @@ def update_user_password(email: str, new_plain_password: str) -> bool:
 # === RESET TOKENS =========
 # ==========================
 
-def save_reset_token(email: str, code: str) -> None:
+def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None) -> None:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users_reset_tokens (email, code, created_at, used)
-                VALUES (%s, %s, NOW(), 0)
+                INSERT INTO users_reset_tokens (email, code, created_at, used, id_cliente)
+                VALUES (%s, %s, NOW(), 0, %s)
                 """,
-                (email, code),
+                (email, code, id_cliente),
             )
             conn.commit()
     finally:

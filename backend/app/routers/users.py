@@ -40,8 +40,8 @@ class NewPasswordRequest(BaseModel):
 
 # -------- Email --------
 
-SMTP_USER = "andreivann17@gmail.com"  # p.ej. tu Gmail
-SMTP_PASS = "ogom dsez qnze ihmv"  # app password de Gmail
+SMTP_USER = "soporte.herrsoft@gmail.com"
+SMTP_PASS = "rthy fkql nlep hnai"
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 
@@ -51,14 +51,14 @@ def send_reset_email(email: str, token: str) -> None:
         raise RuntimeError("SMTP no configurado")
 
     msg = EmailMessage()
-    msg["From"] = f'"Despacho Jurídico" <{SMTP_USER}>'
+    msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
     msg["To"] = email
-    msg["Subject"] = "Restablecimiento de contraseña"
+    msg["Subject"] = "Restablecimiento de contraseña - HerrSoft Events"
     msg.set_content(
         f"""
 Estimado(a) usuario(a),
 
-Se solicitó un restablecimiento de contraseña.
+Se solicitó un restablecimiento de contraseña para tu cuenta en HerrSoft Events.
 
 Código de verificación:
 {token}
@@ -66,7 +66,7 @@ Código de verificación:
 Si no solicitó este cambio, ignore este mensaje.
 
 Atentamente,
-Despacho Jurídico
+HerrSoft Events
 """
     )
 
@@ -85,7 +85,7 @@ def send_reset_code(payload: EmailRequest):
         return {"status": False}
 
     token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token)
+    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user.get("id_cliente"))
 
     try:
         send_reset_email(payload.email, token)

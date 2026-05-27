@@ -1,5 +1,5 @@
 import {Toast,ToastContainer,Row} from 'react-bootstrap/'
-import logo from "../../assets/img/logo.png";
+import logo from "../../assets/img/logo_hersom_event_2.png";
 function toast({show,setShow,msg}) {
   return (
     <Row>
@@ -12,7 +12,7 @@ function toast({show,setShow,msg}) {
           style={{width:"20px"}}
           alt=""
         />
-        <strong className="me-auto">UABC Retina</strong>
+        <strong className="me-auto">HerrSoft</strong>
    
       </Toast.Header>
       <Toast.Body>{msg}</Toast.Body>

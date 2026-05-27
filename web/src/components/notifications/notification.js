@@ -16,7 +16,7 @@ const App = React.forwardRef(({}, ref) => {
   };
   const contextValue = useMemo(
     () => ({
-      name: "Ant Design",
+      name: "HerrSoft",
     }),
     []
   );
