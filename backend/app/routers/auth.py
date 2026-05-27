@@ -259,19 +259,27 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
 
 @router.post("/login-admin")
 def login_admin(payload: LoginRequest) -> Dict[str, Any]:
+    from ..db import get_admin_connection
+    from ..models.auth import _verify_password, _to_bytes
+
+    conn = get_admin_connection()
     try:
-        role, user_id = authenticate(payload.email, payload.password)
-    except ValueError as exc:
-        if str(exc) == "email_not_found":
-            raise HTTPException(status_code=401, detail="Correo no registrado")
-        if str(exc) == "invalid_password":
-            raise HTTPException(status_code=401, detail="Contraseña incorrecta")
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_user, password FROM users WHERE email=%s AND active=1 LIMIT 1",
+                (payload.email,),
+            )
+            row = cur.fetchone()
+    finally:
+        conn.close()
 
-    if role != "admin":
-        raise HTTPException(status_code=403, detail="Acceso denegado. Solo administradores.")
+    if not row:
+        raise HTTPException(status_code=401, detail="Correo no registrado")
 
-    admin_token = _create_admin_token(user_id=user_id)
+    if not _verify_password(payload.password, _to_bytes(row["password"])):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+
+    admin_token = _create_admin_token(user_id=row["id_user"])
     return {"access_token": admin_token}
 
 

@@ -221,6 +221,48 @@ export const actionNewPassword = (parametros, callback, callbackError) => {
   };
 };
 
+export const actionCorreoAdmin = (parametros, callback, callbackError) => {
+  return async () => {
+    try {
+      const response = await apiServiceNoToken.fetchData(
+        `${BASE_URL}/users/admin/email/`,
+        parametros
+      );
+      callback(response.data);
+    } catch (error) {
+      callbackError(error.message);
+    }
+  };
+};
+
+export const actionCodigoAdmin = (parametros, callback, callbackError) => {
+  return async () => {
+    try {
+      const response = await apiServiceNoToken.fetchData(
+        `${BASE_URL}/users/admin/validate-code/`,
+        parametros
+      );
+      callback(response.data);
+    } catch (error) {
+      callbackError(error.message);
+    }
+  };
+};
+
+export const actionNewPasswordAdmin = (parametros, callback, callbackError) => {
+  return async () => {
+    try {
+      const response = await apiServiceNoToken.fetchData(
+        `${BASE_URL}/users/admin/new-password/`,
+        parametros
+      );
+      callback(response.data);
+    } catch (error) {
+      callbackError(error.message);
+    }
+  };
+};
+
 export const actionSignUp = (parametros, callback, callbackError) => {
   return async () => {
     try {

@@ -5,7 +5,11 @@ import bcrypt
 import secrets
 import string
 
-from ..db import get_connection
+from ..db import get_connection, get_admin_connection
+
+
+def _get_conn(use_admin: bool = False):
+    return get_admin_connection() if use_admin else get_connection()
 
 # ==========================
 # ===== EXCEPCIONES ========
@@ -32,8 +36,8 @@ def verify_password(plain: str, hashed) -> bool:
 # ===== USUARIOS ===========
 # ==========================
 
-def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-    conn = get_connection()
+def get_user_by_email(email: str, use_admin: bool = False) -> Optional[Dict[str, Any]]:
+    conn = _get_conn(use_admin)
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute("SELECT * FROM users WHERE email=%s", (email,))
@@ -499,9 +503,9 @@ def change_own_password(id_user: int, current_password: str, new_password: str) 
         conn.close()
 
 
-def update_user_password(email: str, new_plain_password: str) -> bool:
+def update_user_password(email: str, new_plain_password: str, use_admin: bool = False) -> bool:
     hashed = hash_password(new_plain_password)
-    conn = get_connection()
+    conn = _get_conn(use_admin)
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -518,24 +522,24 @@ def update_user_password(email: str, new_plain_password: str) -> bool:
 # === RESET TOKENS =========
 # ==========================
 
-def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None) -> None:
-    conn = get_connection()
+def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None, use_admin: bool = False) -> None:
+    conn = _get_conn(use_admin)
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users_reset_tokens (email, code, created_at, used, id_cliente)
-                VALUES (%s, %s, NOW(), 0, %s)
+                INSERT INTO users_reset_tokens (email, code, created_at, used)
+                VALUES (%s, %s, NOW(), 0)
                 """,
-                (email, code, id_cliente),
+                (email, code),
             )
             conn.commit()
     finally:
         conn.close()
 
 
-def validate_reset_code(email: str, code: str) -> bool:
-    conn = get_connection()
+def validate_reset_code(email: str, code: str, use_admin: bool = False) -> bool:
+    conn = _get_conn(use_admin)
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -554,8 +558,8 @@ def validate_reset_code(email: str, code: str) -> bool:
         conn.close()
 
 
-def consume_reset_code(email: str, code: str) -> bool:
-    conn = get_connection()
+def consume_reset_code(email: str, code: str, use_admin: bool = False) -> bool:
+    conn = _get_conn(use_admin)
     try:
         with conn.cursor() as cur:
             cur.execute(

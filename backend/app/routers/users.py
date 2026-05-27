@@ -85,7 +85,7 @@ def send_reset_code(payload: EmailRequest):
         return {"status": False}
 
     token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user.get("id_cliente"))
+    users_model.save_reset_token(email=payload.email, code=token)
 
     try:
         send_reset_email(payload.email, token)
@@ -102,18 +102,13 @@ def validate_code(payload: CodeValidationRequest):
 
 @router.post("/new-password/")
 def set_new_password(payload: NewPasswordRequest):
-    # 1) validar y CONSUMIR código
-    valid = users_model.consume_reset_code(
-        email=payload.email,
-        code=payload.code
-    )
+    valid = users_model.consume_reset_code(email=payload.email, code=payload.code)
     if not valid:
         return {"status": False}
 
-    # 2) actualizar password
     updated = users_model.update_user_password(
         email=payload.email,
-        new_plain_password=payload.password
+        new_plain_password=payload.password,
     )
     if updated:
         import datetime as _dt
@@ -128,6 +123,44 @@ def set_new_password(payload: NewPasswordRequest):
                 ("Hora",   _dt.datetime.now().strftime("%d/%m/%Y %H:%M")),
             ],
         )
+    return {"status": bool(updated)}
+
+
+# ---- ADMIN reset (administrador.users / administrador.users_reset_tokens) ----
+
+@router.post("/admin/email/")
+def send_admin_reset_code(payload: EmailRequest):
+    user = users_model.get_user_by_email(payload.email, use_admin=True)
+    if not user:
+        return {"status": False}
+
+    token = secrets.token_hex(5)
+    users_model.save_reset_token(email=payload.email, code=token, use_admin=True)
+
+    try:
+        send_reset_email(payload.email, token)
+        return {"status": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/admin/validate-code/")
+def validate_admin_code(payload: CodeValidationRequest):
+    ok = users_model.validate_reset_code(payload.email, payload.code, use_admin=True)
+    return {"status": ok}
+
+
+@router.post("/admin/new-password/")
+def set_admin_new_password(payload: NewPasswordRequest):
+    valid = users_model.consume_reset_code(email=payload.email, code=payload.code, use_admin=True)
+    if not valid:
+        return {"status": False}
+
+    updated = users_model.update_user_password(
+        email=payload.email,
+        new_plain_password=payload.password,
+        use_admin=True,
+    )
     return {"status": bool(updated)}
 
 # =================================================
@@ -441,18 +474,17 @@ def get_my_perfil(current_user: Dict[str, Any] = Depends(get_current_user)):
     id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
     if not id_user:
         raise HTTPException(status_code=401, detail="Usuario inválido")
-    user = users_model.get_user_full_by_id(id_user)
+    user = users_model.get_user_by_id(id_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     perfil = users_model.get_user_perfil(id_user)
     nombre = perfil.get("nombre") or user.get("name", "")
-    ultima_sesion = perfil.get("ultima_sesion") or user.get("ultmo_inicio_sesion")
+    ultima_sesion = perfil.get("ultima_sesion")
     return {
         "id": id_user,
         "code": user.get("code", ""),
         "name": nombre,
         "email": user.get("email", ""),
-        "datetime": user.get("datetime", ""),
         **perfil,
         "ultima_sesion": ultima_sesion,
     }

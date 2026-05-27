@@ -5,7 +5,7 @@ import { notification, Button, Spin } from "antd";
 import logo from "../../assets/img/logo_herrsoft.jpeg";
 import { actionLoginAdmin } from "../../redux/actions/login/login";
 import { Form, FloatingLabel } from 'react-bootstrap';
-import ModalOlvidar from "../../components/modals/modalOlvidarPassword";
+import ModalOlvidar from "../../components/modals/modalPasswordResetAdmin";
 import "../../assets/css/loginVoyager.css";
 
 function Login() {
