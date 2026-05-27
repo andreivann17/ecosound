@@ -267,6 +267,7 @@ async def crear_contrato(
     user_id = current_user.get("id") or current_user.get("id_user")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
+    id_cliente = current_user.get("id_cliente")
 
     payload_dict, _ = await _parse_payload_and_files(request)
 
@@ -318,6 +319,7 @@ async def crear_contrato(
                 data=payload.model_dump(exclude_none=True),
                 id_user_created=user_id,
                 conn=conn,
+                id_cliente=int(id_cliente) if id_cliente else None,
             )
             new_id = result["id_contrato"]
             code = result["code"]
@@ -551,7 +553,7 @@ async def importar_excel_contratos(
                 with conn.cursor() as cur:
                     cur.execute("START TRANSACTION")
 
-                result = contrato_model.create_contrato(data=data, id_user_created=int(user_id), conn=conn)
+                result = contrato_model.create_contrato(data=data, id_user_created=int(user_id), conn=conn, id_cliente=int(current_user.get("id_cliente")) if current_user.get("id_cliente") else None)
                 new_id = result["id_contrato"]
 
                 if id_ciudad:
@@ -791,6 +793,7 @@ def create_abono(
         id_user=int(user_id),
         importe=payload.monto,
         fecha=fecha_dt,
+        id_cliente=row.get("id_cliente"),
     )
     _log_audit(
         "ABONO_ADD",

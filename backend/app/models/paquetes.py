@@ -68,7 +68,7 @@ def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict
                 cur.execute(
                     """
                     SELECT id_paquete_sonido AS id_paquete, nombre, active, active_sistema,
-                        1 AS is_paquete_sonido
+                        1 AS is_paquete_sonido, id_cliente
                     FROM paquetes_sonido WHERE id_paquete_sonido = %s AND active_sistema = 1 LIMIT 1
                     """,
                     (id_paquete,),
@@ -77,7 +77,7 @@ def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict
                 cur.execute(
                     """
                     SELECT id_paquete_fotografia AS id_paquete, nombre, active, active_sistema,
-                        0 AS is_paquete_sonido
+                        0 AS is_paquete_sonido, id_cliente
                     FROM paquetes_fotografia WHERE id_paquete_fotografia = %s AND active_sistema = 1 LIMIT 1
                     """,
                     (id_paquete,),
@@ -162,16 +162,16 @@ def delete_paquete(id_paquete: int, is_paquete_sonido: bool) -> int:
         conn.close()
 
 
-def add_contenido(id_paquete: int, is_paquete_sonido: bool, descripcion: str) -> Dict[str, Any]:
+def add_contenido(id_paquete: int, is_paquete_sonido: bool, descripcion: str, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO paquetes_contenido (is_paquete_sonido, descripcion, id_paquete, active)
-                VALUES (%s, %s, %s, 1)
+                INSERT INTO paquetes_contenido (is_paquete_sonido, descripcion, id_paquete, active, id_cliente)
+                VALUES (%s, %s, %s, 1, %s)
                 """,
-                (int(is_paquete_sonido), descripcion.strip(), id_paquete),
+                (int(is_paquete_sonido), descripcion.strip(), id_paquete, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()

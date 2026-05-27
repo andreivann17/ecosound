@@ -194,4 +194,4 @@ def add_contenido(
     row = paq_model.get_paquete_by_id(id_paquete, is_sonido)
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
-    return paq_model.add_contenido(id_paquete, is_sonido, descripcion)
+    return paq_model.add_contenido(id_paquete, is_sonido, descripcion, row.get("id_cliente"))

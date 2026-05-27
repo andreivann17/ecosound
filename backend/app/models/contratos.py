@@ -22,6 +22,7 @@ def create_contrato(
     data: Dict[str, Any],
     id_user_created: int,
     conn,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Inserta un contrato. Devuelve {id_contrato, code}.
@@ -48,9 +49,10 @@ def create_contrato(
             hora_misa,
             datetime,
             code,
-            active
+            active,
+            id_cliente
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, %s
         )
     """
     with conn.cursor() as cur:
@@ -61,7 +63,7 @@ def create_contrato(
             data.get("domicilio") or None,
             data.get("celular", ""),
             data.get("fecha_evento"),
-            data.get("lugar_evento", ""), 
+            data.get("lugar_evento", ""),
             data.get("hora_inicio"),
             data.get("hora_final"),
             data.get("importe", ""),
@@ -72,7 +74,8 @@ def create_contrato(
             data.get("direccion_misa") or None,
             data.get("hora_misa") or None,
             now,
-            "",            # placeholder — se actualiza abajo con el id real
+            "",
+            id_cliente,
         ))
         new_id = cur.lastrowid
 
@@ -234,16 +237,17 @@ def create_contrato_abono(
     id_user: int,
     importe: str,
     fecha: dt.datetime,
+    id_cliente: Optional[int] = None,
 ) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO contratos_abonos (importe, fecha, active, id_user, id_contrato)
-                VALUES (%s, %s, 1, %s, %s)
+                INSERT INTO contratos_abonos (importe, fecha, active, id_user, id_contrato, id_cliente)
+                VALUES (%s, %s, 1, %s, %s, %s)
                 """,
-                (importe, fecha, id_user, id_contrato),
+                (importe, fecha, id_user, id_contrato, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()

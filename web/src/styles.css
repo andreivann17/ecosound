@@ -599,7 +599,7 @@ body { background: #f0f2f5; }
 
 .win-controls{ display: inline-flex; align-items: stretch; gap: 0; margin-left: 8px; align-self: stretch; }
 .electron-btn{
-  width: 46px; height: 100%;
+  width: 56px; height: 100%;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent; border: none; color: #fff; font-size: 18px;
   border-radius: 0; cursor: pointer; transition: background .15s ease;
