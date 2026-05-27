@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import bcrypt
 
-from ..db import get_connection
+from ..db import get_connection, get_admin_connection
 
 
 def _to_bytes(x) -> bytes:
@@ -91,7 +91,7 @@ def _fetch_credentials(table: str, email: str) -> Optional[Tuple[int, bytes]]:
     if table == "patients" and not _table_has_column("patients", "password"):
         return None  # no hay columna password en patients; omitir
 
-    cnx = get_connection()
+    cnx = get_admin_connection() if table == "users" else get_connection()
     try:
         with cnx.cursor(buffered=True) as cur:
             if table == "users":
