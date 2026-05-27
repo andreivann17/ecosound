@@ -526,13 +526,22 @@ def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None, us
     conn = _get_conn(use_admin)
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO users_reset_tokens (email, code, id_cliente, created_at, used)
-                VALUES (%s, %s, %s, NOW(), 0)
-                """,
-                (email, code, id_cliente),
-            )
+            if use_admin:
+                cur.execute(
+                    """
+                    INSERT INTO users_reset_tokens (email, code, created_at, used)
+                    VALUES (%s, %s, NOW(), 0)
+                    """,
+                    (email, code),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO users_reset_tokens (email, code, id_cliente, created_at, used)
+                    VALUES (%s, %s, %s, NOW(), 0)
+                    """,
+                    (email, code, id_cliente),
+                )
             conn.commit()
     finally:
         conn.close()
