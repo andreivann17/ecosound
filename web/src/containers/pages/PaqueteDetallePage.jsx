@@ -421,7 +421,7 @@ export default function PaqueteDetallePage() {
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
                   onClick={() =>
-                    navigate(`/paquetes/${paquete.id_paquete}/editar?is_sonido=${isSonidoParam}`, {
+                    navigate(`/app/paquetes/${paquete.id_paquete}/editar?is_sonido=${isSonidoParam}`, {
                       state: { paquete },
                     })
                   }

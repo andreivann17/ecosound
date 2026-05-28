@@ -630,7 +630,7 @@ export default function EventoDetallePage() {
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
                   onClick={() =>
-                    navigate(`/eventos/${evento.id_evento}/editar`, {
+                    navigate(`/app/eventos/${evento.id_evento}/editar`, {
                       state: { evento },
                     })
                   }

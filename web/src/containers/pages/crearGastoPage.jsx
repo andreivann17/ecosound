@@ -20,24 +20,11 @@ import {
 import {
   ArrowLeftOutlined,
   DollarOutlined,
-  FileTextOutlined,
 } from "@ant-design/icons";
 
 import "./GastosPage.css";
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
-
-const CATEGORIAS = [
-  "Equipo",
-  "Personal",
-  "Logística",
-  "Transporte",
-  "Alimentación",
-  "Marketing",
-  "Administración",
-  "Otros",
-];
 
 export default function CrearGastoPage() {
   const navigate = useNavigate();
@@ -46,18 +33,24 @@ export default function CrearGastoPage() {
   const gastoEditar = location.state?.gasto ?? null;
   const isEditing   = !!gastoEditar;
 
-  const [form]   = Form.useForm();
-  const [saving, setSaving] = useState(false);
+  const [form]        = Form.useForm();
+  const [saving, setSaving]         = useState(false);
+  const [tiposGasto, setTiposGasto] = useState([]);
+
+  useEffect(() => {
+    apiGastosInstance
+      .get("/gastos/config/tipos", { headers: authHeaderGastos() })
+      .then((res) => setTiposGasto(res.data || []))
+      .catch(() => setTiposGasto([]));
+  }, []);
 
   useEffect(() => {
     if (gastoEditar) {
       form.setFieldsValue({
-        descripcion: gastoEditar.descripcion,
-        monto:       parseFloat(gastoEditar.monto),
-        categoria:   gastoEditar.categoria,
-        fecha:       gastoEditar.fecha?.slice(0, 10) ?? "",
-        comprobante: gastoEditar.comprobante || "",
-        notas:       gastoEditar.notas || "",
+        descripcion:   gastoEditar.descripcion,
+        monto:         parseFloat(gastoEditar.monto),
+        id_tipo_gasto: gastoEditar.id_tipo_gasto ?? null,
+        fecha:         gastoEditar.fecha?.slice(0, 10) ?? "",
       });
     }
   }, [gastoEditar, form]);
@@ -71,12 +64,10 @@ export default function CrearGastoPage() {
     }
 
     const payload = {
-      descripcion: values.descripcion?.trim(),
-      monto:       values.monto,
-      categoria:   values.categoria,
-      fecha:       values.fecha,
-      comprobante: values.comprobante?.trim() || null,
-      notas:       values.notas?.trim() || null,
+      descripcion:   values.descripcion?.trim(),
+      monto:         values.monto,
+      id_tipo_gasto: values.id_tipo_gasto,
+      fecha:         values.fecha,
     };
 
     setSaving(true);
@@ -147,7 +138,7 @@ export default function CrearGastoPage() {
                 type="primary"
                 loading={saving}
                 onClick={handleSave}
-                style={{ backgroundColor: "#111", borderColor: "#111" }}
+                style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
               >
                 {isEditing ? "Guardar cambios" : "Registrar gasto"}
               </Button>
@@ -156,97 +147,63 @@ export default function CrearGastoPage() {
         </section>
 
         <Form form={form} layout="vertical">
-          <div className="gas-body-grid">
-
-            {/* Left column: main data */}
-            <div>
-              <div className="gas-section-card">
-                <div className="gas-section-header">
-                  <span className="gas-section-icon"><DollarOutlined /></span>
-                  Datos del gasto
-                </div>
-
-                <Form.Item
-                  name="descripcion"
-                  label={<span className="gas-field-label">Descripción</span>}
-                  rules={[{ required: true, message: "La descripción es requerida" }]}
-                >
-                  <Input placeholder="Ej. Compra de trípode profesional" autoComplete="off" />
-                </Form.Item>
-
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="monto"
-                      label={<span className="gas-field-label">Monto ($)</span>}
-                      rules={[
-                        { required: true, message: "El monto es requerido" },
-                        { type: "number", min: 0.01, message: "Debe ser mayor a 0" },
-                      ]}
-                    >
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        min={0.01}
-                        precision={2}
-                        placeholder="0.00"
-                        prefix="$"
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      name="fecha"
-                      label={<span className="gas-field-label">Fecha del gasto</span>}
-                      rules={[{ required: true, message: "La fecha es requerida" }]}
-                    >
-                      <Input type="date" style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Form.Item
-                  name="categoria"
-                  label={<span className="gas-field-label">Categoría</span>}
-                  rules={[{ required: true, message: "Selecciona una categoría" }]}
-                  initialValue="Otros"
-                >
-                  <Select
-                    placeholder="Selecciona la categoría"
-                    options={CATEGORIAS.map((c) => ({ label: c, value: c }))}
-                  />
-                </Form.Item>
-              </div>
+          <div className="gas-section-card">
+            <div className="gas-section-header">
+              <span className="gas-section-icon"><DollarOutlined /></span>
+              Datos del gasto
             </div>
 
-            {/* Right column: extra info */}
-            <div>
-              <div className="gas-section-card">
-                <div className="gas-section-header">
-                  <span className="gas-section-icon"><FileTextOutlined /></span>
-                  Información adicional
-                </div>
+            <Form.Item
+              name="descripcion"
+              label={<span className="gas-field-label">Descripción</span>}
+              rules={[{ required: true, message: "La descripción es requerida" }]}
+            >
+              <Input placeholder="Ej. Compra de trípode profesional" autoComplete="off" />
+            </Form.Item>
 
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
                 <Form.Item
-                  name="comprobante"
-                  label={<span className="gas-field-label">No. comprobante / referencia</span>}
+                  name="monto"
+                  label={<span className="gas-field-label">Monto ($)</span>}
+                  rules={[
+                    { required: true, message: "El monto es requerido" },
+                    { type: "number", min: 0.01, message: "Debe ser mayor a 0" },
+                  ]}
                 >
-                  <Input placeholder="Ej. FAC-0001, Ticket 4892..." autoComplete="off" />
-                </Form.Item>
-
-                <Form.Item
-                  name="notas"
-                  label={<span className="gas-field-label">Notas</span>}
-                >
-                  <TextArea
-                    rows={5}
-                    placeholder="Información adicional sobre este gasto..."
-                    maxLength={500}
-                    showCount
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0.01}
+                    precision={2}
+                    placeholder="0.00"
+                    prefix="$"
                   />
                 </Form.Item>
-              </div>
-            </div>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  name="fecha"
+                  label={<span className="gas-field-label">Fecha del gasto</span>}
+                  rules={[{ required: true, message: "La fecha es requerida" }]}
+                >
+                  <Input type="date" style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
+            <Form.Item
+              name="id_tipo_gasto"
+              label={<span className="gas-field-label">Tipo de gasto</span>}
+              rules={[{ required: true, message: "Selecciona un tipo de gasto" }]}
+            >
+              <Select
+                placeholder="Selecciona el tipo de gasto"
+                options={tiposGasto.map((t) => ({
+                  label: t.nombre,
+                  value: t.id_tipo_gasto,
+                }))}
+              />
+            </Form.Item>
           </div>
         </Form>
 

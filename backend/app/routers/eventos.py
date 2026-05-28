@@ -1108,13 +1108,13 @@ async def actualizar_evento(
 
                         if changed:
                             agenda_model.disable_agenda_conn(conn, int(old_id_agenda), int(user_id))
-                            agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
+                            agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload, id_cliente=row.get("id_cliente"))
                             new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
                             should_ws = True
                         else:
                             new_id_agenda = int(old_id_agenda)
                     else:
-                        agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
+                        agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload, id_cliente=row.get("id_cliente"))
                         new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
                         should_ws = True
 
