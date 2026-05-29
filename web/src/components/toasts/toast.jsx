@@ -1,5 +1,5 @@
 import {Toast,ToastContainer,Row} from 'react-bootstrap/'
-import logo from "../../assets/img/logo_hersom_event_2.png";
+import logo from "../../assets/img/logo_hersom_event_2.webp";
 function toast({show,setShow,msg}) {
   return (
     <Row>

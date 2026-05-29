@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
+import { notification } from "antd";
 import { API_URL } from "../../api";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/ContactoPage.css";
@@ -117,7 +118,11 @@ export default function ContactoPage() {
   const validate = () => {
     const { nombre, email, telefono } = form;
     if (!nombre.trim() || !email.trim() || !telefono.trim()) {
-      alert("Por favor completa los campos requeridos.");
+      notification.warning({
+        message: "Faltan campos por completar",
+        description: "Por favor completa los campos requeridos.",
+        placement: "bottomRight",
+      });
       return false;
     }
     return true;
@@ -165,9 +170,18 @@ export default function ContactoPage() {
     try {
       await saveContacto("correo");
       setSent(true);
+      notification.success({
+        message: "¡Mensaje enviado!",
+        description: "Recibimos tu información. Nuestro equipo se pondrá en contacto contigo muy pronto.",
+        placement: "bottomRight",
+      });
       setTimeout(() => { setForm(EMPTY); setSent(false); }, 3000);
     } catch (_) {
-      alert("No se pudo enviar la solicitud. Inténtalo de nuevo.");
+      notification.error({
+        message: "No se pudo enviar la solicitud",
+        description: "Inténtalo de nuevo en unos momentos.",
+        placement: "bottomRight",
+      });
     } finally {
       setSending(false);
     }

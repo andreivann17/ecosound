@@ -8,7 +8,7 @@ import {
 } from "antd";
 import "../../assets/css/header.css";
 import { connect } from "react-redux";
-import logo from "./../../assets/img/logo2.png";
+import logo from "./../../assets/img/logo.webp";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LogoutOutlined, ToolFilled } from "@ant-design/icons";
 import { actionMateriasGet } from "../../redux/actions/materias/materias";

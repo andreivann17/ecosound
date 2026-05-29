@@ -4,7 +4,7 @@ import "./../../assets/css/utils.css";
 import "./../../assets/css/fontawesome-free-6.1.0-web/css/all.css";
 import "./../../assets/css/fontawesome-free-6.1.0-web/css/all.min.css";
 import { useNavigate } from "react-router-dom";
-import logo from "./../../assets/img/logo2.png";
+import logo from "./../../assets/img/logo.webp";
 import { Collapse,OverlayTrigger,Popover } from "react-bootstrap/";
 import { connect } from "react-redux";
 
@@ -18,8 +18,6 @@ const botones = [
 ]
 
 function Nabvar({ valuenav, privilegios, infoUser,dataLogin }) {
-  console.log(privilegios)
-  console.log(valuenav)
   const navegate = useNavigate();
   const [activeButton, setActiveButton] = useState(0);
   const [activeButton2, setActiveButton2] = useState(0);

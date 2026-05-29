@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import logo from "../../assets/img/logo_herrsoft.jpeg";
+import logo from "../../assets/img/logo_herrsoft_v2.webp";
 
 const NAV_LINKS = [
   { label: "Inicio",        href: "/",          exact: true },

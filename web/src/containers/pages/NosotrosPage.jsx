@@ -4,7 +4,7 @@ import "../../assets/css/LandingPage.css";
 import "../../assets/css/NosotrosPage.css";
 
 // 👈 Reemplaza con tus fotos reales
-import foto1 from "../../assets/img/andre.jpeg";
+import foto1 from "../../assets/img/andre.webp";
 // import foto2 from "../../assets/img/coceo_socio.jpeg";
 
 const FOUNDERS = [

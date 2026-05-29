@@ -7,7 +7,21 @@ import LandingFooter from "./LandingFooter";
 export default function LandingLayout() {
   const location = useLocation();
   const outlet = useOutlet();
-  const nodeRef = useRef(null);
+
+  // Un nodeRef por pathname: la transición de salida y la de entrada no
+  // pueden compartir el mismo nodo o React falla con insertBefore al
+  // intentar mover/desmontar el nodo viejo.
+  const refsByPath = useRef(new Map());
+  if (!refsByPath.current.has(location.pathname)) {
+    refsByPath.current.set(location.pathname, React.createRef());
+  }
+  const nodeRef = refsByPath.current.get(location.pathname);
+
+  // Congela el outlet por ruta para que la transición de salida siga
+  // mostrando el contenido viejo mientras useOutlet ya devuelve el nuevo.
+  const outletsByPath = useRef(new Map());
+  outletsByPath.current.set(location.pathname, outlet);
+  const currentOutlet = outletsByPath.current.get(location.pathname);
 
   // Libera el overflow:hidden global de la app SPA
   useEffect(() => {
@@ -43,7 +57,7 @@ export default function LandingLayout() {
             unmountOnExit
           >
             <div ref={nodeRef} className="lp-route-wrap">
-              {outlet}
+              {currentOutlet}
             </div>
           </CSSTransition>
         </SwitchTransition>

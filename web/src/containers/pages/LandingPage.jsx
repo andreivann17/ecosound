@@ -3,11 +3,15 @@ import DemoModal from "../../components/landing/DemoModal";
 import VideoModal from "../../components/landing/VideoModal";
 import CountUpStat from "../../components/landing/CountUpStat";
 import Reveal from "../../components/landing/Reveal";
-import logoEvents from "../../assets/img/logo_hersom_event_2.jpeg";
+import logoEvents from "../../assets/img/logo_hersom_event_2.webp";
 
-import img1 from "../../assets/img/imagen_muestra1.png";
-import img2 from "../../assets/img/imagen_muestra2.png";
-import img3 from "../../assets/img/imagen_muestra3.png";
+import img1 from "../../assets/img/imagen_muestra1.webp";
+import img2 from "../../assets/img/imagen_muestra2.webp";
+import img3 from "../../assets/img/imagen_muestra3.webp";
+import cliente1 from "../../assets/img/clientes/cliente_1.webp";
+import cliente2 from "../../assets/img/clientes/cliente_2.webp";
+import cliente3 from "../../assets/img/clientes/cliente_3.webp";
+import cliente4 from "../../assets/img/clientes/cliente_4.webp";
 import "../../assets/css/LandingPage.css";
 
 // ============================================================
@@ -18,8 +22,10 @@ const WHATSAPP_NUMBER = "521XXXXXXXXXX";
 const HERO_IMAGES = [img1, img2, img3];
 
 const CLIENTS = [
-  { logo: null, name: "Cliente 1" },
-  { logo: null, name: "Cliente 2" },
+  { logo: cliente1, name: "Cliente 1", slug: "cliente-1" },
+  { logo: cliente2, name: "Cliente 2", slug: "cliente-2" },
+  { logo: cliente3, name: "Cliente 3", slug: "cliente-3" },
+  { logo: cliente4, name: "Cliente 4", slug: "cliente-4" },
 ];
 
 const FEATURES = [
@@ -351,11 +357,11 @@ export default function LandingPage() {
       >
         <p className="landing-clients-blue-label">Los que ya van un paso adelante</p>
         <div className="landing-clients-blue-row">
-          {CLIENTS.map(({ logo: clientLogo, name }, i) => (
-            <div key={i} className="landing-client-blue-card" style={{ transitionDelay: `${i * 0.22}s` }}>
+          {CLIENTS.map(({ logo: clientLogo, name, slug }, i) => (
+            <div key={i} className={`landing-client-blue-card lcb-${slug}`} style={{ transitionDelay: `${i * 0.22}s` }}>
               {clientLogo ? (
-                <div className="landing-client-blue-logo-wrap">
-                  <img src={clientLogo} alt={name} className="landing-client-blue-logo" />
+                <div className={`landing-client-blue-logo-wrap lcb-wrap-${slug}`}>
+                  <img src={clientLogo} alt={name} className={`landing-client-blue-logo lcb-logo-${slug}`} />
                 </div>
               ) : (
                 <div className="landing-client-blue-placeholder"><span>{name}</span></div>

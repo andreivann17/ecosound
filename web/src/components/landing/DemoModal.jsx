@@ -4,7 +4,7 @@ import axios from "axios";
 import { API_URL } from "../../api";
 
 const WHATSAPP_NUMBER = "521XXXXXXXXXX"; // 👈 actualiza
-const EMPTY = { negocio: "", responsable: "", correo: "", celular: "", direccion: "" };
+const EMPTY = { negocio: "", responsable: "", correo: "", celular: "" };
 
 export default function DemoModal({ open, onClose }) {
   const [form, setForm] = useState(EMPTY);
@@ -33,8 +33,8 @@ export default function DemoModal({ open, onClose }) {
   };
 
   const validate = () => {
-    const { negocio, responsable, correo, celular, direccion } = form;
-    if (!negocio.trim() || !responsable.trim() || !correo.trim() || !celular.trim() || !direccion.trim()) {
+    const { negocio, responsable, correo, celular } = form;
+    if (!negocio.trim() || !responsable.trim() || !correo.trim() || !celular.trim()) {
       setErrorMsg("Por favor completa todos los campos.");
       return false;
     }
@@ -42,13 +42,12 @@ export default function DemoModal({ open, onClose }) {
   };
 
   const saveContacto = async (via) => {
-    const { negocio, responsable, correo, celular, direccion } = form;
+    const { negocio, responsable, correo, celular } = form;
     await axios.post(`${API_URL}/contacto/demo`, {
       responsable,
       empresa: negocio,
       correo,
       celular,
-      direccion,
       mensaje: "",
       zona: "",
       via,
@@ -70,7 +69,7 @@ export default function DemoModal({ open, onClose }) {
     setErrorMsg("");
     try {
       await saveContacto("whatsapp");
-      const { negocio, responsable, correo, celular, direccion } = form;
+      const { negocio, responsable, correo, celular } = form;
       const msg = [
         "Hola, quiero solicitar una demo.",
         "",
@@ -78,7 +77,6 @@ export default function DemoModal({ open, onClose }) {
         `Responsable: ${responsable}`,
         `Correo: ${correo}`,
         `Celular: ${celular}`,
-        `Dirección: ${direccion}`,
       ].join("\n");
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
       setSuccess({ via: "whatsapp" });
@@ -154,10 +152,6 @@ export default function DemoModal({ open, onClose }) {
               <div className="demo-field">
                 <label className="demo-label">Celular</label>
                 <input className="demo-input" type="tel" name="celular" placeholder="(55) 1234-5678" value={form.celular} onChange={handleChange} disabled={sending} />
-              </div>
-              <div className="demo-field">
-                <label className="demo-label">Dirección</label>
-                <input className="demo-input" type="text" name="direccion" placeholder="Calle, número, colonia, ciudad" value={form.direccion} onChange={handleChange} disabled={sending} />
               </div>
             </div>
 

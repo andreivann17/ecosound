@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import img from "./../../assets/img/Logo_DonSimon.png";
+import img from "./../../assets/img/donsimon_logo.webp";
 import React, { useState, useEffect, forwardRef,useImperativeHandle } from 'react';
 
 

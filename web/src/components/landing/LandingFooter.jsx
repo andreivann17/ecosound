@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import logo from "../../assets/img/logo_herrsoft.png";
+import logo from "../../assets/img/logo_herrsoft.webp";
 
 const WHATSAPP_NUMBER = "521XXXXXXXXXX"; // 👈 mismo número que en LandingPage
 

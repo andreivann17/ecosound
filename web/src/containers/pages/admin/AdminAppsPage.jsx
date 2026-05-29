@@ -1,8 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logoHersom from "../../../assets/img/logo_hersom_event_2.png";
-// Add donsimon_logo.png to src/assets/img/ for this import to resolve
-import logoDonsimon from "../../../assets/img/donsimon_logo.png";
+import logoHersom from "../../../assets/img/logo_hersom_event_2.webp";
+import logoDonsimon from "../../../assets/img/donsimon_logo.webp";
 
 const BLUE = "#01369e";
 

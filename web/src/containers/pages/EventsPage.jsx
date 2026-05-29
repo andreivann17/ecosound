@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import DemoModal from "../../components/landing/DemoModal";
 import CountUpStat from "../../components/landing/CountUpStat";
-import img1 from "../../assets/img/imagen_muestra1.png";
-import img1_2 from "../../assets/img/imagen_muestra1-2.png";
-import img2 from "../../assets/img/imagen_muestra2.png";
-import img2_2 from "../../assets/img/imagen_muestra2-2.png";
-import img3 from "../../assets/img/imagen_muestra3.png";
-import img3_2 from "../../assets/img/imagen_muestra3-2.png";
-import img4 from "../../assets/img/imagen_muestra4-1.png";
+import img1 from "../../assets/img/imagen_muestra1.webp";
+import img1_2 from "../../assets/img/imagen_muestra1-2.webp";
+import img2 from "../../assets/img/imagen_muestra2.webp";
+import img2_2 from "../../assets/img/imagen_muestra2-2.webp";
+import img3 from "../../assets/img/imagen_muestra3.webp";
+import img3_2 from "../../assets/img/imagen_muestra3-2.webp";
+import img4 from "../../assets/img/imagen_muestra4-1.webp";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/EventsPage.css";
 

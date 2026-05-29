@@ -2,7 +2,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { notification, Button, Spin } from "antd";
-import logo from "../../assets/img/logo_herrsoft.jpeg";
+import logo from "../../assets/img/logo_herrsoft.webp";
 import { actionLoginAdmin } from "../../redux/actions/login/login";
 import { Form, FloatingLabel } from 'react-bootstrap';
 import ModalOlvidar from "../../components/modals/modalPasswordResetAdmin";

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { TeamOutlined, BarChartOutlined, DollarOutlined, DatabaseOutlined, SettingOutlined } from "@ant-design/icons";
-import logoHersom from "../../../assets/img/logo_hersom_event_2.png";
+import logoHersom from "../../../assets/img/logo_hersom_event_2.webp";
 import ClientesEventPage from "./events/ClientesEventPage";
 import CrearClienteEventPage from "./events/CrearClienteEventPage";
 import ClienteEventDetallePage from "./events/ClienteEventDetallePage";
