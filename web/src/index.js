@@ -58,8 +58,6 @@ import ClienteEventDetallePage from "./containers/pages/admin/events/ClienteEven
 import { actionUserMeGet } from "./redux/actions/login/login";
 import Login from "./containers/pages/login";
 import LoginAdmin from "./containers/pages/loginAdmin.jsx";
-import Signup from "./containers/pages/signup";
-import Crear from "./containers/pages/crear.jsx";
 import Home from "./containers/pages/home";
 import Notificaciones from "./containers/pages/notificaciones"
 import NotificacionesDetalles from "./containers/pages/notificaciones_detalles.jsx"
@@ -310,14 +308,6 @@ const routes = [
     nodeRef: createRef(),
     className: "NotificacionesDetalles",
     modulo: "notificaciones",
-  },
-  {
-    path: "/signup",
-    value: "signup-0",
-    name: "Signup",
-    element: <Signup />,
-    nodeRef: createRef(),
-    className: "Signup",
   },
   {
     path: "/web",

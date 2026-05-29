@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import isoWeek from "dayjs/plugin/isoWeek";
-import BuscarExpedienteModal from "./buscar.jsx";
 import { Button, Tooltip, Spin } from "antd";
 import {
   CalendarOutlined,
@@ -56,7 +55,6 @@ const DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes"
 export default function Home() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isBuscarOpen, setIsBuscarOpen] = useState(false);
 
   const { perm } = usePermisos() || { perm: () => true };
   const canAgenda = perm("agenda", "modulo");
@@ -301,12 +299,6 @@ export default function Home() {
       </main>
 
       <style>{CSS}</style>
-
-      <BuscarExpedienteModal
-        open={isBuscarOpen}
-        onClose={() => setIsBuscarOpen(false)}
-        onSearch={(p) => console.log("Buscar:", p)}
-      />
     </>
   );
 }

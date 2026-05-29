@@ -22,7 +22,6 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { usePermisos } from "./context/PermisosContext";
-import BuscarExpedienteModal from "./containers/pages/buscar.jsx";
 import logoPng from "./assets/img/logo_hersoft_event.webp";
 import logoAdminPng from "./assets/img/logo_herrsoft.webp";
 import "./styles.css";
@@ -43,7 +42,6 @@ export default function ElectronHeader({ hideUserPopover }) {
     () => Number(localStorage.getItem("notif_last_seen") || 0)
   );
   const [userOpen, setUserOpen] = useState(false);
-  const [isBuscarOpen, setIsBuscarOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
 
   const appMenuRef = useRef(null);
@@ -566,14 +564,6 @@ const connectWS = useCallback(() => {
 
         <div className="eh-drag-overlay" />
       </header>
-
-      <BuscarExpedienteModal
-        open={isBuscarOpen}
-        onClose={() => setIsBuscarOpen(false)}
-        onSearch={(payload) => {
-          console.log("Buscar expediente:", payload);
-        }}
-      />
     </>
   );
 }

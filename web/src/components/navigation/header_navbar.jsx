@@ -12,7 +12,6 @@ import logo from "./../../assets/img/logo.webp";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LogoutOutlined, ToolFilled } from "@ant-design/icons";
 import { actionMateriasGet } from "../../redux/actions/materias/materias";
-import BuscarExpedienteModal from "../../containers/pages/buscar.jsx";
 const { Header } = Layout;
 const { Text } = Typography;
 
@@ -42,16 +41,11 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [isBuscarOpen, setIsBuscarOpen] = useState(false);
   useEffect(() => {
     if (actionMateriasGet) {
       actionMateriasGet();
     }
   }, [actionMateriasGet]);
-  const handleBuscar = (payload) => {
-    // Aquí ya haces lo que quieras (dispatch, navigate, etc.)
-    console.log("Buscar expediente desde Home:", payload);
-  };
   const onClose = () => setOpen(false);
   const showDrawer = () => setOpen(true);
   const handleVisibleChange = (v) => setVisible(v);
@@ -143,14 +137,6 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
               onClick={() => navigate("/app/home")}
             >
               Inicio
-            </a>
-              <a
-              style={{ cursor: "pointer",marginRight:10}}
-              className={`styled-link nav-link text-light`}
-              onClick={() =>  setIsBuscarOpen(true)}
-            
-            >
-              Buscar
             </a>
             <a
               style={{ cursor: "pointer",marginRight:10}}
@@ -294,11 +280,6 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
 }
         `}
       </style>
-        <BuscarExpedienteModal
-              open={isBuscarOpen}
-              onClose={() => setIsBuscarOpen(false)}
-              onSearch={handleBuscar}
-            />
     </>
   );
 };
