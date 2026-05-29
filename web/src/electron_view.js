@@ -28,6 +28,7 @@ import logoAdminPng from "./assets/img/logo_herrsoft.png";
 import "./styles.css";
 import { actionNotificacionesGet } from "./redux/actions/notificaciones/notificaciones";
 import { WS_PATH } from "./redux/utils.js";
+import { performLogout } from "./utils/logout";
 const { Text } = Typography;
 
 export default function ElectronHeader({ hideUserPopover }) {
@@ -512,13 +513,15 @@ const connectWS = useCallback(() => {
                                 if (isAdmin) {
                                   localStorage.removeItem("tokenadmin");
                                   setUserOpen(false);
-                                  navigate("/admin-login");
+                                  // Cierre completo: backend + reset Redux + replace history.
+                                  performLogout({ admin: true });
                                 } else {
                                   ["token", "tokenadmin", "email", "role", "activeButtonAdmin", "activeButtonUser"].forEach(
                                     (k) => localStorage.removeItem(k)
                                   );
                                   setUserOpen(false);
-                                  navigate("/login");
+                                  // Cierre completo: backend + reset Redux + replace history.
+                                  performLogout({ admin: false });
                                 }
                               }}
                             >

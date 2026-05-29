@@ -1,4 +1,5 @@
 import {combineReducers} from "redux"
+import { USER_LOGOUT } from "../../utils/logout"
 import utils from "./utils"
 import conciliacion from "./conciliacion"
 import empresas from "./empresas"
@@ -24,7 +25,7 @@ import trabajadores from "./trabajadores"
 import paquetes from "./paquetes"
 import gastos from "./gastos"
 import clientes_events from "./clientes_events"
-export default combineReducers({
+const appReducer = combineReducers({
     materias,
     convenios,
     tipo_autoridad,
@@ -51,3 +52,14 @@ export default combineReducers({
     clientes_events,
     login
 })
+
+// Al despachar USER_LOGOUT borramos TODO el estado en memoria del store.
+// Cada reducer vuelve a su estado inicial al recibir state === undefined.
+const rootReducer = (state, action) => {
+    if (action && action.type === USER_LOGOUT) {
+        state = undefined;
+    }
+    return appReducer(state, action);
+}
+
+export default rootReducer

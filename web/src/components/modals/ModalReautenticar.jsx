@@ -12,6 +12,7 @@ import { MailOutlined, LockOutlined, WarningOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { PATH } from "../../redux/utils";
 import { sessionManager } from "../../redux/sessionManager";
+import { performLogout } from "../../utils/logout";
 
 const { Title, Text } = Typography;
 
@@ -77,7 +78,8 @@ export default function ModalReautenticar({ open, onClose }) {
     ["token", "tokenadmin", "email", "role", "activeButtonAdmin", "activeButtonUser"].forEach(
       (k) => localStorage.removeItem(k)
     );
-    window.location.href = "/login";
+    // Cierre completo: backend + reset Redux + replace history → sin "atrás".
+    performLogout({ admin: false });
   };
 
   return (

@@ -41,6 +41,14 @@ import PaqueteDetallePage from "./containers/pages/PaqueteDetallePage.jsx"
 import GastosPage from "./containers/pages/GastosPage.jsx"
 import CrearGastoPage from "./containers/pages/crearGastoPage.jsx"
 import GastoDetallePage from "./containers/pages/GastoDetallePage.jsx"
+import LandingPage from "./containers/pages/LandingPage.jsx"
+import LandingLayout from "./components/landing/LandingLayout"
+import ErrorDispatcher from "./containers/pages/ErrorDispatcher.jsx"
+import NotFoundDispatcher from "./containers/pages/NotFoundDispatcher.jsx"
+import ContactoPage from "./containers/pages/ContactoPage.jsx"
+import ProductosPage from "./containers/pages/ProductosPage.jsx"
+import EventsPage from "./containers/pages/EventsPage.jsx"
+import NosotrosPage from "./containers/pages/NosotrosPage.jsx"
 import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
 import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
 import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
@@ -79,6 +87,46 @@ import { PermisosProvider } from "./context/PermisosContext";
 import RequireModulo from "./components/guards/RequireModulo";
 
 const routes = [
+  {
+    path: "/",
+    value: "landing",
+    name: "Landing",
+    element: <LandingPage />,
+    nodeRef: createRef(),
+    className: "Landing",
+  },
+  {
+    path: "/nosotros",
+    value: "nosotros",
+    name: "Nosotros",
+    element: <NosotrosPage />,
+    nodeRef: createRef(),
+    className: "Nosotros",
+  },
+  {
+    path: "/events",
+    value: "events",
+    name: "Events",
+    element: <EventsPage />,
+    nodeRef: createRef(),
+    className: "Events",
+  },
+  {
+    path: "/productos",
+    value: "productos",
+    name: "Productos",
+    element: <ProductosPage />,
+    nodeRef: createRef(),
+    className: "Productos",
+  },
+  {
+    path: "/contacto",
+    value: "contacto",
+    name: "Contacto",
+    element: <ContactoPage />,
+    nodeRef: createRef(),
+    className: "Contacto",
+  },
   {
     path: "/login",
     value: "login",
@@ -512,7 +560,7 @@ const routes = [
     path: "/401",
     value: "Error401",
     name: "Error401",
-    element: <Error401 />,
+    element: <ErrorDispatcher code={401} />,
     nodeRef: createRef(),
     className: "Error401",
   },
@@ -520,7 +568,7 @@ const routes = [
     path: "/403",
     value: "Error403",
     name: "Error403",
-    element: <Error403 />,
+    element: <ErrorDispatcher code={403} />,
     nodeRef: createRef(),
     className: "Error403",
   },
@@ -528,7 +576,7 @@ const routes = [
     path: "/500",
     value: "Error500",
     name: "Error500",
-    element: <Error500 />,
+    element: <ErrorDispatcher code={500} />,
     nodeRef: createRef(),
     className: "Error500",
   },
@@ -536,7 +584,7 @@ const routes = [
     path: "/503",
     value: "Error503",
     name: "Error503",
-    element: <Error503 />,
+    element: <ErrorDispatcher code={503} />,
     nodeRef: createRef(),
     className: "Error503",
   },
@@ -544,7 +592,7 @@ const routes = [
     path: "*",
     value: "NotFound",
     name: "NotFound",
-    element: <NotFound />,
+    element: <NotFoundDispatcher />,
     nodeRef: createRef(),
     className: "NotFound",
   },
@@ -564,9 +612,8 @@ const requireAuth = ({ request }) => {
   //  throw redirect("/web");
   }
 
-  // Rutas admin: protegidas por tokenadmin
-  if (path.startsWith("/admin")) {
-    if (path === "/admin-login") return null;
+  // Solo /admin/* requiere token de admin (excepto /admin-login)
+  if (path.startsWith("/admin") && path !== "/admin-login") {
     const tokenadmin = localStorage.getItem("tokenadmin");
     if (!tokenadmin || isTokenExpired(tokenadmin)) {
       if (tokenadmin) localStorage.removeItem("tokenadmin");
@@ -575,19 +622,20 @@ const requireAuth = ({ request }) => {
     return null;
   }
 
-  // Rutas normales: protegidas por token
-  const token = localStorage.getItem("token");
-  const publicRoutes = ["/login", "/signup", "/prelogin", "/web", "/admin-login"];
-  const isPublic = publicRoutes.includes(path);
-
-  if ((!token || isTokenExpired(token)) && !isPublic) {
-    if (token) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("tokenadmin");
+  // Solo /app/* requiere token de usuario
+  if (path.startsWith("/app")) {
+    const token = localStorage.getItem("token");
+    if (!token || isTokenExpired(token)) {
+      if (token) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("tokenadmin");
+      }
+      throw redirect("/login");
     }
-    throw redirect("/login");
+    return null;
   }
 
+  // Todo lo demás (/, /login, /signup, /nosotros, etc.) es público sin restricción
   return null;
 };
 
@@ -694,6 +742,17 @@ function Example() {
 
   const { nodeRef } = routecorrect || {};
   const routeclass = routecorrect?.value || "unknown";
+
+  // Landing page — usa LandingLayout (navbar fijo + footer compartido + transición de ruta)
+  // Excluimos /login, /signup y /admin-login porque deben usar el shell de la app
+  const isAuthPage = ["/login", "/signup", "/prelogin", "/admin-login"].includes(normalpath);
+  const isLanding =
+    !normalpath.startsWith("/app") &&
+    !normalpath.startsWith("/admin") &&
+    !isAuthPage;
+  if (isLanding) {
+    return <LandingLayout />;
+  }
 
   const hideUserPopover = ["/login", "/prelogin", "/signup", "/admin-login"].includes(normalpath);
 

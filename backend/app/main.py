@@ -35,6 +35,7 @@ from .routers.gastos import router as gastos_router
 from .routers.clientes import router as clientes_router
 from .routers.avisos import router as avisos_router
 from .routers.config_correo import router as config_correo_router
+from .routers.contacto import router as contacto_router
 # Routers (solo los tuyos)
 from .routers import (
     auth,
@@ -352,4 +353,5 @@ app.include_router(gastos_router)
 app.include_router(clientes_router)
 app.include_router(avisos_router)
 app.include_router(config_correo_router)
+app.include_router(contacto_router)
 app.include_router(general_router)

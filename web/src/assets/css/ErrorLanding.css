@@ -1,0 +1,165 @@
+/* =============================================
+   ERROR LANDING PAGE — ErrorLanding.css
+   Páginas amigables 404 / 401 / 403 / 500 / 503
+   ============================================= */
+
+.error-landing-root {
+  min-height: calc(100vh - 66px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+.error-landing-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* Código gigante de fondo — más sutil y atrás de todo */
+.error-code-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 220px;
+  font-weight: 900;
+  color: #f0f4ff;
+  line-height: 1;
+  letter-spacing: -6px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+/* Asegura que todo lo demás quede por encima del código de fondo */
+.error-landing-inner > *:not(.error-code-bg) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Ilustración compacta */
+.error-illu {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 18px;
+  animation: error-float 4s ease-in-out infinite;
+}
+
+.error-illu svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes error-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* Texto */
+.error-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 14px 0 12px 0;
+}
+
+.error-desc {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.65;
+  margin: 0 auto 26px;
+  max-width: 460px;
+}
+
+/* Botones */
+.error-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+/* Sugerencias */
+.error-suggest {
+  border-top: 1px solid #f0f4ff;
+  padding-top: 20px;
+}
+
+.error-suggest-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
+
+.error-suggest-links {
+  display: flex;
+  gap: 22px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-suggest-link {
+  font-size: 13px;
+  color: #012770;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s, transform 0.15s;
+}
+
+.error-suggest-link:hover {
+  color: #01369e;
+  transform: translateY(-1px);
+}
+
+/* Entrada animada de los elementos */
+.error-landing-inner > *:not(.error-code-bg) {
+  opacity: 0;
+  animation: error-fade-up 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.error-illu                                    { animation-delay: 0.08s; }
+.error-landing-inner > .landing-features-badge { animation-delay: 0.2s; }
+.error-title                                   { animation-delay: 0.32s; }
+.error-desc                                    { animation-delay: 0.44s; }
+.error-actions                                 { animation-delay: 0.56s; }
+.error-suggest                                 { animation-delay: 0.68s; }
+
+@keyframes error-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 640px) {
+  .error-code-bg { font-size: 150px; letter-spacing: -4px; }
+  .error-title   { font-size: 24px; }
+  .error-illu    { width: 90px; height: 90px; }
+  .error-suggest-links { gap: 16px; }
+}
+
+@media (max-height: 720px) {
+  .error-code-bg { font-size: 170px; }
+  .error-illu { width: 90px; height: 90px; margin-bottom: 14px; }
+  .error-title { font-size: 26px; margin-top: 10px; }
+  .error-desc { margin-bottom: 20px; }
+  .error-actions { margin-bottom: 22px; }
+  .error-suggest { padding-top: 16px; }
+}
