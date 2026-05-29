@@ -11,7 +11,6 @@ import { connect } from "react-redux";
 import logo from "./../../assets/img/logo.webp";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LogoutOutlined, ToolFilled } from "@ant-design/icons";
-import { actionMateriasGet } from "../../redux/actions/materias/materias";
 const { Header } = Layout;
 const { Text } = Typography;
 
@@ -35,17 +34,12 @@ const normalizeSegment = (seg) => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-const Headercomp = ({ materias, actionMateriasGet }) => {
+const Headercomp = () => {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (actionMateriasGet) {
-      actionMateriasGet();
-    }
-  }, [actionMateriasGet]);
   const onClose = () => setOpen(false);
   const showDrawer = () => setOpen(true);
   const handleVisibleChange = (v) => setVisible(v);
@@ -80,24 +74,6 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
   const isSesionesFotosActive = pathname.startsWith("/app/sesiones-fotos");
   const isEstadisticasActive = pathname.startsWith("/app/estadisticas");
 
-  // ---------- DROPDOWN MATERIA ----------
-  const materiasList = Array.isArray(materias?.items) ? materias.items : [];
-
-
-  const materiaMenuItems = materiasList.map((m) => ({
-    key: m.id,
-    label: (
-      <span
-        onClick={() => {
-          navigate(`/materia/${m.id}`);
-        }}
-      >
-        {m.nombre}
-      </span>
-    ),
-  }));
-
-  
   return (
     <>
       <div
@@ -284,8 +260,4 @@ const Headercomp = ({ materias, actionMateriasGet }) => {
   );
 };
 
-const mapStateToProps = (state) => ({
-  materias: state.materias?.data ?? { items: [], count: 0 },
-});
-
-export default connect(mapStateToProps, { actionMateriasGet })(Headercomp);
+export default Headercomp;
