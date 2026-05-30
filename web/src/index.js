@@ -49,6 +49,7 @@ import ContactoPage from "./containers/pages/ContactoPage.jsx"
 import ProductosPage from "./containers/pages/ProductosPage.jsx"
 import EventsPage from "./containers/pages/EventsPage.jsx"
 import NosotrosPage from "./containers/pages/NosotrosPage.jsx"
+import ContratarPage from "./containers/pages/ContratarPage.jsx"
 import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
 import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
 import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
@@ -125,6 +126,16 @@ const routes = [
     nodeRef: createRef(),
     className: "Contacto",
   },
+  // Ruta /contratar oculta temporalmente — el componente sigue existiendo
+  // (ContratarPage.jsx) pero no es accesible por URL hasta reactivar este bloque.
+  // {
+  //   path: "/contratar",
+  //   value: "contratar",
+  //   name: "Contratar",
+  //   element: <ContratarPage />,
+  //   nodeRef: createRef(),
+  //   className: "Contratar",
+  // },
   {
     path: "/login",
     value: "login",
@@ -788,7 +799,6 @@ function Example() {
                 nodeRef={nodeRef}
                 timeout={200}
                 classNames="page"
-                unmountOnExit
               >
                 {(state) => (
                   <div ref={nodeRef} className="page">

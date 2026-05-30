@@ -23,3 +23,5 @@ pytest
 pytest-asyncio
 pytest-cov
 pytesseract
+stripe
+python-dotenv

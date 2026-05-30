@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import DemoModal from "../../components/landing/DemoModal";
 import CountUpStat from "../../components/landing/CountUpStat";
 import img1 from "../../assets/img/imagen_muestra1.webp";
@@ -195,6 +196,7 @@ function ShowcaseSection({ badge, title, desc, images, reverse, interval = 3500 
 }
 
 export default function EventsPage() {
+  const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
 
   return (

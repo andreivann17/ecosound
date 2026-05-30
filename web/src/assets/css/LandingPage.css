@@ -244,6 +244,34 @@
   box-shadow: 0 5px 18px rgba(1, 39, 112, 0.4);
 }
 
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.landing-nav-contratar {
+  background: transparent;
+  color: #012770 !important;
+  border: 2px solid #012770;
+  border-radius: 9px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.15s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.landing-nav-contratar:hover {
+  background: #012770;
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
 /* ---- HERO ---- */
 .landing-hero {
   padding: 180px 28px 120px;

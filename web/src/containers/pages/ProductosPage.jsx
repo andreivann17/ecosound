@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DemoModal from "../../components/landing/DemoModal";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/ProductosPage.css";
@@ -29,6 +29,7 @@ const RESTAURANT_FEATURES = [
 ];
 
 export default function ProductosPage() {
+  const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
 
   return (

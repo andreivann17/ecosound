@@ -11,6 +11,16 @@ Entry point for the FastAPI application.
 from __future__ import annotations
 from pathlib import Path
 import os
+
+# Cargar variables de entorno desde .env (solo afecta dev local; en Docker
+# las vars vienen de env_file). Tiene que ir ANTES de importar routers que
+# leen env vars al cargar el módulo (ej. contratar.STRIPE_SECRET_KEY).
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
+
 from .utils.clean_temp_models import clean_temp_models
 
 import traceback
@@ -36,6 +46,7 @@ from .routers.clientes import router as clientes_router
 from .routers.avisos import router as avisos_router
 from .routers.config_correo import router as config_correo_router
 from .routers.contacto import router as contacto_router
+from .routers.contratar import router as contratar_router
 # Routers (solo los tuyos)
 from .routers import (
     auth,
@@ -354,4 +365,5 @@ app.include_router(clientes_router)
 app.include_router(avisos_router)
 app.include_router(config_correo_router)
 app.include_router(contacto_router)
+app.include_router(contratar_router)
 app.include_router(general_router)

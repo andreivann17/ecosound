@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import DemoModal from "../../components/landing/DemoModal";
 import VideoModal from "../../components/landing/VideoModal";
 import CountUpStat from "../../components/landing/CountUpStat";
@@ -218,6 +219,7 @@ function FaqItem({ question, answer }) {
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
 
   const [currentImage, setCurrentImage] = useState(0);
   const [imageVisible, setImageVisible] = useState(true);
