@@ -16,6 +16,9 @@ import { actionScroll } from "./redux/actions/utils/utils";
 import Eventos from "./containers/pages/EventosPage.jsx"
 import CrearEventoPage from "./containers/pages/crearEventoPage.jsx"
 import EventoDetallePage from "./containers/pages/EventoDetallePage.jsx"
+import Cotizaciones from "./containers/pages/CotizacionesPage.jsx"
+import CrearCotizacionPage from "./containers/pages/crearCotizacionPage.jsx"
+import CotizacionDetallePage from "./containers/pages/CotizacionDetallePage.jsx"
 import InventarioPage from "./containers/pages/InventarioPage.jsx"
 import CrearEquipoPage from "./containers/pages/crearEquipoPage.jsx"
 import EquipoDetallePage from "./containers/pages/EquipoDetallePage.jsx"
@@ -237,6 +240,38 @@ const routes = [
     nodeRef: createRef(),
     className: "EventosEditar",
     modulo: "eventos",
+  },
+  {
+    path: "/app/cotizaciones",
+    value: "cotizaciones",
+    name: "Cotizaciones",
+    element: <Cotizaciones />,
+    nodeRef: createRef(),
+    className: "Cotizaciones",
+  },
+  {
+    path: "/app/cotizaciones/crear",
+    value: "cotizaciones-crear",
+    name: "Cotizaciones-Crear",
+    element: <CrearCotizacionPage />,
+    nodeRef: createRef(),
+    className: "CotizacionesCrear",
+  },
+  {
+    path: "/app/cotizaciones/:idCotizacion",
+    value: "cotizaciones-detalle",
+    name: "Cotizaciones-Detalle",
+    element: <CotizacionDetallePage />,
+    nodeRef: createRef(),
+    className: "CotizacionesDetalle",
+  },
+  {
+    path: "/app/cotizaciones/:idCotizacion/editar",
+    value: "cotizaciones-editar",
+    name: "Cotizaciones-Editar",
+    element: <CrearCotizacionPage />,
+    nodeRef: createRef(),
+    className: "CotizacionesEditar",
   },
   {
     path: "/app/inventario",

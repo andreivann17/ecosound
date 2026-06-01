@@ -1,0 +1,113 @@
+/* CotizacionesList.css
+   Estilos propios del listado de cotizaciones. Scoped bajo .cot-list-page
+   para no afectar el módulo de Eventos (que comparte EventosPage.css). */
+
+/* ── Badge de estado ──────────────────────────────────────────── */
+.cot-list-page .cot-estado-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cot-list-page .cot-estado-pendiente {
+  background: #e0e9ff;
+  color: #01369e;
+}
+
+.cot-list-page .cot-estado-aceptada {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.cot-list-page .cot-estado-rechazada {
+  background: #ffdad6;
+  color: #ba1a1a;
+}
+
+/* ── Iconos de las tarjetas de métricas (estado) ──────────────── */
+.cot-list-page .cot-stat-pendientes .eventos-stat-icon {
+  background: #e0e9ff;
+  color: #01369e;
+}
+.cot-list-page .cot-stat-aceptadas .eventos-stat-icon {
+  background: #d1fae5;
+  color: #047857;
+}
+.cot-list-page .cot-stat-rechazadas .eventos-stat-icon {
+  background: #ffe1de;
+  color: #dc2626;
+}
+
+/* ── Cuerpo de la card: folio ─────────────────────────────────── */
+.cot-list-page .cot-folio-line {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cot-list-page .cot-folio-code {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #0d1b4b;
+}
+
+/* ── Lista de servicios contratados ───────────────────────────── */
+.cot-list-page .cot-serv-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #f0edf2;
+}
+
+.cot-list-page .cot-serv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cot-list-page .cot-serv-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1b1b1d;
+}
+
+.cot-list-page .cot-serv-ic {
+  color: #01369e;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.cot-list-page .cot-serv-empty {
+  font-size: 12.5px;
+  font-style: italic;
+  color: #9ca3af;
+}
+
+/* ── Strip neutro con el importe total ────────────────────────── */
+.cot-list-page .evento-bottom-strip.cot-strip-neutral {
+  background: #f3f5f9;
+  color: #0d1b4b;
+  border-top: 1px solid #e8ebf1;
+}
+
+.cot-list-page .cot-strip-neutral .evento-strip-label {
+  color: #5b6472;
+}
+
+.cot-list-page .cot-strip-neutral .evento-strip-amount {
+  color: #0d1b4b;
+}

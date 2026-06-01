@@ -1,0 +1,248 @@
+/* ────────────────────────────────────────────────────────────────────────
+   Detalle de Cotización — estilos scoped a .cd-cotizacion-detalle.
+   El layout base vive en EventoDetallePage.css (compartido con Eventos);
+   aquí solo ajustamos la presentación del tab "Datos de la cotización".
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Fila superior: Datos del cliente + Datos de la cotización (mismo alto).
+   Los servicios fluyen debajo, dos por fila al 50%. */
+.cd-cotizacion-detalle .cd-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.cd-cotizacion-detalle .cd-card-client { grid-column: 1; grid-row: 1; }
+.cd-cotizacion-detalle .cd-card-event  { grid-column: 2; grid-row: 1; }
+
+/* Datos del cliente: campos repartidos en horizontal para llenar el ancho. */
+.cd-cotizacion-detalle .cd-client-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px 32px;
+}
+
+/* ── Datos de la cotización: tiles compactos ── */
+.cd-cot-resumen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cd-cot-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.cd-cot-tile .cd-field-label { margin-bottom: 0; }
+.cd-cot-tile .cd-pill { align-self: flex-start; }
+
+.cd-cot-tile-importe {
+  background: #eff6ff;
+  border-color: #dbeafe;
+}
+
+.cd-cot-importe-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #01369e;
+  line-height: 1.1;
+}
+
+.cd-cot-importe-icon { font-size: 18px; color: #01369e; }
+
+/* Servicios a todo lo ancho: campos repartidos como columnas para llenar. */
+.cd-cotizacion-detalle .cd-servicio-grid,
+.cd-cotizacion-detalle .cd-servicio-grid2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 32px;
+}
+
+.cd-cotizacion-detalle .cd-servicio-grid2 {
+  margin-top: 18px;
+}
+
+/* Responsive: en pantallas chicas todo se apila. */
+@media (max-width: 820px) {
+  .cd-cotizacion-detalle .cd-bento-grid { grid-template-columns: 1fr; }
+  .cd-cotizacion-detalle .cd-card-client,
+  .cd-cotizacion-detalle .cd-card-event,
+  .cd-cotizacion-detalle .cd-card-servicio { grid-column: 1; }
+}
+
+@media (max-width: 540px) {
+  .cd-cot-resumen { grid-template-columns: 1fr; }
+  .cd-cotizacion-detalle .cd-servicio-grid,
+  .cd-cotizacion-detalle .cd-servicio-grid2 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Estado de la cotización (badge encabezado, chip y acciones) ── */
+.cd-cotizacion-detalle .cd-estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cd-cotizacion-detalle .cd-estado-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.cd-cotizacion-detalle .cd-estado-chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Colores por estado (compartidos por badge y chip) */
+.cd-cotizacion-detalle .cd-estado-pendiente { background: #e0e9ff; color: #01369e; }
+.cd-cotizacion-detalle .cd-estado-aceptada  { background: #d1fae5; color: #047857; }
+.cd-cotizacion-detalle .cd-estado-rechazada { background: #fee2e2; color: #b91c1c; }
+.cd-cotizacion-detalle .cd-estado-dot-pendiente { background: #01369e; }
+.cd-cotizacion-detalle .cd-estado-dot-aceptada  { background: #047857; }
+.cd-cotizacion-detalle .cd-estado-dot-rechazada { background: #b91c1c; }
+
+/* Fila Estado + Folio dentro de la tarjeta */
+.cd-cotizacion-detalle .cd-estado-folio {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.cd-cotizacion-detalle .cd-estado-folio .cd-field-label { margin-bottom: 7px; display: block; }
+.cd-cotizacion-detalle .cd-estado-folio-right { text-align: right; }
+.cd-cotizacion-detalle .cd-folio-val {
+  font-family: "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #0d1b4b;
+  font-size: 15px;
+}
+
+/* Botones Aceptar / Rechazar */
+.cd-cotizacion-detalle .cd-estado-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eef0f4;
+}
+.cd-cotizacion-detalle .cd-btn-aceptar,
+.cd-cotizacion-detalle .cd-btn-rechazar {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #374151;
+  transition: all 0.15s ease;
+}
+.cd-cotizacion-detalle .cd-btn-aceptar:hover:not(:disabled) {
+  border-color: #047857; color: #047857; background: #f0fdf4;
+}
+.cd-cotizacion-detalle .cd-btn-rechazar:hover:not(:disabled) {
+  border-color: #b91c1c; color: #b91c1c; background: #fef2f2;
+}
+.cd-cotizacion-detalle .cd-btn-aceptar.is-active {
+  background: #047857; border-color: #047857; color: #ffffff;
+}
+.cd-cotizacion-detalle .cd-btn-rechazar.is-active {
+  background: #b91c1c; border-color: #b91c1c; color: #ffffff;
+}
+.cd-cotizacion-detalle .cd-btn-aceptar:disabled:not(.is-active),
+.cd-cotizacion-detalle .cd-btn-rechazar:disabled:not(.is-active) {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── Banner introductorio de los servicios ── */
+.cd-cotizacion-detalle .cd-servicios-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #f5f8ff 0%, #eef3ff 100%);
+  border: 1px solid #dbe4ff;
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+.cd-cotizacion-detalle .cd-servicios-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #01369e;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.cd-cotizacion-detalle .cd-servicios-banner-text { flex: 1; min-width: 0; }
+.cd-cotizacion-detalle .cd-servicios-banner-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0d1b4b;
+}
+.cd-cotizacion-detalle .cd-servicios-banner-sub {
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  color: #5b6472;
+}
+.cd-cotizacion-detalle .cd-servicios-banner-count {
+  flex-shrink: 0;
+  background: #01369e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .cd-cotizacion-detalle .cd-servicios-banner { flex-wrap: wrap; }
+}
+
+/* ── Botón "Cotización PDF" del encabezado ── */
+.cd-cotizacion-detalle .cd-btn-report {
+  background: #01369e;
+  border-color: #01369e;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px;
+}
+.cd-cotizacion-detalle .cd-btn-report:hover,
+.cd-cotizacion-detalle .cd-btn-report:focus {
+  background: #0a2a7a !important;
+  border-color: #0a2a7a !important;
+  color: #ffffff !important;
+}

@@ -11,7 +11,7 @@ from ..realtime.ws_manager import manager
 
 from fastapi import status
 from ..deps import get_current_user, get_tenant_filter
-from ..models import eventos as evento_model
+from ..models import cotizaciones as evento_model
 from ..models import agenda as agenda_model
 from ..models import audit as audit_model
 from ..models import trabajadores as trab_model
@@ -19,7 +19,7 @@ from ..models import notificaciones as noti_model
 from ..db import get_connection
 import datetime as dt
 
-EVENTO_MODULO = 2
+EVENTO_MODULO = 10
 EVENTO_MODULO_CORREO = 1   # id in user's modulos table (configuracion_correos)
 EVENTO_TIPO_CREACION = 1
 EVENTO_TIPO_ACTUALIZACION = 2
@@ -64,7 +64,7 @@ def _send_correo_evento(evento: dict, accion: str) -> None:
         pass
 
 
-async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id: int, id_cliente: Optional[int] = None):
+async def _notify_evento(action: int, descripcion: str, id_cotizacion: int, user_id: int, id_cliente: Optional[int] = None):
     """Crea notificación en DB y emite NOTIFICACION_INVALIDATE por WS."""
     try:
         _data = {
@@ -73,7 +73,7 @@ async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id:
             "descripcion": descripcion,
             "id_user": user_id,
             "urgente": 0,
-            "id_key": str(id_evento),
+            "id_key": str(id_cotizacion),
         }
         if id_cliente:
             _data["id_cliente"] = id_cliente
@@ -82,8 +82,8 @@ async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id:
         pass
     await manager.broadcast_json({
         "type": "NOTIFICACION_INVALIDATE",
-        "source": "eventos",
-        "id_evento": id_evento,
+        "source": "cotizaciones",
+        "id_cotizacion": id_cotizacion,
         "descripcion_notificacion": descripcion,
     })
 
@@ -91,7 +91,7 @@ async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id:
 def _log_audit(
     action: str,
     message: str,
-    id_evento: int,
+    id_cotizacion: int,
     user_id: int,
     changes=None,
     extra=None,
@@ -113,7 +113,7 @@ def _log_audit(
             "message": message,
             "id_user": user_id,
             "id_modulo": EVENTO_MODULO,
-            "id_key": str(id_evento),
+            "id_key": str(id_cotizacion),
             "changes": changes,
             "extra": extra,
             "ip_address": ip_address,
@@ -122,7 +122,7 @@ def _log_audit(
     except Exception:
         pass
 
-router = APIRouter(prefix="/eventos", tags=["eventos"])
+router = APIRouter(prefix="/cotizaciones", tags=["cotizaciones"])
 
 
 @router.post("/extraer-ai", status_code=status.HTTP_200_OK, summary="Extraer campos de contrato HerrSoft con OCR")
@@ -148,6 +148,7 @@ async def extraer_ai(
 
 class EventoCreate(BaseModel):
     cliente_nombre: str
+    folio: Optional[str] = None
     domicilio: Optional[str] = None
     celular: Optional[str] = None
     fecha_evento: Any = None
@@ -155,8 +156,6 @@ class EventoCreate(BaseModel):
     hora_inicio: Any = None
     hora_final: Any = None
     importe: Optional[str] = None
-    fecha_anticipo: Optional[str] = None
-    importe_anticipo: Optional[str] = None
     id_tipo_evento: Optional[int] = None
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
@@ -175,6 +174,8 @@ class EventoCreate(BaseModel):
 
 class EventoUpdate(BaseModel):
     cliente_nombre: Optional[str] = None
+    folio: Optional[str] = None
+    estado: Optional[str] = None
     domicilio: Optional[str] = None
     celular: Optional[str] = None
     fecha_evento: Optional[str] = None
@@ -182,8 +183,6 @@ class EventoUpdate(BaseModel):
     hora_inicio: Optional[str] = None
     hora_final: Optional[str] = None
     importe: Optional[str] = None
-    fecha_anticipo: Optional[str] = None
-    importe_anticipo: Optional[str] = None
     id_tipo_evento: Optional[int] = None
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
@@ -345,101 +344,22 @@ def _cap_end_same_day(start_dt: dt.datetime) -> dt.datetime:
     return end_dt
 
 
-_SERVICIO_NOMBRES = {1: "Sonido", 2: "Fotografía", 3: "Banquete", 4: "Barra"}
-# Servicios que no tienen flujo propio de agenda (sonido=1 y foto=2 lo tienen)
-_SERVICIOS_EXTRA = {3, 4}
-
-
-def _sync_agendas_servicios_extra(
+def _replace_cotizaciones_servicios(
     conn,
-    id_evento: int,
-    id_user: int,
-    id_cliente: Optional[int],
-    cliente: str,
-    code: str,
-    id_tipo_evento: Optional[int],
-    servicios: list,
-) -> None:
-    """Desactiva agendas previas de servicios extra y crea nuevas desde el array servicios."""
-    # Desactivar agendas existentes de Banquete y Barra para este evento
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE agenda SET active = 0
-            WHERE source_table = 'eventos' AND source_id = %s AND active = 1
-              AND (description LIKE 'Servicio: Banquete.%%' OR description LIKE 'Servicio: Barra.%%')
-            """,
-            (id_evento,),
-        )
-
-    for sv in servicios:
-        id_srv = sv.get("id_servicio") if isinstance(sv, dict) else None
-        if id_srv not in _SERVICIOS_EXTRA:
-            continue
-        fecha = sv.get("fecha")
-        hora_ini = sv.get("hora_inicio")
-        hora_fin = sv.get("hora_final")
-        id_ciudad_sv = sv.get("id_ciudad")
-        lugar_sv = (sv.get("lugar") or "").strip()
-
-        if not fecha or not id_ciudad_sv:
-            continue
-
-        start_sv = _combine_fecha_hora(fecha, hora_ini)
-        if not start_sv:
-            continue
-        end_sv = _combine_fecha_hora(fecha, hora_fin) or _cap_end_same_day(start_sv)
-        if end_sv <= start_sv:
-            end_sv += dt.timedelta(days=1)
-
-        nombre_srv = _SERVICIO_NOMBRES.get(id_srv, f"Servicio {id_srv}")
-        title_sv = f"{nombre_srv} - {cliente}".strip() if cliente else nombre_srv
-        desc_sv = (
-            f"Servicio: {nombre_srv}. "
-            f"Evento {code} para {cliente}. "
-            f"El {start_sv.strftime('%Y-%m-%d')} de {start_sv.strftime('%H:%M')} "
-            f"a {end_sv.strftime('%H:%M')}. Lugar: {lugar_sv}."
-        )
-        agenda_model.create_agenda_conn(
-            conn,
-            id_user,
-            id_tipo_evento or 1,
-            {
-                "start_at": start_sv,
-                "end_at": end_sv,
-                "title": title_sv,
-                "source_table": "eventos",
-                "all_day": 0,
-                "status": "active",
-                "location": lugar_sv,
-                "description": desc_sv,
-                "source_id": id_evento,
-                "ciudad_id": id_ciudad_sv,
-                "reminder": "15m",
-                "url": f"/eventos/{id_evento}",
-                "in_person": 1,
-                "recurrence": None,
-            },
-            id_cliente=id_cliente,
-        )
-
-
-def _replace_eventos_servicios(
-    conn,
-    id_evento: int,
+    id_cotizacion: int,
     id_user: int,
     id_cliente: Optional[int],
     servicios: list,
 ) -> None:
     """
-    Reemplaza por completo las filas de `eventos_servicios` para el evento.
+    Reemplaza por completo las filas de `cotizaciones_servicios` para el evento.
     Es full-replace (DELETE + INSERT por servicio) — más simple y atómico que
     diff individual; la transacción que envuelve la llamada garantiza atomicidad.
     """
     if servicios is None:
         return
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM eventos_servicios WHERE id_evento = %s", (id_evento,))
+        cur.execute("DELETE FROM cotizaciones_servicios WHERE id_cotizacion = %s", (id_cotizacion,))
         for sv in servicios:
             if not isinstance(sv, dict):
                 continue
@@ -454,14 +374,14 @@ def _replace_eventos_servicios(
                 fecha_evento_dt = f"{fecha} {hora_inicio}:00" if hora_inicio else f"{fecha} 00:00:00"
             cur.execute(
                 """
-                INSERT INTO eventos_servicios
-                  (id_evento, fecha_evento, hora_inicio, hora_final, lugar,
+                INSERT INTO cotizaciones_servicios
+                  (id_cotizacion, fecha_evento, hora_inicio, hora_final, lugar,
                    id_paquete, datetime, id_user, id_cliente, id_ciudad,
                    comentarios, id_servicio)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
                 """,
                 (
-                    id_evento,
+                    id_cotizacion,
                     fecha_evento_dt,
                     hora_inicio,
                     hora_final,
@@ -476,18 +396,18 @@ def _replace_eventos_servicios(
             )
 
 
-def _load_eventos_servicios(conn, id_evento: int) -> list:
+def _load_cotizaciones_servicios(conn, id_cotizacion: int) -> list:
     """Devuelve la lista de servicios del evento en el formato que espera el frontend."""
     with conn.cursor(dictionary=True) as cur:
         cur.execute(
             """
-            SELECT id_evento_servicio, id_servicio, fecha_evento, hora_inicio,
+            SELECT id_cotizacion_servicio, id_servicio, fecha_evento, hora_inicio,
                    hora_final, lugar, id_paquete, id_ciudad, comentarios
-            FROM eventos_servicios
-            WHERE id_evento = %s
+            FROM cotizaciones_servicios
+            WHERE id_cotizacion = %s
             ORDER BY id_servicio ASC
             """,
-            (id_evento,),
+            (id_cotizacion,),
         )
         rows = cur.fetchall()
     result = []
@@ -516,7 +436,7 @@ def _load_eventos_servicios(conn, id_evento: int) -> list:
                 return None
 
         result.append({
-            "id_evento_servicio": r["id_evento_servicio"],
+            "id_cotizacion_servicio": r["id_cotizacion_servicio"],
             "id_servicio": r["id_servicio"],
             "fecha": fecha_str,
             "hora_inicio": _hora_to_str(r.get("hora_inicio")),
@@ -544,7 +464,7 @@ async def crear_evento(
     payload_dict, _ = await _parse_payload_and_files(request)
 
     # Extraer servicios ANTES de construir EventoCreate (no es columna de `eventos`,
-    # se guarda en `eventos_servicios`).
+    # se guarda en `cotizaciones_servicios`).
     servicios_payload = payload_dict.pop("servicios", None)
 
     # Parse datetime_fotografia if present
@@ -613,7 +533,7 @@ async def crear_evento(
                 conn=conn,
                 id_cliente=id_cliente,
             )
-            new_id = result["id_evento"]
+            new_id = result["id_cotizacion"]
             code = result["code"]
 
             lugar = (payload_dict.get("lugar_evento") or "").strip()
@@ -623,9 +543,8 @@ async def crear_evento(
 
             # Agenda de evento/sonido - solo si hay fecha_evento e id_ciudad
             if start_dt and end_dt and id_ciudad:
-                title_ev = f"Sonido - {cliente}".strip() if cliente else "Sonido"
+                title_ev = f"Evento {cliente}".strip() if cliente else "Evento"
                 desc_ev = (
-                    f"Servicio: Sonido. "
                     f"Evento {code} para {cliente}. "
                     f"Evento el {start_dt.strftime('%Y-%m-%d')} de {start_dt.strftime('%H:%M')} "
                     f"a {end_dt.strftime('%H:%M')}. Lugar: {lugar}."
@@ -634,7 +553,7 @@ async def crear_evento(
                     "start_at": start_dt,
                     "end_at": end_dt,
                     "title": title_ev,
-                    "source_table": "eventos",
+                    "source_table": "cotizaciones",
                     "all_day": 0,
                     "status": "active",
                     "location": lugar,
@@ -642,7 +561,7 @@ async def crear_evento(
                     "source_id": new_id,
                     "ciudad_id": id_ciudad,
                     "reminder": "15m",
-                    "url": f"/eventos/{new_id}",
+                    "url": f"/cotizaciones/{new_id}",
                     "in_person": 1,
                     "recurrence": None,
                 }
@@ -655,9 +574,8 @@ async def crear_evento(
                 if foto_end.date() != dt_foto.date():
                     foto_end = dt_foto.replace(hour=23, minute=59, second=0, microsecond=0)
                 lugar_foto = (payload_dict.get("lugar_fotografia") or "").strip()
-                title_foto = f"Fotografía - {cliente}".strip() if cliente else "Fotografía"
+                title_foto = f"Fotografía {cliente}".strip() if cliente else "Sesión Fotografía"
                 desc_foto = (
-                    f"Servicio: Fotografía. "
                     f"Sesión de fotografía {code} para {cliente}. "
                     f"El {dt_foto.strftime('%Y-%m-%d')} a las {dt_foto.strftime('%H:%M')}. "
                     f"Lugar: {lugar_foto}."
@@ -666,7 +584,7 @@ async def crear_evento(
                     "start_at": dt_foto,
                     "end_at": foto_end,
                     "title": title_foto,
-                    "source_table": "eventos",
+                    "source_table": "cotizaciones",
                     "all_day": 0,
                     "status": "active",
                     "location": lugar_foto,
@@ -674,31 +592,20 @@ async def crear_evento(
                     "source_id": new_id,
                     "ciudad_id": id_ciudad_foto,
                     "reminder": "15m",
-                    "url": f"/eventos/{new_id}",
+                    "url": f"/cotizaciones/{new_id}",
                     "in_person": 1,
                     "recurrence": None,
                 }
                 row_foto = agenda_model.create_agenda_conn(conn, user_id, 10, agenda_foto, id_cliente=id_cliente)
                 id_agenda_foto = row_foto.get("id_agenda") or row_foto.get("id")
 
-            # Insertar servicios en eventos_servicios (si el payload los trae).
+            # Insertar servicios en cotizaciones_servicios (si el payload los trae).
             if servicios_payload is not None:
-                _replace_eventos_servicios(
+                _replace_cotizaciones_servicios(
                     conn=conn,
-                    id_evento=new_id,
+                    id_cotizacion=new_id,
                     id_user=user_id,
                     id_cliente=id_cliente,
-                    servicios=servicios_payload,
-                )
-                # Crear agendas para Banquete y Barra.
-                _sync_agendas_servicios_extra(
-                    conn=conn,
-                    id_evento=new_id,
-                    id_user=user_id,
-                    id_cliente=id_cliente,
-                    cliente=cliente,
-                    code=code,
-                    id_tipo_evento=payload.id_tipo_evento,
                     servicios=servicios_payload,
                 )
 
@@ -717,23 +624,23 @@ async def crear_evento(
     if id_agenda:
         await manager.broadcast_json({
             "type": "AGENDA_INVALIDATE",
-            "source": "eventos",
-            "id_evento": new_id,
+            "source": "cotizaciones",
+            "id_cotizacion": new_id,
             "id_agenda": int(id_agenda),
             "ciudad_id": id_ciudad,
         })
     if id_agenda_foto:
         await manager.broadcast_json({
             "type": "AGENDA_INVALIDATE",
-            "source": "eventos",
-            "id_evento": new_id,
+            "source": "cotizaciones",
+            "id_cotizacion": new_id,
             "id_agenda": int(id_agenda_foto),
             "ciudad_id": id_ciudad_foto,
         })
 
     _log_audit(
         "CREATE",
-        f"Evento creado para {payload.cliente_nombre}",
+        f"Cotizacion creada para {payload.cliente_nombre}",
         new_id,
         user_id,
         extra={"codigo": code},
@@ -742,7 +649,7 @@ async def crear_evento(
 
     await _notify_evento(
         EVENTO_TIPO_CREACION,
-        f"Evento creado para {payload.cliente_nombre}",
+        f"Cotizacion creada para {payload.cliente_nombre}",
         new_id,
         user_id,
         id_cliente=id_cliente,
@@ -792,8 +699,8 @@ def search_eventos(
             if tenant_id is not None:
                 cur.execute(
                     """
-                    SELECT id_contrato AS id_evento, code, cliente_nombre, fecha_evento
-                    FROM contratos
+                    SELECT id_cotizacion AS id_cotizacion, code, cliente_nombre, fecha_evento
+                    FROM cotizaciones
                     WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1 AND id_cliente = %s
                     ORDER BY fecha_evento DESC
                     LIMIT %s
@@ -803,8 +710,8 @@ def search_eventos(
             else:
                 cur.execute(
                     """
-                    SELECT id_contrato AS id_evento, code, cliente_nombre, fecha_evento
-                    FROM contratos
+                    SELECT id_cotizacion AS id_cotizacion, code, cliente_nombre, fecha_evento
+                    FROM cotizaciones
                     WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1
                     ORDER BY fecha_evento DESC
                     LIMIT %s
@@ -889,7 +796,6 @@ async def importar_excel_eventos(
             if not fecha_evento:
                 raise ValueError("fecha_evento es requerida y no se pudo leer.")
 
-            fecha_anticipo = _parse_excel_date(row_dict.get("fecha_anticipo"))
             hora_inicio_str = _parse_excel_time(row_dict.get("hora_inicio"))
             hora_final_str = _parse_excel_time(row_dict.get("hora_final"))
 
@@ -914,8 +820,6 @@ async def importar_excel_eventos(
                 "hora_inicio": start_dt,
                 "hora_final": end_dt,
                 "importe": _str("importe"),
-                "fecha_anticipo": fecha_anticipo,
-                "importe_anticipo": _str("importe_anticipo"),
                 "id_tipo_evento": id_tipo_evento,
                 "comentarios": _str("comentarios"),
             }
@@ -927,11 +831,11 @@ async def importar_excel_eventos(
                     cur.execute("START TRANSACTION")
 
                 result = evento_model.create_evento(data=data, id_user_created=int(user_id), conn=conn)
-                new_id = result["id_evento"]
+                new_id = result["id_cotizacion"]
 
                 if id_ciudad:
                     with conn.cursor() as cur:
-                        cur.execute("UPDATE contratos SET id_ciudad = %s WHERE id_contrato = %s", (id_ciudad, new_id))
+                        cur.execute("UPDATE cotizaciones SET id_ciudad = %s WHERE id_cotizacion = %s", (id_ciudad, new_id))
 
                 conn.commit()
                 insertados += 1
@@ -1196,18 +1100,18 @@ def list_paquetes_fotografia(_cu: Dict[str, Any] = Depends(get_current_user)):
 
 # ================== EVENTOS CRUD ==================
 
-@router.get("/{id_evento}")
+@router.get("/{id_cotizacion}")
 def get_evento(
-    id_evento: int,
+    id_cotizacion: int,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
-    # Adjuntar servicios desde eventos_servicios
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
+    # Adjuntar servicios desde cotizaciones_servicios
     conn = get_connection()
     try:
-        row["servicios"] = _load_eventos_servicios(conn, id_evento)
+        row["servicios"] = _load_cotizaciones_servicios(conn, id_cotizacion)
     except Exception:
         row["servicios"] = []
     finally:
@@ -1215,9 +1119,9 @@ def get_evento(
     return row
 
 
-@router.patch("/{id_evento}")
+@router.patch("/{id_cotizacion}")
 async def actualizar_evento(
-    id_evento: int,
+    id_cotizacion: int,
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -1225,9 +1129,9 @@ async def actualizar_evento(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
 
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     old_id_agenda = row.get("id_agenda")
 
@@ -1282,7 +1186,7 @@ async def actualizar_evento(
                 payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
 
             affected, code = evento_model.update_evento(
-                id_evento=id_evento,
+                id_cotizacion=id_cotizacion,
                 data=payload_dict,
                 conn=conn,
             )
@@ -1299,9 +1203,8 @@ async def actualizar_evento(
                 if eff_start and eff_end:
                     lugar = (payload_dict.get("lugar_evento") or row.get("lugar_evento") or "").strip()
                     cliente = (payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip()
-                    title = f"Sonido - {cliente}".strip() if cliente else "Sonido"
+                    title = f"Evento {cliente}".strip() if cliente else "Evento"
                     desc = (
-                        f"Servicio: Sonido. "
                         f"Evento {code} para {cliente}. "
                         f"Evento el {eff_start.strftime('%Y-%m-%d')} de {eff_start.strftime('%H:%M')} "
                         f"a {eff_end.strftime('%H:%M')}. Lugar: {lugar}."
@@ -1312,15 +1215,15 @@ async def actualizar_evento(
                         "start_at": eff_start,
                         "end_at": eff_end,
                         "title": title,
-                        "source_table": "eventos",
+                        "source_table": "cotizaciones",
                         "all_day": 0,
                         "status": "active",
                         "location": lugar,
                         "description": desc,
-                        "source_id": id_evento,
+                        "source_id": id_cotizacion,
                         "ciudad_id": id_ciudad,
                         "reminder": "15m",
-                        "url": f"/eventos/{id_evento}",
+                        "url": f"/cotizaciones/{id_cotizacion}",
                         "in_person": 1,
                         "recurrence": None,
                     }
@@ -1343,23 +1246,11 @@ async def actualizar_evento(
 
             # Reemplazar servicios si el payload los trae.
             if servicios_payload is not None:
-                _replace_eventos_servicios(
+                _replace_cotizaciones_servicios(
                     conn=conn,
-                    id_evento=id_evento,
+                    id_cotizacion=id_cotizacion,
                     id_user=int(user_id),
                     id_cliente=row.get("id_cliente"),
-                    servicios=servicios_payload,
-                )
-                # Actualizar agendas de Banquete y Barra.
-                cliente_upd = (payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip()
-                _sync_agendas_servicios_extra(
-                    conn=conn,
-                    id_evento=id_evento,
-                    id_user=int(user_id),
-                    id_cliente=row.get("id_cliente"),
-                    cliente=cliente_upd,
-                    code=code,
-                    id_tipo_evento=payload_dict.get("id_tipo_evento") or row.get("id_tipo_evento"),
                     servicios=servicios_payload,
                 )
 
@@ -1378,15 +1269,15 @@ async def actualizar_evento(
     if should_ws:
         await manager.broadcast_json({
             "type": "AGENDA_INVALIDATE",
-            "source": "eventos",
-            "id_evento": id_evento,
+            "source": "cotizaciones",
+            "id_cotizacion": id_cotizacion,
             "id_agenda": new_id_agenda,
         })
 
     _log_audit(
         "UPDATE",
-        "Evento actualizado",
-        id_evento,
+        "Cotizacion actualizada",
+        id_cotizacion,
         user_id,
         changes={k: v for k, v in payload_dict.items() if k not in ("hora_inicio", "hora_final")},
         request=request,
@@ -1394,13 +1285,13 @@ async def actualizar_evento(
 
     await _notify_evento(
         EVENTO_TIPO_ACTUALIZACION,
-        f"Evento #{id_evento} actualizado",
-        id_evento,
+        f"Cotizacion #{id_cotizacion} actualizado",
+        id_cotizacion,
         user_id,
         id_cliente=row.get("id_cliente"),
     )
 
-    item = evento_model.get_evento_by_id(id_evento)
+    item = evento_model.get_evento_by_id(id_cotizacion)
     if item:
         _send_correo_evento(item, "UPDATE")
     return {"updated": 1, "code": code, "item": item}
@@ -1414,20 +1305,20 @@ class AbonoCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
-@router.get("/{id_evento}/pagos")
+@router.get("/{id_cotizacion}/pagos")
 def list_eventos_abonos(
-    id_evento: int,
+    id_cotizacion: int,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
-    return evento_model.get_eventos_abonos(id_evento)
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
+    return evento_model.get_eventos_abonos(id_cotizacion)
 
 
-@router.post("/{id_evento}/pagos", status_code=201)
+@router.post("/{id_cotizacion}/pagos", status_code=201)
 def create_abono(
-    id_evento: int,
+    id_cotizacion: int,
     payload: AbonoCreate,
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -1436,9 +1327,9 @@ def create_abono(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
 
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     try:
         fecha_dt = _parse_dt(payload.fecha)
@@ -1446,7 +1337,7 @@ def create_abono(
         raise HTTPException(status_code=400, detail=str(e))
 
     abono = evento_model.create_evento_abono(
-        id_evento=id_evento,
+        id_cotizacion=id_cotizacion,
         id_user=int(user_id),
         importe=payload.monto,
         fecha=fecha_dt,
@@ -1455,7 +1346,7 @@ def create_abono(
     _log_audit(
         "ABONO_ADD",
         f"Abono registrado por ${payload.monto}",
-        id_evento,
+        id_cotizacion,
         int(user_id),
         changes={"monto": payload.monto, "fecha": str(fecha_dt)},
         request=request,
@@ -1463,27 +1354,27 @@ def create_abono(
     return abono
 
 
-@router.delete("/{id_evento}/pagos/{id_abono}", status_code=200)
+@router.delete("/{id_cotizacion}/pagos/{id_abono}", status_code=200)
 def eliminar_abono(
-    id_evento: int,
+    id_cotizacion: int,
     id_abono: int,
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
 
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
-    deleted = evento_model.delete_evento_abono(id_evento=id_evento, id_abono=id_abono)
+    deleted = evento_model.delete_evento_abono(id_cotizacion=id_cotizacion, id_abono=id_abono)
     if not deleted:
         raise HTTPException(status_code=404, detail="Abono no encontrado")
 
     _log_audit(
         "ABONO_DELETE",
         f"Abono eliminado por ${deleted.get('monto', '')}",
-        id_evento,
+        id_cotizacion,
         user_id,
         changes={"id_abono": id_abono, "monto": deleted.get("monto"), "fecha": str(deleted.get("fecha"))},
         request=request,
@@ -1500,41 +1391,41 @@ class EventoEquipoCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
-@router.get("/{id_evento}/equipo")
+@router.get("/{id_cotizacion}/equipo")
 def list_equipo_evento(
-    id_evento: int,
+    id_cotizacion: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
-    return evento_model.list_evento_equipo(id_evento)
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
+    return evento_model.list_evento_equipo(id_cotizacion)
 
 
-@router.get("/{id_evento}/equipo-catalogo")
+@router.get("/{id_cotizacion}/equipo-catalogo")
 def get_equipo_catalogo(
-    id_evento: int,
+    id_cotizacion: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
     fecha_salida = row.get("fecha_evento")
     if hasattr(fecha_salida, "isoformat"):
         fecha_salida = fecha_salida.isoformat()
     fecha_salida = str(fecha_salida or dt.date.today().isoformat())[:10]
-    return evento_model.get_catalogo_con_disponibilidad(id_evento, fecha_salida)
+    return evento_model.get_catalogo_con_disponibilidad(id_cotizacion, fecha_salida)
 
 
-@router.post("/{id_evento}/equipo", status_code=201)
+@router.post("/{id_cotizacion}/equipo", status_code=201)
 def add_equipo_evento(
-    id_evento: int,
+    id_cotizacion: int,
     payload: EventoEquipoCreate,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     fecha_salida = row.get("fecha_evento")
     if hasattr(fecha_salida, "isoformat"):
@@ -1542,7 +1433,7 @@ def add_equipo_evento(
     fecha_salida_str = str(fecha_salida or dt.date.today().isoformat())[:10]
 
     disponible = evento_model.get_disponibilidad_equipo(
-        payload.id_equipo, fecha_salida_str, id_evento
+        payload.id_equipo, fecha_salida_str, id_cotizacion
     )
     if disponible < payload.cantidad:
         raise HTTPException(
@@ -1550,27 +1441,27 @@ def add_equipo_evento(
             detail=f"Solo hay {disponible} unidad(es) disponible(s) para la fecha del evento.",
         )
 
-    result = evento_model.add_evento_equipo(id_evento, {
+    result = evento_model.add_evento_equipo(id_cotizacion, {
         "id_equipo": payload.id_equipo,
         "cantidad": payload.cantidad,
         "fecha_salida": fecha_salida_str,
         "descripcion": payload.descripcion,
         "id_cliente": row.get("id_cliente"),
     })
-    items = evento_model.list_evento_equipo(id_evento)
-    return {"id_contrato_equipo": result["id_contrato_equipo"], "items": items}
+    items = evento_model.list_evento_equipo(id_cotizacion)
+    return {"id_cotizacion_equipo": result["id_cotizacion_equipo"], "items": items}
 
 
-@router.delete("/{id_evento}/equipo/{id_contrato_equipo}", status_code=200)
+@router.delete("/{id_cotizacion}/equipo/{id_cotizacion_equipo}", status_code=200)
 def remove_equipo_evento(
-    id_evento: int,
-    id_contrato_equipo: int,
+    id_cotizacion: int,
+    id_cotizacion_equipo: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    affected = evento_model.delete_evento_equipo(id_contrato_equipo)
+    affected = evento_model.delete_evento_equipo(id_cotizacion_equipo)
     if not affected:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
-    return {"deleted": 1, "id_contrato_equipo": id_contrato_equipo}
+    return {"deleted": 1, "id_cotizacion_equipo": id_cotizacion_equipo}
 
 
 # ================== EVENTO TRABAJADORES ==================
@@ -1581,50 +1472,50 @@ class EventoTrabajadorCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
-@router.get("/{id_evento}/trabajadores", status_code=200)
+@router.get("/{id_cotizacion}/trabajadores", status_code=200)
 def get_trabajadores_evento(
-    id_evento: int,
+    id_cotizacion: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    return trab_model.list_contrato_trabajadores(id_evento)
+    return evento_model.list_contrato_trabajadores(id_cotizacion)
 
 
-@router.post("/{id_evento}/trabajadores", status_code=201)
+@router.post("/{id_cotizacion}/trabajadores", status_code=201)
 def add_trabajador_evento(
-    id_evento: int,
+    id_cotizacion: int,
     payload: EventoTrabajadorCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    if trab_model.is_trabajador_en_contrato(id_evento, payload.id_trabajador):
+    if evento_model.is_trabajador_en_contrato(id_cotizacion, payload.id_trabajador):
         raise HTTPException(
             status_code=409,
             detail="Este trabajador ya está asignado a este evento",
         )
     user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
-    evento_row = evento_model.get_evento_by_id(id_evento)
+    evento_row = evento_model.get_evento_by_id(id_cotizacion)
     id_cliente = evento_row.get("id_cliente") if evento_row else None
-    result = trab_model.add_contrato_trabajador(
-        id_evento, payload.id_trabajador, payload.id_puesto, user_id, id_cliente
+    result = evento_model.add_contrato_trabajador(
+        id_cotizacion, payload.id_trabajador, payload.id_puesto, user_id, id_cliente
     )
-    items = trab_model.list_contrato_trabajadores(id_evento)
-    return {"id_contrato_trabajador": result["id_contrato_trabajador"], "items": items}
+    items = evento_model.list_contrato_trabajadores(id_cotizacion)
+    return {"id_cotizacion_trabajador": result["id_cotizacion_trabajador"], "items": items}
 
 
-@router.delete("/{id_evento}/trabajadores/{id_contrato_trabajador}", status_code=200)
+@router.delete("/{id_cotizacion}/trabajadores/{id_cotizacion_trabajador}", status_code=200)
 def remove_trabajador_evento(
-    id_evento: int,
-    id_contrato_trabajador: int,
+    id_cotizacion: int,
+    id_cotizacion_trabajador: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    affected = trab_model.delete_contrato_trabajador(id_evento, id_contrato_trabajador)
+    affected = evento_model.delete_contrato_trabajador(id_cotizacion, id_cotizacion_trabajador)
     if not affected:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
-    return {"deleted": 1, "id_contrato_trabajador": id_contrato_trabajador}
+    return {"deleted": 1, "id_cotizacion_trabajador": id_cotizacion_trabajador}
 
 
-@router.delete("/{id_evento}", status_code=200)
+@router.delete("/{id_cotizacion}", status_code=200)
 def eliminar_evento(
-    id_evento: int,
+    id_cotizacion: int,
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
@@ -1633,29 +1524,29 @@ def eliminar_evento(
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE contratos SET active = 0 WHERE id_contrato = %s",
-                (id_evento,),
+                "UPDATE cotizaciones SET active = 0 WHERE id_cotizacion = %s",
+                (id_cotizacion,),
             )
             if cur.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Evento no encontrado")
+                raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
         conn.commit()
     finally:
         conn.close()
 
-    _log_audit("DELETE", "Evento eliminado (marcado inactivo)", id_evento, user_id, request=request)
-    return {"deleted": 1, "id_evento": id_evento}
+    _log_audit("DELETE", "Cotizacion eliminada (marcado inactivo)", id_cotizacion, user_id, request=request)
+    return {"deleted": 1, "id_cotizacion": id_cotizacion}
 
 
 # ================== DOCUMENTOS ==================
 
-@router.get("/{id_evento}/documentos")
+@router.get("/{id_cotizacion}/documentos")
 def list_documentos(
-    id_evento: int,
+    id_cotizacion: int,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     conn = get_connection()
     try:
@@ -1663,20 +1554,20 @@ def list_documentos(
             cur.execute(
                 """
                 SELECT id_contacto_documento AS id, filename, path, id_tipo_documento, active
-                FROM contratos_documentos
-                WHERE id_contrato = %s AND active = 1
+                FROM cotizaciones_documentos
+                WHERE id_cotizacion = %s AND active = 1
                 ORDER BY id_contacto_documento DESC
                 """,
-                (id_evento,),
+                (id_cotizacion,),
             )
             return cur.fetchall() or []
     finally:
         conn.close()
 
 
-@router.post("/{id_evento}/documentos", status_code=201)
+@router.post("/{id_cotizacion}/documentos", status_code=201)
 async def upload_documento(
-    id_evento: int,
+    id_cotizacion: int,
     request: Request,
     file: UploadFile = File(...),
     id_tipo_documento: int = 1,
@@ -1686,12 +1577,12 @@ async def upload_documento(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid user ID")
 
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     id_cliente = row.get("id_cliente") or 0
-    dest_dir = FsPath("uploads") / str(id_cliente) / "eventos" / str(id_evento)
+    dest_dir = FsPath("uploads") / str(id_cliente) / "cotizaciones" / str(id_cotizacion)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     original_filename = file.filename
@@ -1712,11 +1603,11 @@ async def upload_documento(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO contratos_documentos
-                    (id_contrato, active, filename, path, id_user, id_tipo_documento)
+                INSERT INTO cotizaciones_documentos
+                    (id_cotizacion, active, filename, path, id_user, id_tipo_documento)
                 VALUES (%s, 1, %s, %s, %s, %s)
                 """,
-                (id_evento, original_filename, rel_path, user_id, id_tipo_documento),
+                (id_cotizacion, original_filename, rel_path, user_id, id_tipo_documento),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -1730,7 +1621,7 @@ async def upload_documento(
     _log_audit(
         "DOCUMENTO_ADD",
         f"Documento agregado ({tipo_label}): {original_filename}",
-        id_evento,
+        id_cotizacion,
         int(user_id),
         changes={"filename": original_filename, "id_tipo_documento": id_tipo_documento},
         request=request,
@@ -1738,9 +1629,9 @@ async def upload_documento(
     return {"id": new_id, "filename": original_filename, "path": rel_path}
 
 
-@router.delete("/{id_evento}/documentos/{id_doc}", status_code=200)
+@router.delete("/{id_cotizacion}/documentos/{id_doc}", status_code=200)
 def eliminar_documento(
-    id_evento: int,
+    id_cotizacion: int,
     id_doc: int,
     request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -1751,16 +1642,16 @@ def eliminar_documento(
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT filename FROM contratos_documentos WHERE id_contacto_documento = %s AND id_contrato = %s LIMIT 1",
-                (id_doc, id_evento),
+                "SELECT filename FROM cotizaciones_documentos WHERE id_contacto_documento = %s AND id_cotizacion = %s LIMIT 1",
+                (id_doc, id_cotizacion),
             )
             doc_row = cur.fetchone()
             if doc_row:
                 filename = doc_row.get("filename")
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE contratos_documentos SET active = 0 WHERE id_contacto_documento = %s AND id_contrato = %s",
-                (id_doc, id_evento),
+                "UPDATE cotizaciones_documentos SET active = 0 WHERE id_contacto_documento = %s AND id_cotizacion = %s",
+                (id_doc, id_cotizacion),
             )
             if cur.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Documento no encontrado")
@@ -1771,7 +1662,7 @@ def eliminar_documento(
     _log_audit(
         "DOCUMENTO_DELETE",
         f"Documento eliminado: {filename or id_doc}",
-        id_evento,
+        id_cotizacion,
         user_id,
         changes={"id_doc": id_doc, "filename": filename},
         request=request,
@@ -1781,21 +1672,21 @@ def eliminar_documento(
 
 # ================== ACTIVIDAD (AUDIT LOG) ==================
 
-@router.get("/{id_evento}/actividad")
+@router.get("/{id_cotizacion}/actividad")
 def get_actividad_evento(
-    id_evento: int,
+    id_cotizacion: int,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = evento_model.get_evento_by_id(id_evento)
+    row = evento_model.get_evento_by_id(id_cotizacion)
     if not row:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Cotizacion no encontrada")
 
     items, total = audit_model.list_audit_logs(
         filters={
             "id_modulo": EVENTO_MODULO,
-            "id_key": str(id_evento),
+            "id_key": str(id_cotizacion),
         },
         limit=limit,
         offset=offset,

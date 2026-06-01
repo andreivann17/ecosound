@@ -36,6 +36,7 @@ from .routers.general import router as general_router
 from .routers.notificaciones import router as notificaciones_router
 from .routers.ws import router as ws_router
 from .routers.eventos import router as eventos_router
+from .routers.cotizaciones import router as cotizaciones_router
 from .routers.sesiones_fotos import router as sesiones_fotos_router
 from .routers.estadisticas import router as estadisticas_router
 from .routers.inventario import router as inventario_router
@@ -109,6 +110,7 @@ def on_startup():
     _seed_notificaciones_schema()
     _migrate_admin_db()
     _migrate_ecosound_db()
+    _migrate_cotizaciones_db()
     from .utils.scheduler import start_reminder_scheduler
     start_reminder_scheduler()
 
@@ -140,6 +142,7 @@ def _seed_notificaciones_schema():
                 (7, "Usuarios"),
                 (8, "Clientes Events"),
                 (9, "Gastos"),
+                (10, "Cotizaciones"),
             ]
             for id_m, nombre in modulos:
                 cur.execute(
@@ -171,6 +174,28 @@ def _migrate_ecosound_db():
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # eventos_servicios — asegurar que existan las columnas hora_inicio/hora_final
+            # como TIME (en algún punto las dejaron como TIMESTAMP/INT y eso impide
+            # guardar correctamente las horas del servicio).
+            cur.execute("""
+                SELECT DATA_TYPE FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'eventos_servicios'
+                  AND COLUMN_NAME = 'hora_inicio'
+            """)
+            _r = cur.fetchone()
+            if _r and _r[0] not in ('time',):
+                cur.execute("ALTER TABLE eventos_servicios MODIFY COLUMN hora_inicio TIME DEFAULT NULL")
+            cur.execute("""
+                SELECT DATA_TYPE FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'eventos_servicios'
+                  AND COLUMN_NAME = 'hora_final'
+            """)
+            _r = cur.fetchone()
+            if _r and _r[0] not in ('time',):
+                cur.execute("ALTER TABLE eventos_servicios MODIFY COLUMN hora_final TIME DEFAULT NULL")
+
             # Add correo_hora_sesion / correo_dia_sesion to configuracion_eventos if missing
             for _col in ("correo_hora_sesion", "correo_dia_sesion"):
                 cur.execute("""
@@ -288,6 +313,158 @@ def _migrate_ecosound_db():
         conn.close()
 
 
+def _migrate_cotizaciones_db():
+    """Crea las tablas propias del modulo Cotizaciones (clon de eventos/contratos).
+
+    Usa CREATE TABLE IF NOT EXISTS, igual que el resto de migraciones de arranque,
+    para no requerir migraciones manuales en MySQL.
+    """
+    from .db import get_connection
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones (
+                    id_cotizacion           INT AUTO_INCREMENT PRIMARY KEY,
+                    folio                   VARCHAR(20) DEFAULT NULL,
+                    estado                  VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+                    id_user                 INT DEFAULT NULL,
+                    id_tipo_evento          INT DEFAULT NULL,
+                    cliente_nombre          VARCHAR(255) DEFAULT NULL,
+                    domicilio               VARCHAR(255) DEFAULT NULL,
+                    celular                 VARCHAR(30)  DEFAULT NULL,
+                    fecha_evento            DATETIME DEFAULT NULL,
+                    lugar_evento            VARCHAR(255) DEFAULT NULL,
+                    hora_inicio             DATETIME DEFAULT NULL,
+                    hora_final              DATETIME DEFAULT NULL,
+                    importe                 VARCHAR(50)  DEFAULT NULL,
+                    id_ciudad               INT DEFAULT NULL,
+                    fecha_anticipo          DATETIME DEFAULT NULL,
+                    importe_anticipo        VARCHAR(50)  DEFAULT NULL,
+                    comentarios             TEXT DEFAULT NULL,
+                    direccion_misa          VARCHAR(255) DEFAULT NULL,
+                    hora_misa               DATETIME DEFAULT NULL,
+                    id_paquete_sonido       INT DEFAULT NULL,
+                    id_paquete_fotografia   INT DEFAULT NULL,
+                    id_ciudad_fotografia    INT DEFAULT NULL,
+                    lugar_fotografia        VARCHAR(255) DEFAULT NULL,
+                    datetime_fotografia     DATETIME DEFAULT NULL,
+                    comentarios_fotografia  TEXT DEFAULT NULL,
+                    fecha_creacion_contrato DATETIME DEFAULT NULL,
+                    id_agenda               INT DEFAULT NULL,
+                    datetime                DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    code                    VARCHAR(20)  DEFAULT NULL,
+                    id_cliente              INT DEFAULT NULL,
+                    active                  TINYINT(1) NOT NULL DEFAULT 1,
+                    INDEX idx_cliente (id_cliente),
+                    INDEX idx_fecha (fecha_evento),
+                    INDEX idx_active (active)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones_servicios (
+                    id_cotizacion_servicio INT AUTO_INCREMENT PRIMARY KEY,
+                    id_cotizacion   INT NOT NULL,
+                    fecha_evento    DATETIME DEFAULT NULL,
+                    hora_inicio     TIME DEFAULT NULL,
+                    hora_final      TIME DEFAULT NULL,
+                    lugar           VARCHAR(255) DEFAULT NULL,
+                    id_paquete      INT DEFAULT NULL,
+                    datetime        DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    id_user         INT DEFAULT NULL,
+                    id_cliente      INT DEFAULT NULL,
+                    id_ciudad       INT DEFAULT NULL,
+                    comentarios     TEXT DEFAULT NULL,
+                    id_servicio     INT DEFAULT NULL,
+                    INDEX idx_cotizacion (id_cotizacion)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones_abonos (
+                    id_cotizacion_abono INT AUTO_INCREMENT PRIMARY KEY,
+                    importe       VARCHAR(50) DEFAULT NULL,
+                    fecha         DATETIME DEFAULT NULL,
+                    active        TINYINT(1) NOT NULL DEFAULT 1,
+                    id_user       INT DEFAULT NULL,
+                    id_cotizacion INT NOT NULL,
+                    id_cliente    INT DEFAULT NULL,
+                    INDEX idx_cotizacion (id_cotizacion)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones_equipos (
+                    id_cotizacion_equipo INT AUTO_INCREMENT PRIMARY KEY,
+                    id_cotizacion      INT NOT NULL,
+                    id_equipo          INT NOT NULL,
+                    cantidad           INT NOT NULL DEFAULT 1,
+                    fecha_salida       DATETIME DEFAULT NULL,
+                    fecha_regreso      DATETIME DEFAULT NULL,
+                    regreso_confirmado TINYINT(1) NOT NULL DEFAULT 0,
+                    descripcion        VARCHAR(255) DEFAULT NULL,
+                    datetime           DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    id_cliente         INT DEFAULT NULL,
+                    INDEX idx_cotizacion (id_cotizacion),
+                    INDEX idx_equipo (id_equipo)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones_documentos (
+                    id_contacto_documento INT AUTO_INCREMENT PRIMARY KEY,
+                    id_cotizacion     INT NOT NULL,
+                    active            TINYINT(1) NOT NULL DEFAULT 1,
+                    filename          VARCHAR(255) DEFAULT NULL,
+                    path              VARCHAR(500) DEFAULT NULL,
+                    id_user           INT DEFAULT NULL,
+                    id_tipo_documento INT NOT NULL DEFAULT 1,
+                    datetime          DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_cotizacion (id_cotizacion)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS cotizaciones_trabajadores (
+                    id_cotizacion_trabajador INT AUTO_INCREMENT PRIMARY KEY,
+                    id_cotizacion  INT NOT NULL,
+                    id_trabajador  INT NOT NULL,
+                    id_puesto      INT DEFAULT NULL,
+                    active         TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime       DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    id_user        INT DEFAULT NULL,
+                    id_cliente     INT DEFAULT NULL,
+                    INDEX idx_cotizacion (id_cotizacion)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            # Agregar columna `folio` si la tabla ya existía sin ella
+            cur.execute("""
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'cotizaciones'
+                  AND COLUMN_NAME = 'folio'
+            """)
+            if cur.fetchone()[0] == 0:
+                cur.execute("ALTER TABLE cotizaciones ADD COLUMN folio VARCHAR(20) DEFAULT NULL AFTER id_cotizacion")
+
+            # Agregar columna `estado` (pendiente/aceptada/rechazada) si falta
+            cur.execute("""
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'cotizaciones'
+                  AND COLUMN_NAME = 'estado'
+            """)
+            if cur.fetchone()[0] == 0:
+                cur.execute("ALTER TABLE cotizaciones ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' AFTER folio")
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
 def _migrate_admin_db():
     """One-time migrations on the administrador database."""
     from .db import get_admin_connection
@@ -355,6 +532,7 @@ app.include_router(agenda_router)
 app.include_router(ws_router)
 app.include_router(notificaciones_router)
 app.include_router(eventos_router)
+app.include_router(cotizaciones_router)
 app.include_router(sesiones_fotos_router)
 app.include_router(estadisticas_router)
 app.include_router(inventario_router)

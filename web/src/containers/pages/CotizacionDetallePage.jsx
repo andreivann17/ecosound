@@ -1,12 +1,14 @@
-﻿import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import {
-  apiEventosInstance,
-  authHeaderEventos,
-} from "../../redux/actions/eventos/eventos";
+  apiCotizacionesInstance,
+  authHeaderCotizaciones,
+} from "../../redux/actions/cotizaciones/cotizaciones";
+import { previewCotizacionPdf, printCotizacionPdf } from "../../components/utils/printCotizacionPdf";
+import logoImg from "../../assets/img/logo_hersoft_event.webp";
 
 import {
   Button,
@@ -49,9 +51,12 @@ import {
   AppstoreOutlined,
   MinusOutlined,
   TeamOutlined,
+  CheckOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
+import "./CotizacionDetallePage.css";
 import { PATH as API_BASE } from "../../redux/utils";
 
 dayjs.locale("es");
@@ -195,12 +200,12 @@ const ACTION_CONFIG = {
 const getActionConfig = (action) =>
   ACTION_CONFIG[action] || { label: action, color: "#595c5e", bg: "#f1f5f9" };
 
-export default function EventoDetallePage() {
-  const { idEvento } = useParams();
+export default function CotizacionDetallePage() {
+  const { idCotizacion } = useParams();
   const navigate = useNavigate();
   const { perm } = usePermisos() || { perm: () => true };
-  const canEditar   = perm("eventos", "editar");
-  const canEliminar = perm("eventos", "eliminar");
+  const canEditar   = true;
+  const canEliminar = true;
 
   const [evento, setEvento] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -239,6 +244,9 @@ export default function EventoDetallePage() {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [viewerDoc, setViewerDoc] = useState(null);
+  const [estadoSaving, setEstadoSaving] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportHtml, setReportHtml] = useState("");
 
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
@@ -250,9 +258,9 @@ export default function EventoDetallePage() {
     let mounted = true;
     setLoading(true);
     Promise.all([
-      apiEventosInstance.get(`/eventos/${idEvento}`, { headers: authHeaderEventos() }),
-      apiEventosInstance.get("/eventos/config/paquetes-sonido", { headers: authHeaderEventos() }),
-      apiEventosInstance.get("/eventos/config/paquetes-fotografia", { headers: authHeaderEventos() }),
+      apiCotizacionesInstance.get(`/cotizaciones/${idCotizacion}`, { headers: authHeaderCotizaciones() }),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-sonido", { headers: authHeaderCotizaciones() }),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-fotografia", { headers: authHeaderCotizaciones() }),
     ])
       .then(([evRes, psRes, pfRes]) => {
         if (mounted) {
@@ -261,31 +269,54 @@ export default function EventoDetallePage() {
           setPaquetesFoto(Array.isArray(pfRes.data) ? pfRes.data : []);
         }
       })
-      .catch(() => notification.error({ message: "No se pudo cargar el evento" }))
+      .catch(() => notification.error({ message: "No se pudo cargar la cotización" }))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [idEvento]);
+  }, [idCotizacion]);
+
+  // Aceptar / Rechazar cotización — actualiza el estado en el backend
+  const handleSetEstado = async (nuevoEstado) => {
+    setEstadoSaving(true);
+    try {
+      await apiCotizacionesInstance.patch(
+        `/cotizaciones/${idCotizacion}`,
+        { estado: nuevoEstado },
+        { headers: authHeaderCotizaciones() }
+      );
+      setEvento((prev) => (prev ? { ...prev, estado: nuevoEstado } : prev));
+      notification.success({
+        message: nuevoEstado === "aceptada" ? "Cotización aceptada" : "Cotización rechazada",
+      });
+    } catch (err) {
+      notification.error({
+        message: "No se pudo actualizar el estado",
+        description: err?.response?.data?.detail || err.message,
+      });
+    } finally {
+      setEstadoSaving(false);
+    }
+  };
 
   const fetchPagos = useCallback(async () => {
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/pagos`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/pagos`,
+        { headers: authHeaderCotizaciones() }
       );
       setPagos(Array.isArray(data) ? data : data.items ?? []);
     } catch {
       setPagos([]);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   useEffect(() => { fetchPagos(); }, [fetchPagos]);
 
   const fetchActividad = useCallback(async () => {
     setLoadingActividad(true);
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/actividad`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/actividad`,
+        { headers: authHeaderCotizaciones() }
       );
       setActividad(Array.isArray(data) ? data : data.items ?? []);
     } catch {
@@ -293,14 +324,14 @@ export default function EventoDetallePage() {
     } finally {
       setLoadingActividad(false);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   const fetchDocumentos = useCallback(async () => {
     setLoadingDocs(true);
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/documentos`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/documentos`,
+        { headers: authHeaderCotizaciones() }
       );
       const docs = Array.isArray(data) ? data : [];
       const pdfs = docs.filter((d) => d.id_tipo_documento === 1);
@@ -324,14 +355,14 @@ export default function EventoDetallePage() {
     } finally {
       setLoadingDocs(false);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   const fetchEquipoEvento = useCallback(async () => {
     setLoadingEquipo(true);
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/equipo`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/equipo`,
+        { headers: authHeaderCotizaciones() }
       );
       setEquipoEvento(Array.isArray(data) ? data : []);
     } catch {
@@ -339,14 +370,14 @@ export default function EventoDetallePage() {
     } finally {
       setLoadingEquipo(false);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   const fetchCatalogo = useCallback(async () => {
     setLoadingCatalogo(true);
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/equipo-catalogo`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/equipo-catalogo`,
+        { headers: authHeaderCotizaciones() }
       );
       setCatalogoEquipo(Array.isArray(data) ? data : []);
     } catch {
@@ -354,14 +385,14 @@ export default function EventoDetallePage() {
     } finally {
       setLoadingCatalogo(false);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   const fetchTrabajadoresEvento = useCallback(async () => {
     setLoadingTrabajadores(true);
     try {
-      const { data } = await apiEventosInstance.get(
-        `/eventos/${idEvento}/trabajadores`,
-        { headers: authHeaderEventos() }
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}/trabajadores`,
+        { headers: authHeaderCotizaciones() }
       );
       setTrabajadoresEvento(Array.isArray(data) ? data : []);
     } catch {
@@ -369,13 +400,13 @@ export default function EventoDetallePage() {
     } finally {
       setLoadingTrabajadores(false);
     }
-  }, [idEvento]);
+  }, [idCotizacion]);
 
   const fetchCatalogoTrabajadores = useCallback(async () => {
     try {
       const [resTrab, resPuestos] = await Promise.all([
-        apiEventosInstance.get("/trabajadores", { headers: authHeaderEventos() }),
-        apiEventosInstance.get("/trabajadores/puestos", { headers: authHeaderEventos() }),
+        apiCotizacionesInstance.get("/trabajadores", { headers: authHeaderCotizaciones() }),
+        apiCotizacionesInstance.get("/trabajadores/puestos", { headers: authHeaderCotizaciones() }),
       ]);
       setCatalogoTrabajadores(Array.isArray(resTrab.data) ? resTrab.data : []);
       setPuestosEvento(Array.isArray(resPuestos.data) ? resPuestos.data : []);
@@ -394,8 +425,8 @@ export default function EventoDetallePage() {
 
   const handleDelete = () => {
     Modal.confirm({
-      title: "Eliminar evento",
-      content: "El evento se marcará como inactivo. Esta acción se puede revertir.",
+      title: "Eliminar cotización",
+      content: "La cotización se marcará como inactiva. Esta acción se puede revertir.",
       okText: "Eliminar",
       okType: "danger",
       cancelText: "Cancelar",
@@ -403,11 +434,11 @@ export default function EventoDetallePage() {
       onOk: async () => {
         try {
           setDeleting(true);
-          await apiEventosInstance.delete(`/eventos/${idEvento}`, {
-            headers: authHeaderEventos(),
+          await apiCotizacionesInstance.delete(`/cotizaciones/${idCotizacion}`, {
+            headers: authHeaderCotizaciones(),
           });
-          notification.success({ message: "Evento eliminado" });
-          navigate("/app/eventos");
+          notification.success({ message: "Cotización eliminada" });
+          navigate("/app/cotizaciones");
         } catch (err) {
           notification.error({
             message: "Error al eliminar",
@@ -430,9 +461,9 @@ export default function EventoDetallePage() {
       centered: true,
       onOk: async () => {
         try {
-          await apiEventosInstance.delete(
-            `/eventos/${idEvento}/pagos/${pago.id || pago.id_pago}`,
-            { headers: authHeaderEventos() }
+          await apiCotizacionesInstance.delete(
+            `/cotizaciones/${idCotizacion}/pagos/${pago.id || pago.id_pago}`,
+            { headers: authHeaderCotizaciones() }
           );
           notification.success({ message: "Abono eliminado" });
           fetchPagos();
@@ -451,14 +482,14 @@ export default function EventoDetallePage() {
     try { values = await pagoForm.validateFields(); } catch { return; }
     setSavingPago(true);
     try {
-      await apiEventosInstance.post(
-        `/eventos/${idEvento}/pagos`,
+      await apiCotizacionesInstance.post(
+        `/cotizaciones/${idCotizacion}/pagos`,
         {
           monto: String(values.monto),
           fecha: dayjs(values.fecha).format("YYYY-MM-DDTHH:mm:ss"),
           descripcion: values.descripcion?.trim() || null,
         },
-        { headers: authHeaderEventos() }
+        { headers: authHeaderCotizaciones() }
       );
       notification.success({ message: "Abono registrado exitosamente" });
       pagoForm.resetFields();
@@ -484,10 +515,10 @@ export default function EventoDetallePage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      await apiEventosInstance.post(
-        `/eventos/${idEvento}/documentos?id_tipo_documento=1`,
+      await apiCotizacionesInstance.post(
+        `/cotizaciones/${idCotizacion}/documentos?id_tipo_documento=1`,
         fd,
-        { headers: { ...authHeaderEventos(), "Content-Type": "multipart/form-data" } }
+        { headers: { ...authHeaderCotizaciones(), "Content-Type": "multipart/form-data" } }
       );
       notification.success({ message: "Evento PDF subido correctamente" });
       fetchDocumentos();
@@ -508,10 +539,10 @@ export default function EventoDetallePage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      await apiEventosInstance.post(
-        `/eventos/${idEvento}/documentos?id_tipo_documento=2`,
+      await apiCotizacionesInstance.post(
+        `/cotizaciones/${idCotizacion}/documentos?id_tipo_documento=2`,
         fd,
-        { headers: { ...authHeaderEventos(), "Content-Type": "multipart/form-data" } }
+        { headers: { ...authHeaderCotizaciones(), "Content-Type": "multipart/form-data" } }
       );
       notification.success({ message: "Documento subido correctamente" });
       fetchDocumentos();
@@ -536,9 +567,9 @@ export default function EventoDetallePage() {
       centered: true,
       onOk: async () => {
         try {
-          await apiEventosInstance.delete(
-            `/eventos/${idEvento}/documentos/${doc.id}`,
-            { headers: authHeaderEventos() }
+          await apiCotizacionesInstance.delete(
+            `/cotizaciones/${idCotizacion}/documentos/${doc.id}`,
+            { headers: authHeaderCotizaciones() }
           );
           notification.success({ message: "Documento eliminado" });
           fetchDocumentos();
@@ -567,6 +598,72 @@ export default function EventoDetallePage() {
   }
 
   if (!evento) return null;
+
+  const ESTADO_LABEL = { pendiente: "Pendiente", aceptada: "Aceptada", rechazada: "Rechazada" };
+  const estadoCot = (() => {
+    const e = String(evento.estado || "pendiente").toLowerCase();
+    return ESTADO_LABEL[e] ? e : "pendiente";
+  })();
+
+  // Arma los datos del documento PDF de la cotización (para el cliente)
+  const buildReportData = () => {
+    const arr = Array.isArray(evento.servicios) ? evento.servicios : [];
+    const base = arr.length > 0 ? arr : [
+      (evento.fecha_evento || evento.lugar_evento) ? {
+        id_servicio: 1, fecha: evento.fecha_evento,
+        hora_inicio: evento.hora_inicio ? fmtHora(evento.hora_inicio) : null,
+        hora_final: evento.hora_final ? fmtHora(evento.hora_final) : null,
+        id_ciudad: evento.id_ciudad, lugar: evento.lugar_evento, id_paquete: evento.id_paquete_sonido,
+      } : null,
+      (evento.datetime_fotografia || evento.lugar_fotografia) ? {
+        id_servicio: 2, fecha: evento.datetime_fotografia,
+        hora_inicio: evento.datetime_fotografia ? dayjs(evento.datetime_fotografia).format("HH:mm") : null,
+        hora_final: null,
+        id_ciudad: evento.id_ciudad_fotografia, lugar: evento.lugar_fotografia, id_paquete: evento.id_paquete_fotografia,
+      } : null,
+    ].filter(Boolean);
+
+    const servicios = base.map((sv) => {
+      const hi = sv.hora_inicio || null;
+      const hf = sv.hora_final || null;
+      const horario = hi && hf ? `${hi} — ${hf}` : (hi || hf || "—");
+      let paquete = "Sin paquete";
+      if (sv.id_paquete) {
+        if (sv.id_servicio === 1) paquete = paquetesSonido.find((p) => p.id_paquete_sonido === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
+        else if (sv.id_servicio === 2) paquete = paquetesFoto.find((p) => p.id_paquete_fotografia === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
+        else paquete = `Paquete #${sv.id_paquete}`;
+      }
+      return {
+        label: SERVICIO_LABEL[sv.id_servicio] || "Servicio",
+        fecha: fmtFechaCorta(sv.fecha),
+        ciudad: CIUDAD_MAP[sv.id_ciudad] || "—",
+        lugar: sv.lugar || "—",
+        horario,
+        paquete,
+      };
+    });
+
+    return {
+      folio: evento.folio,
+      estado: estadoCot,
+      estadoLabel: ESTADO_LABEL[estadoCot],
+      cliente: evento.cliente_nombre,
+      celular: evento.celular,
+      domicilio: evento.domicilio,
+      comentarios: evento.comentarios,
+      tipoLabel,
+      importe: evento.importe,
+      vendedor: evento.created_by_nombre,
+      validezDias: evento.dias_validez || 15,
+      logo: logoImg,
+      servicios,
+    };
+  };
+
+  const handleOpenReport = () => {
+    setReportHtml(previewCotizacionPdf(buildReportData()));
+    setReportOpen(true);
+  };
 
   const totalPagosAdicionales = pagos.reduce((a, p) => a + parseNum(p.monto), 0);
   const resta = (() => {
@@ -632,17 +729,47 @@ export default function EventoDetallePage() {
   const mainPdf = eventoPdfs[0] ?? null;
 
   return (
-    <div className="cd-main">
+    <div className="cd-main cd-cotizacion-detalle">
       <div className="cd-content">
 
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
           className="cd-back-btn"
-          onClick={() => navigate("/app/eventos")}
+          onClick={() => navigate("/app/cotizaciones")}
         >
-          Volver a Eventos
+          Volver a Cotizaciones
         </Button>
+
+        <Modal
+          open={reportOpen}
+          onCancel={() => setReportOpen(false)}
+          title="Cotización para el cliente"
+          width={900}
+          centered
+          destroyOnClose
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button onClick={() => setReportOpen(false)}>Cerrar</Button>
+              <Button
+                type="primary"
+                icon={<FileTextOutlined />}
+                style={{ background: "#01369e", borderColor: "#01369e" }}
+                onClick={() => printCotizacionPdf(buildReportData())}
+              >
+                Descargar PDF
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            <iframe
+              title="preview-cotizacion"
+              style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+              srcDoc={reportHtml}
+            />
+          </div>
+        </Modal>
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -651,9 +778,9 @@ export default function EventoDetallePage() {
                 <h1 className="cd-client-name">
                   {(evento.cliente_nombre + " - " + tipoLabel || "—").toUpperCase()}
                 </h1>
-                <span className={`cd-status-badge ${evento.active ? "cd-status-active" : "cd-status-inactive"}`}>
-                  <span className={`cd-status-dot ${evento.active ? "cd-dot-active" : "cd-dot-inactive"}`} />
-                  {evento.active ? "ACTIVO" : "INACTIVO"}
+                <span className={`cd-estado-badge cd-estado-${estadoCot}`}>
+                  <span className={`cd-estado-dot cd-estado-dot-${estadoCot}`} />
+                  {ESTADO_LABEL[estadoCot]}
                 </span>
               </div>
               <div className="cd-header-meta">
@@ -673,12 +800,19 @@ export default function EventoDetallePage() {
             </div>
 
             <div className="cd-header-actions">
+              <Button
+                icon={<FileTextOutlined />}
+                className="cd-btn-report"
+                onClick={handleOpenReport}
+              >
+                Cotización PDF
+              </Button>
               {canEditar && (
                 <Button
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
                   onClick={() =>
-                    navigate(`/app/eventos/${evento.id_evento}/editar`, {
+                    navigate(`/app/cotizaciones/${evento.id_cotizacion}/editar`, {
                       state: { evento },
                     })
                   }
@@ -705,38 +839,7 @@ export default function EventoDetallePage() {
               onClick={() => setActiveTab("datos")}
             >
               <FileTextOutlined />
-              Datos del evento
-            </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "evento-pdf" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("evento-pdf")}
-            >
-              <FilePdfOutlined />
-              Evento Visor
-            </button>
-             <button
-              className={`cd-tab-btn ${activeTab === "pagos" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("pagos")}
-            >
-              <DollarOutlined />
-              Abonos y Pagos
-            </button>
-             
-           
-            <button
-              className={`cd-tab-btn ${activeTab === "historial" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("historial")}
-            >
-              <ClockCircleOutlined />
-              Historial
-            </button>
-           
-            <button
-              className={`cd-tab-btn ${activeTab === "documentos" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("documentos")}
-            >
-              <FolderOpenOutlined />
-              Documentos
+              Datos de la cotización
             </button>
             <button
               className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
@@ -745,11 +848,11 @@ export default function EventoDetallePage() {
               <HistoryOutlined />
               Actividad
             </button>
-          
+
           </div>
         </div>
 
-        {/* Tab 1: Datos del evento */}
+        {/* Tab 1: Datos de la cotización */}
         {activeTab === "datos" && (() => {
           // Resolución de servicios — usa el array nuevo del backend; si está vacío
           // (eventos antiguos), reconstruye desde los campos planos legacy.
@@ -792,8 +895,6 @@ export default function EventoDetallePage() {
             return `Paquete #${sv.id_paquete}`;
           };
 
-          const firstPdf = (eventoPdfs && eventoPdfs[0]) || null;
-
           return (
           <div className="cd-bento-grid">
             <div className="cd-card cd-card-client">
@@ -835,82 +936,62 @@ export default function EventoDetallePage() {
             <div className="cd-card cd-card-event">
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
-                <h2 className="cd-card-title">Datos del evento</h2>
+                <h2 className="cd-card-title">Datos de la cotización</h2>
               </div>
-              <div className="cd-event-summary">
+
+              <div className="cd-estado-folio">
                 <div>
-                  <span className="cd-field-label">Tipo</span>
-                  <div style={{ marginTop: 4 }}>
-                    <span className="cd-pill">{tipoLabel || "—"}</span>
-                  </div>
+                  <span className="cd-field-label">Estado</span>
+                  <span className={`cd-estado-chip cd-estado-${estadoCot}`}>{ESTADO_LABEL[estadoCot]}</span>
                 </div>
-                <div>
-                  <span className="cd-field-label">Importe total</span>
-                  <div className="cd-field-icon-row">
-                    <DollarOutlined className="cd-field-row-icon" />
-                    <span className="cd-field-value">{fmtMoney(evento.importe)}</span>
-                  </div>
-                </div>
-                <div>
-                  <span className="cd-field-label">Contrato</span>
-                  {firstPdf ? (
-                    <div
-                      className="cd-field-icon-row cd-link"
-                      onClick={() => setActiveTab("documentos")}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <FilePdfOutlined className="cd-field-row-icon" />
-                      <span>Ver PDF</span>
-                    </div>
-                  ) : (
-                    <div className="cd-field-icon-row">
-                      <FilePdfOutlined className="cd-field-row-icon" />
-                      <span className="cd-field-value cd-field-value-muted">Sin contrato</span>
-                    </div>
-                  )}
+                <div className="cd-estado-folio-right">
+                  <span className="cd-field-label">Folio</span>
+                  <span className="cd-folio-val">#{evento.folio || "—"}</span>
                 </div>
               </div>
 
-              <div className="cd-misa-block">
-                <div className="cd-misa-title">
-                  <EnvironmentOutlined style={{ fontSize: 13, color: "#6b7280" }} />
-                  Información de Misa
+              <div className="cd-cot-resumen">
+                <div className="cd-cot-tile">
+                  <span className="cd-field-label">Tipo de evento</span>
+                  <span className="cd-pill">{tipoLabel || "—"}</span>
                 </div>
-                {evento.direccion_misa || evento.hora_misa ? (
-                  <div className="cd-misa-fields">
-                    {evento.direccion_misa && (
-                      <div>
-                        <span className="cd-field-label">Dirección de la Misa</span>
-                        <span className="cd-field-value">{evento.direccion_misa}</span>
-                      </div>
-                    )}
-                    {evento.hora_misa && (
-                      <div>
-                        <span className="cd-field-label">Hora de la Misa</span>
-                        <div className="cd-field-icon-row">
-                          <ClockCircleOutlined className="cd-field-row-icon" />
-                          <span className="cd-field-value">{fmtHora(evento.hora_misa)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="cd-misa-none">
-                    <span>No se registró misa para este evento</span>
-                  </div>
-                )}
+                <div className="cd-cot-tile cd-cot-tile-importe">
+                  <span className="cd-field-label">Importe total</span>
+                  <span className="cd-cot-importe-val">
+                    <DollarOutlined className="cd-cot-importe-icon" />
+                    {fmtMoney(evento.importe)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="cd-estado-actions">
+                <button
+                  type="button"
+                  className={`cd-btn-aceptar ${estadoCot === "aceptada" ? "is-active" : ""}`}
+                  disabled={estadoSaving || estadoCot === "aceptada"}
+                  onClick={() => handleSetEstado("aceptada")}
+                >
+                  <CheckOutlined /> Aceptar cotización
+                </button>
+                <button
+                  type="button"
+                  className={`cd-btn-rechazar ${estadoCot === "rechazada" ? "is-active" : ""}`}
+                  disabled={estadoSaving || estadoCot === "rechazada"}
+                  onClick={() => handleSetEstado("rechazada")}
+                >
+                  <CloseOutlined /> Rechazar
+                </button>
               </div>
             </div>
 
-            {/* Encabezado que introduce los servicios contratados */}
+            {/* Encabezado amigable que introduce los servicios */}
             {serviciosShown.length > 0 && (
               <div className="cd-servicios-banner">
                 <div className="cd-servicios-banner-icon"><AppstoreOutlined /></div>
                 <div className="cd-servicios-banner-text">
-                  <h3 className="cd-servicios-banner-title">Servicios del evento</h3>
+                  <h3 className="cd-servicios-banner-title">Servicios de la cotización</h3>
                   <p className="cd-servicios-banner-sub">
-                    Esto es lo que incluye el evento: fecha, lugar y horario de cada servicio.
+                    Esto es lo que incluye la cotización: fecha, lugar y horario de cada servicio.
                   </p>
                 </div>
                 <span className="cd-servicios-banner-count">
@@ -919,10 +1000,8 @@ export default function EventoDetallePage() {
               </div>
             )}
 
-            {/* Servicios contratados — un card por servicio, grid 2 columnas */}
-            {serviciosShown.length > 0 && (
-              <div className="cd-servicios-row">
-                {serviciosShown.map((sv) => {
+            {/* Servicios contratados — un card por servicio */}
+            {serviciosShown.map((sv) => {
                   const horaIni = sv.hora_inicio || null;
                   const horaFin = sv.hora_final  || null;
                   const horasLabel = horaIni && horaFin
@@ -930,7 +1009,7 @@ export default function EventoDetallePage() {
                     : (horaIni || horaFin || "—");
                   const pname = paqueteName(sv);
                   return (
-                    <div key={`${sv.id_servicio}-${sv.id_evento_servicio || ""}`} className="cd-card cd-card-servicio">
+                    <div key={`${sv.id_servicio}-${sv.id_cotizacion_servicio || ""}`} className="cd-card cd-card-servicio">
                       <div className="cd-card-header">
                         <div className="cd-card-icon-wrap cd-icon-tabler">
                           {SERVICE_ICONS[sv.id_servicio]}
@@ -960,80 +1039,29 @@ export default function EventoDetallePage() {
                           </div>
                         </div>
                       </div>
-                      <div>
-                        <span className="cd-field-label">Lugar</span>
-                        <span className="cd-field-value">{sv.lugar || "—"}</span>
-                      </div>
-                      <div style={{ marginTop: 12 }}>
-                        <span className="cd-field-label">Paquete</span>
-                        <div style={{ marginTop: 4 }}>
-                          {pname
-                            ? <span className="cd-pill">{pname}</span>
-                            : <span className="cd-field-value cd-field-value-muted">Sin paquete</span>}
+                      <div className="cd-servicio-grid2">
+                        <div>
+                          <span className="cd-field-label">Lugar</span>
+                          <span className="cd-field-value">{sv.lugar || "—"}</span>
                         </div>
-                      </div>
-                      {sv.comentarios && (
-                        <div style={{ marginTop: 12 }}>
-                          <span className="cd-field-label">Comentarios</span>
-                          <p className="cd-servicio-comentarios">{sv.comentarios}</p>
+                        <div>
+                          <span className="cd-field-label">Paquete</span>
+                          <div style={{ marginTop: 4 }}>
+                            {pname
+                              ? <span className="cd-pill">{pname}</span>
+                              : <span className="cd-field-value cd-field-value-muted">Sin paquete</span>}
+                          </div>
                         </div>
-                      )}
+                        {sv.comentarios && (
+                          <div>
+                            <span className="cd-field-label">Comentarios</span>
+                            <p className="cd-servicio-comentarios">{sv.comentarios}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
-              </div>
-            )}
-
-            <div className="cd-card cd-card-financial">
-              <div className="cd-card-header">
-                <div className="cd-card-icon-wrap"><DollarOutlined /></div>
-                <h2 className="cd-card-title">Resumen de Importes</h2>
-              </div>
-              <div className="cd-financial-grid">
-                <div className="cd-financial-item">
-                  <span className="cd-field-label">Importe Total</span>
-                  <p className="cd-financial-value cd-financial-primary">
-                    {fmtMoney(evento.importe)}
-                  </p>
-                  <span className="cd-financial-note">
-                    Incluye todos los servicios
-                  </span>
-                </div>
-                <div className="cd-financial-item cd-financial-bordered">
-                  <span className="cd-field-label">Anticipo Recibido</span>
-                  <p className="cd-financial-value">
-                    {parseNum(evento.importe_anticipo) > 0
-                      ? fmtMoney(evento.importe_anticipo)
-                      : "—"}
-                  </p>
-                  {evento.fecha_anticipo && (
-                    <span className="cd-financial-note">
-                      Pago realizado el {fmtFechaCorta(evento.fecha_anticipo)}
-                    </span>
-                  )}
-                </div>
-                <div className="cd-financial-item">
-                  <span className="cd-field-label">Saldo Pendiente</span>
-                  <p className={`cd-financial-value ${
-                    resta === null ? "" : resta > 0 ? "cd-financial-error" : "cd-financial-ok"
-                  }`}>
-                    {resta !== null ? fmtMoney(String(resta)) : "—"}
-                  </p>
-                  {resta !== null && resta > 0 && evento.fecha_evento && (
-                    <div className="cd-financial-alert">
-                      <ExclamationCircleOutlined />
-                      Liquidar antes del {fmtFechaCorta(evento.fecha_evento)}
-                    </div>
-                  )}
-                  {resta !== null && resta <= 0 && (
-                    <div className="cd-financial-paid">
-                      <CheckCircleOutlined />
-                      Liquidado
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
           );
         })()}
@@ -1043,7 +1071,7 @@ export default function EventoDetallePage() {
           <div className="cd-card">
             <div className="cd-card-header">
               <div className="cd-card-icon-wrap"><ClockCircleOutlined /></div>
-              <h2 className="cd-card-title">Historial del evento</h2>
+              <h2 className="cd-card-title">Historial de la cotización</h2>
             </div>
             {timelineEvents.length === 0 ? (
               <Empty description="Sin eventos registrados aún" style={{ margin: "40px 0" }} />
@@ -1245,7 +1273,7 @@ export default function EventoDetallePage() {
             <div className="cd-card-header">
               <div className="cd-card-icon-wrap"><HistoryOutlined /></div>
               <h2 className="cd-card-title">
-                Actividad del evento
+                Actividad de la cotización
                 {actividad.length > 0 && (
                   <span className="cd-actividad-count">{actividad.length}</span>
                 )}
@@ -1391,7 +1419,7 @@ export default function EventoDetallePage() {
             <div className="cd-pagos-header">
               <div className="cd-pagos-header-left">
                 <div className="cd-card-icon-wrap"><AppstoreOutlined /></div>
-                <h2 className="cd-card-title">Equipo del evento</h2>
+                <h2 className="cd-card-title">Equipo de la cotización</h2>
               </div>
               <Button
                 type="primary"
@@ -1411,11 +1439,11 @@ export default function EventoDetallePage() {
             {loadingEquipo ? (
               <div className="cd-loading-wrap"><Spin size="large" /></div>
             ) : equipoEvento.length === 0 ? (
-              <Empty description="Sin equipo asignado a este evento" style={{ margin: "32px 0" }} />
+              <Empty description="Sin equipo asignado a esta cotización" style={{ margin: "32px 0" }} />
             ) : (
               <div className="cd-ev-card-grid">
                 {equipoEvento.map((ee) => (
-                  <div key={ee.id_contrato_equipo} className="cd-ev-card">
+                  <div key={ee.id_cotizacion_equipo} className="cd-ev-card">
                     <div className="cd-ev-card-image">
                       {ee.path_equipo ? (
                         <img src={`${API_BASE}/${ee.path_equipo}`} alt={ee.nombre_equipo} className="cd-ev-card-img" />
@@ -1438,7 +1466,7 @@ export default function EventoDetallePage() {
                     </div>
                     <button
                       className="cd-ev-card-remove"
-                      title="Quitar del evento"
+                      title="Quitar de la cotización"
                       onClick={() => {
                         Modal.confirm({
                           title: "Quitar equipo",
@@ -1449,9 +1477,9 @@ export default function EventoDetallePage() {
                           centered: true,
                           onOk: async () => {
                             try {
-                              await apiEventosInstance.delete(
-                                `/eventos/${idEvento}/equipo/${ee.id_contrato_equipo}`,
-                                { headers: authHeaderEventos() }
+                              await apiCotizacionesInstance.delete(
+                                `/cotizaciones/${idCotizacion}/equipo/${ee.id_cotizacion_equipo}`,
+                                { headers: authHeaderCotizaciones() }
                               );
                               notification.success({ message: "Equipo quitado del evento" });
                               fetchEquipoEvento();
@@ -1480,7 +1508,7 @@ export default function EventoDetallePage() {
             <div className="cd-pagos-header">
               <div className="cd-pagos-header-left">
                 <div className="cd-card-icon-wrap"><TeamOutlined /></div>
-                <h2 className="cd-card-title">Trabajadores del evento</h2>
+                <h2 className="cd-card-title">Trabajadores de la cotización</h2>
               </div>
               <Button
                 type="primary"
@@ -1501,7 +1529,7 @@ export default function EventoDetallePage() {
             {loadingTrabajadores ? (
               <div className="cd-loading-wrap"><Spin size="large" /></div>
             ) : trabajadoresEvento.length === 0 ? (
-              <Empty description="Sin trabajadores asignados a este evento" style={{ margin: "32px 0" }} />
+              <Empty description="Sin trabajadores asignados a esta cotización" style={{ margin: "32px 0" }} />
             ) : (
               <div className="cd-ev-card-grid">
                 {trabajadoresEvento.map((ct) => (
@@ -1528,7 +1556,7 @@ export default function EventoDetallePage() {
                     </div>
                     <button
                       className="cd-ev-card-remove"
-                      title="Quitar del evento"
+                      title="Quitar de la cotización"
                       onClick={() => {
                         Modal.confirm({
                           title: "Quitar trabajador",
@@ -1539,9 +1567,9 @@ export default function EventoDetallePage() {
                           centered: true,
                           onOk: async () => {
                             try {
-                              await apiEventosInstance.delete(
-                                `/eventos/${idEvento}/trabajadores/${ct.id_contrato_trabajador}`,
-                                { headers: authHeaderEventos() }
+                              await apiCotizacionesInstance.delete(
+                                `/cotizaciones/${idCotizacion}/trabajadores/${ct.id_contrato_trabajador}`,
+                                { headers: authHeaderCotizaciones() }
                               );
                               notification.success({ message: "Trabajador quitado del evento" });
                               fetchTrabajadoresEvento();
@@ -1609,7 +1637,7 @@ export default function EventoDetallePage() {
         footer={null}
         title={
           <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
-            Agregar equipo al evento
+            Agregar equipo a la cotización
           </div>
         }
         centered
@@ -1768,10 +1796,10 @@ export default function EventoDetallePage() {
                             onClick={async () => {
                               setSavingEquipoId(eq.id_equipo);
                               try {
-                                await apiEventosInstance.post(
-                                  `/eventos/${idEvento}/equipo`,
+                                await apiCotizacionesInstance.post(
+                                  `/cotizaciones/${idCotizacion}/equipo`,
                                   { id_equipo: eq.id_equipo, cantidad: cantVal },
-                                  { headers: authHeaderEventos() }
+                                  { headers: authHeaderCotizaciones() }
                                 );
                                 notification.success({ message: `${eq.nombre} agregado al evento` });
                                 fetchEquipoEvento();
@@ -1806,7 +1834,7 @@ export default function EventoDetallePage() {
         footer={null}
         title={
           <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
-            Agregar trabajador al evento
+            Agregar trabajador a la cotización
           </div>
         }
         centered
@@ -1967,10 +1995,10 @@ export default function EventoDetallePage() {
               }
               setSavingTrab(true);
               try {
-                await apiEventosInstance.post(
-                  `/eventos/${idEvento}/trabajadores`,
+                await apiCotizacionesInstance.post(
+                  `/cotizaciones/${idCotizacion}/trabajadores`,
                   { id_trabajador: trabSelectedId, id_puesto: trabSelectedPuesto },
-                  { headers: authHeaderEventos() }
+                  { headers: authHeaderCotizaciones() }
                 );
                 const selected = catalogoTrabajadores.find((t) => t.id_trabajador === trabSelectedId);
                 notification.success({ message: `${selected?.nombre || "Trabajador"} agregado al evento` });
@@ -1986,7 +2014,7 @@ export default function EventoDetallePage() {
               }
             }}
           >
-            Agregar al evento
+            Agregar a la cotización
           </Button>
         </div>
       </Modal>

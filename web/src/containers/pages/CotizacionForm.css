@@ -1,0 +1,251 @@
+/* CotizacionForm.css
+   Refinamientos de layout y diseño SOLO para el formulario de cotización.
+   Todo va scoped bajo .cot-form-page para no afectar el módulo de Eventos
+   (que comparte EventosPage.css). Los inputs se respetan tal cual. */
+
+/* ── Rejilla / columnas ───────────────────────────────────────── */
+.cot-form-page .cc-body-grid {
+  gap: 22px;
+}
+
+/* ── Tarjetas ─────────────────────────────────────────────────── */
+.cot-form-page .cc-section-card {
+  border-radius: 16px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.cot-form-page .cc-section-card:hover {
+  box-shadow: 0 10px 28px rgba(15, 34, 58, 0.08);
+  border-color: #d6deea;
+}
+
+/* Ícono del encabezado de tarjeta con el azul de la marca */
+.cot-form-page .cc-section-icon {
+  background: #eef2ff;
+  color: #01369e;
+}
+
+/* Encabezado de la página (Nueva cotización) con barra de acento */
+.cot-form-page .cc-page-header-card {
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.cot-form-page .cc-page-header-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #01369e, #2f6bff);
+}
+
+/* ── Tarjeta lateral combinada (Importe + Resumen) ────────────── */
+.cot-form-page .cot-side-card {
+  padding-bottom: 20px;
+}
+
+.cot-form-page .cot-help {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Botón "Generar" del campo de folio (dentro del addon del input) */
+.cot-form-page .ant-input-group-addon {
+  padding: 0;
+  background: #eef2ff;
+  border-color: #e2e8f0;
+}
+.cot-form-page .cot-folio-gen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #01369e;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.cot-form-page .cot-folio-gen:hover {
+  color: #0a2a7a;
+}
+
+.cot-form-page .cot-divider {
+  height: 1px;
+  background: #eef0f4;
+  margin: 16px 0 18px;
+}
+
+.cot-form-page .cot-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cot-form-page .cot-summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cot-form-page .cot-summary-key {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.cot-form-page .cot-summary-val {
+  font-size: 13px;
+  font-weight: 650;
+  color: #111827;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cot-form-page .cot-summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.cot-form-page .cot-summary-empty {
+  font-size: 12px;
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.cot-form-page .cot-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cot-form-page .cot-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: #01369e;
+  background: #eef2ff;
+  border: 1px solid #dbe3ff;
+  border-radius: 999px;
+  padding: 3px 12px;
+  line-height: 1.5;
+}
+
+/* Bloque del Total — con realce de marca */
+.cot-form-page .cot-summary-total {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #01369e 0%, #1e57d6 100%);
+  box-shadow: 0 8px 20px rgba(1, 54, 158, 0.26);
+}
+
+.cot-form-page .cot-summary-total-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.cot-form-page .cot-summary-total-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SELECTOR DE SERVICIOS — toggle cards más intuitivos y amigables
+   ═══════════════════════════════════════════════════════════════ */
+.cot-form-page .cc-services-grid {
+  gap: 12px;
+}
+
+.cot-form-page .cc-service-card {
+  position: relative;
+  border: 2px solid #e8ecf2;
+  border-radius: 16px;
+  padding: 18px 12px;
+  gap: 10px;
+  background: #ffffff;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.cot-form-page .cc-service-card:hover {
+  border-color: #bcd0ff;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(1, 54, 158, 0.12);
+}
+
+.cot-form-page .cc-service-card.is-active {
+  border-color: #01369e;
+  background: linear-gradient(180deg, #f5f8ff 0%, #e9f0ff 100%);
+  box-shadow: 0 8px 20px rgba(1, 54, 158, 0.16);
+}
+
+/* Check de "seleccionado" */
+.cot-form-page .cc-service-card.is-active::after {
+  content: "✓";
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #01369e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(1, 54, 158, 0.45);
+}
+
+/* Ícono dentro de un círculo */
+.cot-form-page .cc-service-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #eef2f7;
+  color: #64748b;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.cot-form-page .cc-service-card:hover .cc-service-card-icon {
+  transform: scale(1.06);
+}
+
+.cot-form-page .cc-service-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.cot-form-page .cc-service-card.is-active .cc-service-card-icon {
+  background: #01369e;
+  color: #ffffff;
+}
+
+.cot-form-page .cc-service-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cot-form-page .cc-service-card.is-active .cc-service-card-label {
+  color: #01369e;
+  font-weight: 700;
+}
+

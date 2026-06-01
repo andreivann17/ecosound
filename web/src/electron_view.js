@@ -206,6 +206,7 @@ const connectWS = useCallback(() => {
 
   const isEventos = pathname.startsWith("/app/eventos");
   const isPaquetes = pathname.startsWith("/app/paquetes");
+  const isCotizaciones = pathname.startsWith("/app/cotizaciones");
   const isInventario = pathname.startsWith("/app/inventario");
 
   const isHomeActive = pathname.startsWith("/app/home");
@@ -224,6 +225,7 @@ const connectWS = useCallback(() => {
         { label: "Inicio",onClick: () => navigate("/app/home"), active: isHomeActive },
         ...(perm("eventos", "modulo")    ? [{ label: "Eventos",    onClick: () => navigate("/app/eventos"),    active: isEventos    }] : []),
         ...(perm("paquetes", "modulo")   ? [{ label: "Paquetes",   onClick: () => navigate("/app/paquetes"),   active: isPaquetes   }] : []),
+        { label: "Cotizaciones", onClick: () => navigate("/app/cotizaciones"), active: isCotizaciones },
       ];
 
   const appItems = isAdmin ? [] : [

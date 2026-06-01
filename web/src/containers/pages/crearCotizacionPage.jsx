@@ -1,12 +1,12 @@
-﻿
+
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import {
-  apiEventosInstance,
-  authHeaderEventos,
-} from "../../redux/actions/eventos/eventos";
+  apiCotizacionesInstance,
+  authHeaderCotizaciones,
+} from "../../redux/actions/cotizaciones/cotizaciones";
 import {
   apiPaquetesInstance,
   authHeaderPaquetes,
@@ -44,9 +44,11 @@ import {
   CameraOutlined,
   SoundOutlined,
   PlusOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 
 import "./EventosPage.css";
+import "./CotizacionForm.css";
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -174,7 +176,13 @@ function parseMoney(str) {
   return isNaN(n) ? "" : n.toFixed(2);
 }
 
-export default function CrearEventoPage() {
+function fmtMoneyView(val) {
+  const n = parseFloat(String(val ?? "").replace(/[^0-9.]/g, ""));
+  if (isNaN(n)) return "$0.00";
+  return "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export default function CrearCotizacionPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -194,6 +202,21 @@ export default function CrearEventoPage() {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
 
+  // Valores en vivo para el resumen de la cotización
+  const watchImporte = Form.useWatch("importe", form);
+  const watchCliente = Form.useWatch("cliente_nombre", form);
+  const watchTipo    = Form.useWatch("id_tipo_evento", form);
+  const watchFolio   = Form.useWatch("folio", form);
+
+  // Autogenera un folio de exactamente 8 letras mayúsculas.
+  const generarFolio = () => {
+    const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let f = "";
+    for (let i = 0; i < 8; i++) f += letras[Math.floor(Math.random() * letras.length)];
+    form.setFieldValue("folio", f);
+    form.validateFields(["folio"]);
+  };
+
   useEffect(() => {
     dispatch(actionCiudadesGet());
     if (!isEditing) {
@@ -208,7 +231,7 @@ export default function CrearEventoPage() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Selección de servicios — al entrar a "Nuevo evento" todo en false (formulario limpio).
+  // Selección de servicios — al entrar a "Nueva cotización" todo en false (formulario limpio).
   // Si está editando un evento existente, el useEffect de abajo activa lo que tenga datos.
   const [hayEventoSonido, setHayEventoSonido] = useState(false);
   const [hayEventoFoto, setHayEventoFoto] = useState(false);
@@ -266,6 +289,7 @@ export default function CrearEventoPage() {
     // Campos comunes (cliente, importes, tipo, misa, contrato)
     const baseValues = {
       cliente_nombre:          eventoEditar.cliente_nombre,
+      folio:                   eventoEditar.folio,
       domicilio:               eventoEditar.domicilio,
       celular:                 eventoEditar.celular,
       id_tipo_evento:          eventoEditar.id_tipo_evento,
@@ -328,14 +352,14 @@ export default function CrearEventoPage() {
     }
 
     form.setFieldsValue(baseValues);
-    fetchDocumentos(eventoEditar.id_evento);
+    fetchDocumentos(eventoEditar.id_cotizacion);
   }, [eventoEditar, form]);
 
   const fetchDocumentos = async (id) => {
     setLoadingDocs(true);
     try {
-      const res = await apiEventosInstance.get(`/eventos/${id}/documentos`, {
-        headers: authHeaderEventos(),
+      const res = await apiCotizacionesInstance.get(`/cotizaciones/${id}/documentos`, {
+        headers: authHeaderCotizaciones(),
       });
       setDocumentos(res.data || []);
     } catch {
@@ -347,9 +371,9 @@ export default function CrearEventoPage() {
 
   const handleDeleteDoc = async (id) => {
     try {
-      await apiEventosInstance.delete(
-        `/eventos/${eventoEditar.id_evento}/documentos/${id}`,
-        { headers: authHeaderEventos() }
+      await apiCotizacionesInstance.delete(
+        `/cotizaciones/${eventoEditar.id_cotizacion}/documentos/${id}`,
+        { headers: authHeaderCotizaciones() }
       );
       notification.success({ message: "Documento eliminado" });
       setDocumentos((prev) => prev.filter((d) => d.id !== id));
@@ -375,12 +399,12 @@ export default function CrearEventoPage() {
     if (formatted) form.setFieldValue(fieldName, formatted);
   };
 
-  const uploadDocumento = async (id_evento, file) => {
+  const uploadDocumento = async (id_cotizacion, file) => {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    const baseURL = apiEventosInstance.defaults.baseURL;
+    const baseURL = apiCotizacionesInstance.defaults.baseURL;
     const token = localStorage.getItem("tokenadmin") || localStorage.getItem("token");
-    const res = await fetch(`${baseURL}/eventos/${id_evento}/documentos`, {
+    const res = await fetch(`${baseURL}/cotizaciones/${id_cotizacion}/documentos`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
@@ -438,9 +462,9 @@ export default function CrearEventoPage() {
     try {
       const formData = new FormData();
       formData.append("file", pendingFile, pendingFile.name);
-      const baseURL = apiEventosInstance.defaults.baseURL;
+      const baseURL = apiCotizacionesInstance.defaults.baseURL;
       const token = localStorage.getItem("tokenadmin") || localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/eventos/extraer-ai`, {
+      const res = await fetch(`${baseURL}/cotizaciones/extraer-ai`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -530,6 +554,7 @@ export default function CrearEventoPage() {
 
     const payload = {
       cliente_nombre:          values.cliente_nombre?.trim(),
+      folio:                   values.folio ? values.folio.trim().toUpperCase() : null,
       domicilio:               values.domicilio?.trim() || null,
       celular:                 values.celular?.trim() || null,
       id_tipo_evento:          values.id_tipo_evento ?? null,
@@ -587,34 +612,34 @@ export default function CrearEventoPage() {
 
     setSaving(true);
     try {
-      let id_evento = eventoEditar?.id_evento;
+      let id_cotizacion = eventoEditar?.id_cotizacion;
 
       if (isEditing) {
-        await apiEventosInstance.patch(`/eventos/${id_evento}`, payload, {
-          headers: authHeaderEventos(),
+        await apiCotizacionesInstance.patch(`/cotizaciones/${id_cotizacion}`, payload, {
+          headers: authHeaderCotizaciones(),
         });
       } else {
-        const res = await apiEventosInstance.post("/eventos", payload, {
-          headers: authHeaderEventos(),
+        const res = await apiCotizacionesInstance.post("/cotizaciones", payload, {
+          headers: authHeaderCotizaciones(),
         });
-        id_evento = res.data?.id ?? res.data?.id_evento;
+        id_cotizacion = res.data?.id ?? res.data?.id_cotizacion;
       }
 
-      if (pendingFile && id_evento) {
+      if (pendingFile && id_cotizacion) {
         try {
-          await uploadDocumento(id_evento, pendingFile);
+          await uploadDocumento(id_cotizacion, pendingFile);
         } catch (err) {
           notification.warning({
-            message: "Evento guardado, pero falló la subida del contrato",
+            message: "Cotización guardada, pero falló la subida del contrato",
             description: err?.response?.data?.detail || err.message,
           });
         }
       }
 
       notification.success({
-        message: isEditing ? "Evento actualizado correctamente" : "Evento creado exitosamente",
+        message: isEditing ? "Cotización actualizada correctamente" : "Cotización creada exitosamente",
       });
-      navigate("/app/eventos");
+      navigate("/app/cotizaciones");
     } catch (err) {
       notification.error({
         message: "Error al guardar",
@@ -626,40 +651,33 @@ export default function CrearEventoPage() {
   };
 
   return (
-    <main className="eventos-main">
+    <main className="eventos-main cot-form-page">
       <div className="eventos-content">
 
         <Button
           type="link"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/app/eventos")}
+          onClick={() => navigate("/app/cotizaciones")}
           className="cc-back-btn"
         >
-          Volver a Eventos
+          Volver a Cotizaciones
         </Button>
 
         <section className="cc-page-header-card">
           <Space direction="vertical" size={2}>
             <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
               {isEditing
-                ? `Editando evento de ${eventoEditar.cliente_nombre}`
-                : "Nuevo evento"}
+                ? `Editando cotización de ${eventoEditar.cliente_nombre}`
+                : "Nueva cotización"}
             </Title>
             <Text className="eventos-subtitle">
               {isEditing
-                ? "Modifica los datos del evento y guarda los cambios."
-                : "Completa los datos del cliente y del evento para registrarlo."}
+                ? "Modifica los datos y guarda los cambios de la cotización."
+                : "Completa los datos del cliente y los servicios para generar la cotización."}
             </Text>
           </Space>
 
           <Space>
-            <Button
-              className="eventos-btn-clean"
-              onClick={() => navigate("/app/eventos")}
-              disabled={saving}
-            >
-              Cancelar
-            </Button>
             <Button
               type="primary"
               loading={saving}
@@ -667,7 +685,7 @@ export default function CrearEventoPage() {
               onClick={handleSave}
               style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
             >
-              {isEditing ? "Guardar cambios" : "Crear evento"}
+              {isEditing ? "Guardar cambios" : "Crear cotización"}
             </Button>
           </Space>
         </section>
@@ -684,13 +702,37 @@ export default function CrearEventoPage() {
                   Datos del cliente
                 </div>
                 <Row gutter={16}>
-                  <Col xs={24}>
+                  <Col xs={24} md={15}>
                     <Form.Item
                       name="cliente_nombre"
                       label={<span className="eventos-field-label">Nombre del cliente</span>}
                       rules={[{ required: true, message: "Requerido" }]}
                     >
                       <Input placeholder="Ej. Juan Pérez" autoComplete="off" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={9}>
+                    <Form.Item
+                      name="folio"
+                      label={<span className="eventos-field-label"># Folio</span>}
+                      rules={[
+                        { required: true, message: "Requerido" },
+                        { pattern: /^[A-Za-z]{8}$/, message: "Deben ser exactamente 8 letras" },
+                      ]}
+                    >
+                      <Input
+                        placeholder="Ej. ABCDEFGH"
+                        maxLength={8}
+                        autoComplete="off"
+                        style={{ textTransform: "uppercase" }}
+                        addonAfter={
+                          <Tooltip title="Generar folio automáticamente">
+                            <span className="cot-folio-gen" onClick={generarFolio}>
+                              <ReloadOutlined /> Generar
+                            </span>
+                          </Tooltip>
+                        }
+                      />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -871,212 +913,80 @@ export default function CrearEventoPage() {
                 </div>
               ))}
 
-              {/* ── Información de Misa ── */}
-              <div className="cc-section-card">
-                <div className="cc-section-header">
-                  <span className="cc-section-icon"><EnvironmentOutlined /></span>
-                  Información de Misa
-                  <span className="cc-optional-badge">Opcional</span>
-                </div>
-                <Row gutter={16}>
-                  <Col xs={24} md={16}>
-                    <Form.Item
-                      name="direccion_misa"
-                      label={<span className="eventos-field-label">Dirección de la misa</span>}
-                    >
-                      <Input placeholder="Iglesia, parroquia, dirección..." />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Form.Item
-                      name="hora_misa"
-                      label={<span className="eventos-field-label">Hora de la misa</span>}
-                    >
-                      <TimePicker
-                        style={{ width: "100%" }}
-                        format="HH:mm"
-                        placeholder="--:-- --"
-                        minuteStep={15}
-                        needConfirm={false}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
-
             </div>
 
             <div className="cc-right-col">
 
-              {/* ── Importes ── */}
-              <div className="cc-section-card">
+              {/* ── Importe + Resumen (una sola tarjeta que se estira hasta abajo) ── */}
+              <div className="cc-section-card cot-side-card">
+
                 <div className="cc-section-header">
                   <span className="cc-section-icon"><DollarOutlined /></span>
-                  Importes
+                  Importe
                 </div>
                 <Form.Item
                   name="importe"
                   label={<span className="eventos-field-label">Importe total</span>}
                   rules={[{ required: true, message: "Requerido" }]}
+                  style={{ marginBottom: 6 }}
                 >
                   <Input
                     prefix="$"
                     suffix="MXN"
                     placeholder="0.00"
-                    onBlur={() => {
-                      handleMoneyBlur("importe");
-                      form.validateFields(["importe_anticipo"]);
-                    }}
+                    onBlur={() => handleMoneyBlur("importe")}
                   />
                 </Form.Item>
-                <Form.Item
-                  name="fecha_anticipo"
-                  label={<span className="eventos-field-label">Fecha primer pago</span>}
-                >
-                  <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="mm/dd/yyyy" />
-                </Form.Item>
-                <Form.Item
-                  name="importe_anticipo"
-                  label={<span className="eventos-field-label">Monto primer pago</span>}
-                  rules={[
-                    {
-                      validator(_, value) {
-                        if (!value) return Promise.resolve();
-                        const total = parseFloat(String(form.getFieldValue("importe") ?? "").replace(/[^0-9.]/g, ""));
-                        const anticipo = parseFloat(String(value).replace(/[^0-9.]/g, ""));
-                        if (!isNaN(total) && !isNaN(anticipo) && anticipo > total) {
-                          return Promise.reject("El primer pago no puede ser mayor al importe total");
-                        }
-                        return Promise.resolve();
-                      },
-                    },
-                  ]}
-                >
-                  <Input
-                    prefix="$"
-                    suffix="MXN"
-                    placeholder="0.00"
-                    onBlur={() => handleMoneyBlur("importe_anticipo")}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="fecha_creacion_contrato"
-                  label={<span className="eventos-field-label">Fecha de celebración del contrato</span>}
-                  rules={[{ required: true, message: "Requerido" }]}
-                >
-                  <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="mm/dd/yyyy" />
-                </Form.Item>
-              </div>
+                <p className="cot-help">Monto total estimado de la cotización.</p>
 
-              {/* ── Contrato ── */}
-              <div className="cc-section-card">
+                <div className="cot-divider" />
+
                 <div className="cc-section-header">
-                  <span className="cc-section-icon"><FilePdfOutlined /></span>
-                  Contrato
+                  <span className="cc-section-icon"><AlignLeftOutlined /></span>
+                  Resumen
                 </div>
 
-                {isEditing && loadingDocs && (
-                  <div style={{ padding: "8px 0" }}><Spin size="small" /></div>
-                )}
+                <div className="cot-summary-list">
+                  <div className="cot-summary-row">
+                    <span className="cot-summary-key"># Folio</span>
+                    <span className="cot-summary-val">
+                      {(watchFolio || "").trim().toUpperCase() || "Sin especificar"}
+                    </span>
+                  </div>
 
-                {isEditing && !loadingDocs && documentos.length > 0 && (
-                  <List
-                    size="small"
-                    dataSource={documentos}
-                    renderItem={(doc) => (
-                      <List.Item
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: 6,
-                          border: "1px solid #e5e7eb",
-                          marginBottom: 6,
-                          background: "#fafafa",
-                        }}
-                        actions={[
-                          <Tooltip title="Eliminar documento">
-                            <Button
-                              type="text"
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined />}
-                              onClick={() => handleDeleteDoc(doc.id)}
-                            />
-                          </Tooltip>,
-                        ]}
-                      >
-                        <Space>
-                          <FilePdfOutlined style={{ color: "#ef4444" }} />
-                          <Text style={{ fontSize: 12 }}>{doc.filename}</Text>
-                        </Space>
-                      </List.Item>
-                    )}
-                  />
-                )}
+                  <div className="cot-summary-row">
+                    <span className="cot-summary-key">Cliente</span>
+                    <span className="cot-summary-val">
+                      {(watchCliente || "").trim() || "Sin especificar"}
+                    </span>
+                  </div>
 
-                {pendingFile ? (
-                  <>
-                    {/* Archivo seleccionado */}
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 14px",
-                      borderRadius: 8,
-                      border: "1px solid #e5e7eb",
-                      background: "#f9fafb",
-                      marginBottom: 10,
-                    }}>
-                      <FilePdfOutlined style={{ color: "#ef4444", fontSize: 20, flexShrink: 0 }} />
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <Text style={{ fontSize: 13, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {pendingFile.name}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: "#9ca3af" }}>Se enviará al guardar</Text>
+                  <div className="cot-summary-row">
+                    <span className="cot-summary-key">Tipo de evento</span>
+                    <span className="cot-summary-val">
+                      {TIPOS_EVENTO.find((t) => t.value === watchTipo)?.label || "Sin especificar"}
+                    </span>
+                  </div>
+
+                  <div className="cot-summary-block">
+                    <span className="cot-summary-key">Servicios</span>
+                    {serviciosActivos.length === 0 ? (
+                      <span className="cot-summary-empty">Ninguno seleccionado</span>
+                    ) : (
+                      <div className="cot-summary-chips">
+                        {serviciosActivos.map((s) => (
+                          <span key={s.id} className="cot-chip">{s.label}</span>
+                        ))}
                       </div>
-                    </div>
-                    {/* Botones IA + Cancelar */}
-                    <Space style={{ width: "100%", justifyContent: "stretch" }}>
-                      <Button
-                        icon={<RobotOutlined />}
-                        loading={aiLoading}
-                        onClick={handleAIFill}
-                        style={{ flex: 1 }}
-                      >
-                        Rellenar con IA
-                      </Button>
-                      <Button
-                        danger
-                        onClick={() => setPendingFile(null)}
-                        disabled={aiLoading}
-                      >
-                        Cancelar
-                      </Button>
-                    </Space>
-                  </>
-                ) : (
-                  (!isEditing || (!loadingDocs && documentos.length === 0)) && (
-                    <Dragger
-                      accept=".pdf"
-                      multiple={false}
-                      showUploadList={false}
-                      beforeUpload={handleBeforeUpload}
-                      style={{ borderRadius: 8 }}
-                    >
-                      <p className="ant-upload-drag-icon" style={{ marginBottom: 8 }}>
-                        <InboxOutlined style={{ fontSize: 32, color: "#9ca3af" }} />
-                      </p>
-                      <p style={{ margin: 0, fontSize: 13, color: "#374151", fontWeight: 500 }}>
-                        Subir archivo de contrato
-                      </p>
-                      <p style={{ margin: "4px 0 8px", fontSize: 11, color: "#9ca3af" }}>
-                        PDF hasta 10MB
-                      </p>
-                      <Button size="small" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em" }}>
-                        SELECCIONAR ARCHIVO
-                      </Button>
-                    </Dragger>
-                  )
-                )}
+                    )}
+                  </div>
+                </div>
+
+                {/* Total fijado al pie de la tarjeta */}
+                <div className="cot-summary-total">
+                  <span className="cot-summary-total-label">Total estimado</span>
+                  <span className="cot-summary-total-value">{fmtMoneyView(watchImporte)}</span>
+                </div>
               </div>
 
             </div>

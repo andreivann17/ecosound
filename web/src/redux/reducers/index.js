@@ -7,6 +7,7 @@ import notificaciones from "./notificaciones"
 import login from "./login"
 import agenda from "./agenda"
 import eventos from "./eventos"
+import cotizaciones from "./cotizaciones"
 import sesiones_fotos from "./sesiones_fotos"
 import inventario from "./inventario"
 import usuarios from "./usuarios"
@@ -21,6 +22,7 @@ const appReducer = combineReducers({
     estados,
     agenda,
     eventos,
+    cotizaciones,
     sesiones_fotos,
     inventario,
     usuarios,
