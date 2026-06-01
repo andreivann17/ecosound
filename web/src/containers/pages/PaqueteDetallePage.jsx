@@ -32,6 +32,8 @@ import {
   PlusOutlined,
   CameraOutlined,
   SoundOutlined,
+  CrownOutlined,
+  CoffeeOutlined,
   CheckCircleOutlined,
   StopOutlined,
   BarChartOutlined,
@@ -99,8 +101,8 @@ export default function PaqueteDetallePage() {
   const canEditar   = perm("paquetes", "editar");
   const canEliminar = perm("paquetes", "eliminar");
 
-  const isSonidoParam = searchParams.get("is_sonido");
-  const isSonido = isSonidoParam === "1" || isSonidoParam === "true";
+  const tipoParam = searchParams.get("tipo");
+  const tipo = parseInt(tipoParam ?? "0", 10);
 
   const [paquete, setPaquete] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,13 +125,13 @@ export default function PaqueteDetallePage() {
   const [loadingActividad, setLoadingActividad] = useState(false);
   const [analisisLoading, setAnalisisLoading] = useState(false);
 
-  const isSonidoRef = useRef(isSonido);
-  isSonidoRef.current = isSonido;
+  const tipoRef = useRef(tipo);
+  tipoRef.current = tipo;
 
   const fetchPaquete = useCallback(async () => {
     try {
       const { data } = await apiPaquetesInstance.get(
-        `/paquetes/${idPaquete}?is_sonido=${isSonidoRef.current}`,
+        `/paquetes/${idPaquete}?tipo=${tipoRef.current}`,
         { headers: authHeaderPaquetes() }
       );
       setPaquete(data);
@@ -139,16 +141,16 @@ export default function PaqueteDetallePage() {
   }, [idPaquete]);
 
   useEffect(() => {
-    if (isSonidoParam === null) return;
+    if (tipoParam === null) return;
     let mounted = true;
     setLoading(true);
     apiPaquetesInstance
-      .get(`/paquetes/${idPaquete}?is_sonido=${isSonido}`, { headers: authHeaderPaquetes() })
+      .get(`/paquetes/${idPaquete}?tipo=${tipo}`, { headers: authHeaderPaquetes() })
       .then(({ data }) => { if (mounted) setPaquete(data); })
       .catch(() => notification.error({ message: "No se pudo cargar el paquete" }))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [idPaquete, isSonidoParam]);
+  }, [idPaquete, tipoParam]);
 
   const fetchAnalisis = useCallback(async (periodo, customRange, dateField) => {
     if (periodo === "custom" && !customRange) return;
@@ -160,7 +162,7 @@ export default function PaqueteDetallePage() {
         {
           headers: authHeaderPaquetes(),
           params: {
-            is_sonido: isSonidoRef.current,
+            tipo: tipoRef.current,
             date_from: dateFrom,
             date_to: dateTo,
             date_field: dateField || "fecha_evento",
@@ -186,7 +188,7 @@ export default function PaqueteDetallePage() {
     try {
       const { data } = await apiPaquetesInstance.get(
         `/paquetes/${idPaquete}/actividad`,
-        { headers: authHeaderPaquetes(), params: { is_sonido: isSonido } }
+        { headers: authHeaderPaquetes(), params: { tipo } }
       );
       setActividad(Array.isArray(data) ? data : data.items ?? []);
     } catch {
@@ -194,7 +196,7 @@ export default function PaqueteDetallePage() {
     } finally {
       setLoadingActividad(false);
     }
-  }, [idPaquete, isSonido]);
+  }, [idPaquete, tipo]);
 
   useEffect(() => {
     if (activeTab === "actividad") fetchActividad();
@@ -221,7 +223,7 @@ export default function PaqueteDetallePage() {
         setDeleting(true);
         try {
           await apiPaquetesInstance.delete(
-            `/paquetes/${idPaquete}?is_sonido=${isSonido}`,
+            `/paquetes/${idPaquete}?tipo=${tipo}`,
             { headers: authHeaderPaquetes() }
           );
           notification.success({ message: "Paquete eliminado" });
@@ -255,7 +257,7 @@ export default function PaqueteDetallePage() {
         setToggling(true);
         try {
           await apiPaquetesInstance.patch(
-            `/paquetes/${idPaquete}?is_sonido=${isSonido}`,
+            `/paquetes/${idPaquete}?tipo=${tipo}`,
             { active: nuevoEstado },
             { headers: authHeaderPaquetes() }
           );
@@ -307,7 +309,7 @@ export default function PaqueteDetallePage() {
     setSavingContenido(true);
     try {
       await apiPaquetesInstance.post(
-        `/paquetes/${idPaquete}/contenidos?is_sonido=${isSonido}`,
+        `/paquetes/${idPaquete}/contenidos?tipo=${tipo}`,
         { descripcion: values.descripcion.trim() },
         { headers: authHeaderPaquetes() }
       );
@@ -338,8 +340,14 @@ export default function PaqueteDetallePage() {
   if (!paquete) return null;
 
   const contenidos = paquete.contenidos || [];
-  const tipoLabel = isSonido ? "Sonido" : "Fotografía";
-  const TipoIcon = isSonido ? SoundOutlined : CameraOutlined;
+  const _TIPO_DETAIL = {
+    0: { label: "Fotografía", Icon: CameraOutlined },
+    1: { label: "Sonido",     Icon: SoundOutlined },
+    2: { label: "Banquete",   Icon: CrownOutlined },
+    3: { label: "Barra",      Icon: CoffeeOutlined },
+  };
+  const tipoLabel = _TIPO_DETAIL[tipo]?.label ?? "Desconocido";
+  const TipoIcon = _TIPO_DETAIL[tipo]?.Icon ?? CameraOutlined;
   const vigente = Boolean(paquete.active);
 
   // Análisis derived data
@@ -421,7 +429,7 @@ export default function PaqueteDetallePage() {
                   icon={<EditOutlined />}
                   className="cd-btn-edit"
                   onClick={() =>
-                    navigate(`/app/paquetes/${paquete.id_paquete}/editar?is_sonido=${isSonidoParam}`, {
+                    navigate(`/app/paquetes/${paquete.id_paquete}/editar?tipo=${tipoParam}`, {
                       state: { paquete },
                     })
                   }

@@ -88,8 +88,8 @@ export default function ConteoDetallePage() {
   const conDifNeg = detalles.filter((d) => (d.cantidad_fisica ?? 0) - (d.cantidad_sistema ?? 0) < 0).length;
   const sinDif = detalles.filter((d) => (d.cantidad_fisica ?? 0) - (d.cantidad_sistema ?? 0) === 0).length;
 
-  const handleExportNow = () => {
-    const html = previewConteoDetallePdf(conteo);
+  const handleExportNow = async () => {
+    const html = await previewConteoDetallePdf(conteo);
     setExportPreviewHtml(html);
     setExportPreviewOpen(true);
   };

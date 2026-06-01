@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   apiPaquetesInstance,
@@ -46,7 +46,7 @@ export default function CrearPaquetePage() {
     if (paqueteEditar) {
       form.setFieldsValue({
         nombre: paqueteEditar.nombre,
-        is_paquete_sonido: paqueteEditar.is_paquete_sonido ? "sonido" : "fotografia",
+        tipo: paqueteEditar.is_paquete_sonido ?? 0,
         active: Boolean(paqueteEditar.active),
       });
       if (paqueteEditar.contenidos && paqueteEditar.contenidos.length > 0) {
@@ -82,19 +82,15 @@ export default function CrearPaquetePage() {
       return;
     }
 
-    const isSonido = values.is_paquete_sonido === "sonido";
-    const payload = {
-      nombre: values.nombre?.trim(),
-      is_paquete_sonido: isSonido,
-    };
+    const tipo = values.tipo;
 
     setSaving(true);
     try {
       let idPaquete;
 
       if (isEditing) {
-        const isSonidoOrig = Boolean(paqueteEditar.is_paquete_sonido);
-        const tipoChanged = isSonido !== isSonidoOrig;
+        const tipoOrig = paqueteEditar.is_paquete_sonido ?? 0;
+        const tipoChanged = tipo !== tipoOrig;
 
         for (const id of originalIds) {
           await apiPaquetesInstance.delete(`/paquetes/contenidos/${id}`, {
@@ -104,19 +100,19 @@ export default function CrearPaquetePage() {
 
         if (tipoChanged) {
           await apiPaquetesInstance.delete(
-            `/paquetes/${paqueteEditar.id_paquete}?is_sonido=${isSonidoOrig}`,
+            `/paquetes/${paqueteEditar.id_paquete}?tipo=${tipoOrig}`,
             { headers: authHeaderPaquetes() }
           );
           const res = await apiPaquetesInstance.post(
             "/paquetes",
-            { nombre: payload.nombre, is_paquete_sonido: isSonido },
+            { nombre: values.nombre?.trim(), tipo },
             { headers: authHeaderPaquetes() }
           );
           idPaquete = res.data.id_paquete;
         } else {
           await apiPaquetesInstance.patch(
-            `/paquetes/${paqueteEditar.id_paquete}?is_sonido=${isSonidoOrig}`,
-            { nombre: payload.nombre, active: values.active },
+            `/paquetes/${paqueteEditar.id_paquete}?tipo=${tipoOrig}`,
+            { nombre: values.nombre?.trim(), active: values.active },
             { headers: authHeaderPaquetes() }
           );
           idPaquete = paqueteEditar.id_paquete;
@@ -125,21 +121,23 @@ export default function CrearPaquetePage() {
         const validContenidos = contenidos.filter((c) => c.value.trim());
         for (const c of validContenidos) {
           await apiPaquetesInstance.post(
-            `/paquetes/${idPaquete}/contenidos?is_sonido=${isSonido}`,
+            `/paquetes/${idPaquete}/contenidos?tipo=${tipo}`,
             { descripcion: c.value.trim() },
             { headers: authHeaderPaquetes() }
           );
         }
       } else {
-        const res = await apiPaquetesInstance.post("/paquetes", payload, {
-          headers: authHeaderPaquetes(),
-        });
+        const res = await apiPaquetesInstance.post(
+          "/paquetes",
+          { nombre: values.nombre?.trim(), tipo },
+          { headers: authHeaderPaquetes() }
+        );
         idPaquete = res.data.id_paquete;
 
         const validContenidos = contenidos.filter((c) => c.value.trim());
         for (const c of validContenidos) {
           await apiPaquetesInstance.post(
-            `/paquetes/${idPaquete}/contenidos?is_sonido=${isSonido}`,
+            `/paquetes/${idPaquete}/contenidos?tipo=${tipo}`,
             { descripcion: c.value.trim() },
             { headers: authHeaderPaquetes() }
           );
@@ -228,16 +226,18 @@ export default function CrearPaquetePage() {
                 <Row gutter={16}>
                   <Col xs={24} md={isEditing ? 12 : 24}>
                     <Form.Item
-                      name="is_paquete_sonido"
+                      name="tipo"
                       label={<span className="paq-field-label">Tipo de paquete</span>}
                       rules={[{ required: true, message: "Requerido" }]}
-                      initialValue="fotografia"
+                      initialValue={0}
                     >
                       <Select
                         placeholder="Selecciona el tipo"
                         options={[
-                          { label: "Fotografía", value: "fotografia" },
-                          { label: "Sonido", value: "sonido" },
+                          { label: "Fotografía", value: 0 },
+                          { label: "Sonido",     value: 1 },
+                          { label: "Banquete",   value: 2 },
+                          { label: "Barra",      value: 3 },
                         ]}
                       />
                     </Form.Item>

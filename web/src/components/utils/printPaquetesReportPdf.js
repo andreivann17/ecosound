@@ -1,8 +1,12 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
+
+const _TIPO_LABEL = { 0: "Fotografía", 1: "Sonido", 2: "Banquete", 3: "Barra" };
+const _TIPO_CLS   = { 0: "foto", 1: "sonido", 2: "banquete", 3: "barra" };
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -13,13 +17,15 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function buildHtml({ items, tipoLabel, autoPrint = false }) {
+function buildHtml({ items, tipoLabel, autoPrint = false, empresa }) {
   const now = new Date();
   const createdAt = dayjs(now).format("D [de] MMMM [de] YYYY");
 
-  const totalFoto   = (items || []).filter((p) => p.is_paquete_sonido === 0).length;
-  const totalSonido = (items || []).filter((p) => p.is_paquete_sonido === 1).length;
-  const totalVigentes = (items || []).filter((p) => p.active).length;
+  const totalFoto      = (items || []).filter((p) => p.is_paquete_sonido === 0).length;
+  const totalSonido    = (items || []).filter((p) => p.is_paquete_sonido === 1).length;
+  const totalBanquete  = (items || []).filter((p) => p.is_paquete_sonido === 2).length;
+  const totalBarra     = (items || []).filter((p) => p.is_paquete_sonido === 3).length;
+  const totalVigentes      = (items || []).filter((p) => p.active).length;
   const totalDescontinuados = (items || []).filter((p) => !p.active).length;
 
   const css = `
@@ -41,11 +47,13 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
     .summary-item:last-child { border-right: none; }
     .summary-label { font-size: 7.5pt; color: #666; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
     .summary-value { font-size: 15pt; font-weight: 700; color: #111; line-height: 1; }
-    .summary-value.green { color: #166534; }
-    .summary-value.gray  { color: #374151; }
-    .summary-value.blue  { color: #1e3a8a; }
-    .summary-value.purple { color: #5b21b6; }
-    .summary-value.red   { color: #991b1b; }
+    .summary-value.green   { color: #166534; }
+    .summary-value.gray    { color: #374151; }
+    .summary-value.blue    { color: #1e3a8a; }
+    .summary-value.purple  { color: #5b21b6; }
+    .summary-value.teal    { color: #065f46; }
+    .summary-value.amber   { color: #92400e; }
+    .summary-value.red     { color: #991b1b; }
 
     table { width: 100%; border-collapse: collapse; font-size: 8pt; }
     thead tr { background: #01369e; color: #fff; }
@@ -61,6 +69,8 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
     .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 7pt; font-weight: 700; letter-spacing: 0.2px; }
     .badge-foto       { background: #ede9fe; color: #5b21b6; }
     .badge-sonido     { background: #dbeafe; color: #1e40af; }
+    .badge-banquete   { background: #d1fae5; color: #065f46; }
+    .badge-barra      { background: #fef3c7; color: #92400e; }
     .badge-vigente    { background: #dcfce7; color: #166534; }
     .badge-descont    { background: #fee2e2; color: #991b1b; }
 
@@ -72,10 +82,12 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
     @media print {
       html, body { background: #fff !important; }
       .page { margin: 0; width: auto; padding: 16mm 20mm 20mm 20mm; }
-      .badge-foto    { background: #ede9fe !important; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .badge-sonido  { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .badge-vigente { background: #dcfce7 !important; color: #166534 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .badge-descont { background: #fee2e2 !important; color: #991b1b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-foto      { background: #ede9fe !important; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-sonido    { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-banquete  { background: #d1fae5 !important; color: #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-barra     { background: #fef3c7 !important; color: #92400e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-vigente   { background: #dcfce7 !important; color: #166534 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-descont   { background: #fee2e2 !important; color: #991b1b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       thead tr { background: #01369e !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       tfoot tr { background: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       tbody tr:nth-child(even) { background: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -86,9 +98,10 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
   `;
 
   const rowsTbody = (items || []).map((p) => {
-    const tipo = p.is_paquete_sonido ? "Sonido" : "Fotografía";
-    const tipoCls = p.is_paquete_sonido ? "sonido" : "foto";
-    const estado = p.active ? "Vigente" : "Descontinuado";
+    const tipoNum = p.is_paquete_sonido;
+    const tipo    = _TIPO_LABEL[tipoNum] ?? "—";
+    const tipoCls = _TIPO_CLS[tipoNum]   ?? "foto";
+    const estado    = p.active ? "Vigente" : "Descontinuado";
     const estadoCls = p.active ? "vigente" : "descont";
     const contenidos = p.contenidos_count ?? 0;
     const desc = p.descripcion ? escapeHtml(String(p.descripcion).slice(0, 80)) : "—";
@@ -112,10 +125,7 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
 <div class="page">
 
   <div class="header">
-    <div>
-      <div class="header-brand">HerrSoft Events</div>
-      <div class="header-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="header-right">
       <div class="header-title">Reporte de Paquetes</div>
       <div>Tipo: ${escapeHtml(tipoLabel || "Todos")}</div>
@@ -136,6 +146,14 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
     <div class="summary-item">
       <div class="summary-label">Sonido</div>
       <div class="summary-value blue">${totalSonido}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Banquete</div>
+      <div class="summary-value teal">${totalBanquete}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Barra</div>
+      <div class="summary-value amber">${totalBarra}</div>
     </div>
     <div class="summary-item">
       <div class="summary-label">Vigentes</div>
@@ -177,12 +195,14 @@ function buildHtml({ items, tipoLabel, autoPrint = false }) {
 </html>`;
 }
 
-export function previewPaquetesReportPdf(payload) {
-  return buildHtml({ ...payload, autoPrint: false });
+export async function previewPaquetesReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, autoPrint: false, empresa });
 }
 
-export function printPaquetesReportPdf(payload) {
-  const html = buildHtml({ ...payload, autoPrint: false });
+export async function printPaquetesReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, autoPrint: false, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

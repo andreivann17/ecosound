@@ -13,6 +13,8 @@ TIPO_CREACION = 1
 TIPO_ACTUALIZACION = 2
 TIPO_ELIMINACION = 3
 
+_TIPO_LABEL = {0: "fotografía", 1: "sonido", 2: "banquete", 3: "barra"}
+
 router = APIRouter(prefix="/paquetes", tags=["paquetes"])
 
 
@@ -55,7 +57,7 @@ async def _notify_paquete(tipo: int, descripcion: str, id_paquete: int, user_id:
 
 class PaqueteCreate(BaseModel):
     nombre: str
-    is_paquete_sonido: bool
+    tipo: int
     model_config = ConfigDict(extra="ignore")
 
 
@@ -88,9 +90,11 @@ async def crear_paquete(
     nombre = (payload.nombre or "").strip()
     if not nombre:
         raise HTTPException(status_code=400, detail="Nombre requerido")
-    result = paq_model.create_paquete(nombre, payload.is_paquete_sonido, id_cliente=tenant_id)
+    if payload.tipo not in (0, 1, 2, 3):
+        raise HTTPException(status_code=400, detail="Tipo de paquete inválido")
+    result = paq_model.create_paquete(nombre, payload.tipo, id_cliente=tenant_id)
     new_id = result.get("id") or result.get("id_paquete") or 0
-    tipo_str = "sonido" if payload.is_paquete_sonido else "fotografía"
+    tipo_str = _TIPO_LABEL.get(payload.tipo, "paquete")
     _log_audit_paquete("CREATE", f"Paquete de {tipo_str} '{nombre}' creado", new_id, _cu.get("id", 0))
     await _notify_paquete(TIPO_CREACION, f"Nuevo paquete de {tipo_str} '{nombre}' registrado", new_id, _cu.get("id", 0), id_cliente=tenant_id)
     return result
@@ -110,10 +114,10 @@ def delete_contenido(
 @router.get("/{id_paquete}")
 def get_paquete(
     id_paquete: int,
-    is_sonido: bool = Query(...),
+    tipo: int = Query(...),
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    row = paq_model.get_paquete_by_id(id_paquete, tipo)
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
     return row
@@ -123,17 +127,17 @@ def get_paquete(
 async def actualizar_paquete(
     id_paquete: int,
     payload: PaqueteUpdate,
-    is_sonido: bool = Query(...),
+    tipo: int = Query(...),
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    row = paq_model.get_paquete_by_id(id_paquete, tipo)
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if "active" in data:
         data["active"] = int(data["active"])
-    paq_model.update_paquete(id_paquete, is_sonido, data)
-    updated = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    paq_model.update_paquete(id_paquete, tipo, data)
+    updated = paq_model.get_paquete_by_id(id_paquete, tipo)
     _log_audit_paquete("UPDATE", f"Paquete #{id_paquete} actualizado", id_paquete, _cu.get("id", 0), changes=data)
     await _notify_paquete(TIPO_ACTUALIZACION, f"Paquete '{row.get('nombre','#'+str(id_paquete))}' actualizado", id_paquete, _cu.get("id", 0), id_cliente=row.get("id_cliente"))
     return {"updated": 1, "item": updated}
@@ -142,10 +146,10 @@ async def actualizar_paquete(
 @router.delete("/{id_paquete}")
 def eliminar_paquete(
     id_paquete: int,
-    is_sonido: bool = Query(...),
+    tipo: int = Query(...),
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    affected = paq_model.delete_paquete(id_paquete, is_sonido)
+    affected = paq_model.delete_paquete(id_paquete, tipo)
     if not affected:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
     return {"deleted": 1}
@@ -154,16 +158,16 @@ def eliminar_paquete(
 @router.get("/{id_paquete}/analisis")
 def get_analisis_paquete(
     id_paquete: int,
-    is_sonido: bool = Query(...),
+    tipo: int = Query(...),
     date_from: str = Query(...),
     date_to: str = Query(...),
     date_field: str = Query("fecha_evento"),
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
-    row = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    row = paq_model.get_paquete_by_id(id_paquete, tipo)
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
-    return paq_model.get_paquete_analisis(id_paquete, is_sonido, date_from, date_to, date_field)
+    return paq_model.get_paquete_analisis(id_paquete, tipo, date_from, date_to, date_field)
 
 
 @router.get("/{id_paquete}/actividad")
@@ -185,13 +189,13 @@ def get_actividad_paquete(
 def add_contenido(
     id_paquete: int,
     payload: ContenidoCreate,
-    is_sonido: bool = Query(...),
+    tipo: int = Query(...),
     _cu: Dict[str, Any] = Depends(get_current_user),
 ):
     descripcion = (payload.descripcion or "").strip()
     if not descripcion:
         raise HTTPException(status_code=400, detail="Descripción requerida")
-    row = paq_model.get_paquete_by_id(id_paquete, is_sonido)
+    row = paq_model.get_paquete_by_id(id_paquete, tipo)
     if not row:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
-    return paq_model.add_contenido(id_paquete, is_sonido, descripcion, row.get("id_cliente"))
+    return paq_model.add_contenido(id_paquete, tipo, descripcion, row.get("id_cliente"))

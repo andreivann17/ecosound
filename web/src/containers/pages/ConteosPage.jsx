@@ -144,8 +144,8 @@ export default function ConteosPage() {
     });
   };
 
-  const handleExportNow = () => {
-    const html = previewConteosReportPdf({
+  const handleExportNow = async () => {
+    const html = await previewConteosReportPdf({
       items: filteredConteos,
       periodFrom: dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined,
       periodTo: dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined,

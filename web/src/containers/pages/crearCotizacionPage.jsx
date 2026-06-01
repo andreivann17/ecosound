@@ -239,13 +239,15 @@ export default function CrearCotizacionPage() {
   const [hayBarra, setHayBarra] = useState(false);
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
+  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   // Config maestra de servicios. id_servicio coincide con la tabla `servicios` (1..4).
   const SERVICIOS = [
     { id: 1, key: "sonido",   label: "Sonido",     icon: SERVICE_ICONS.sonido,   paquetes: paquetesSonido },
     { id: 2, key: "foto",     label: "Fotografía", icon: SERVICE_ICONS.foto,     paquetes: paquetesFoto },
-    { id: 3, key: "banquete", label: "Banquete",   icon: SERVICE_ICONS.banquete, paquetes: [] },
-    { id: 4, key: "barra",    label: "Barra",      icon: SERVICE_ICONS.barra,    paquetes: [] },
+    { id: 3, key: "banquete", label: "Banquete",   icon: SERVICE_ICONS.banquete, paquetes: paquetesBanquete },
+    { id: 4, key: "barra",    label: "Barra",      icon: SERVICE_ICONS.barra,    paquetes: paquetesBarra },
   ];
   const activosByServicio = {
     1: hayEventoSonido,
@@ -274,8 +276,13 @@ export default function CrearCotizacionPage() {
         });
         const todos = res.data || [];
         const toOption = (p) => ({ label: p.nombre, value: p.id_paquete });
-        setPaquetesSonido(todos.filter((p) => p.is_paquete_sonido).map(toOption));
-        setPaquetesFoto(todos.filter((p) => !p.is_paquete_sonido).map(toOption));
+        // El backend devuelve is_paquete_sonido como tipo_id numérico:
+        // 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra (NO es un boolean).
+        const byTipo = (t) => todos.filter((p) => Number(p.is_paquete_sonido) === t).map(toOption);
+        setPaquetesFoto(byTipo(0));
+        setPaquetesSonido(byTipo(1));
+        setPaquetesBanquete(byTipo(2));
+        setPaquetesBarra(byTipo(3));
       } catch {}
     };
     fetchPaquetes();

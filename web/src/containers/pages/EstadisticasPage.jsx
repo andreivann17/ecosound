@@ -350,9 +350,9 @@ export default function EstadisticasPage() {
     ? periodLabel(data.periodo.tipo, data.periodo.date_from, data.periodo.date_to)
     : "";
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!data) return;
-    const html = previewEstadisticasReportPdf({ data, periodoDescripcion });
+    const html = await previewEstadisticasReportPdf({ data, periodoDescripcion });
     setExportHtml(html);
     setExportOpen(true);
   };

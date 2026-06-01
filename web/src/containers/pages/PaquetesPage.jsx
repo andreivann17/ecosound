@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -20,6 +20,8 @@ import {
   SearchOutlined,
   CameraOutlined,
   SoundOutlined,
+  CrownOutlined,
+  CoffeeOutlined,
   ArrowRightOutlined,
   CheckCircleOutlined,
   UnorderedListOutlined,
@@ -31,9 +33,19 @@ import "./PaquetesPage.css";
 
 const { Title, Text, Paragraph } = Typography;
 
-const TIPO_MAP = {
-  fotografia: { label: "Fotografía", icon: <CameraOutlined />, cls: "paq-tipo-foto" },
-  sonido:     { label: "Sonido",     icon: <SoundOutlined />,  cls: "paq-tipo-sonido" },
+// tipo: 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra
+const TIPO_CARD_CONFIG = {
+  0: { label: "Fotografía", icon: <CameraOutlined />, bannerBg: "linear-gradient(135deg, #1a1a2e 0%, #6d28d9 100%)", badgeCls: "paq-tipo-foto",     iconCls: "paq-stat-icon-foto" },
+  1: { label: "Sonido",     icon: <SoundOutlined />,  bannerBg: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", badgeCls: "paq-tipo-sonido",   iconCls: "paq-stat-icon-sonido" },
+  2: { label: "Banquete",   icon: <CrownOutlined />,  bannerBg: "linear-gradient(135deg, #064e3b 0%, #10b981 100%)", badgeCls: "paq-tipo-banquete", iconCls: "paq-stat-icon-banquete" },
+  3: { label: "Barra",      icon: <CoffeeOutlined />, bannerBg: "linear-gradient(135deg, #431407 0%, #b45309 100%)", badgeCls: "paq-tipo-barra",    iconCls: "paq-stat-icon-barra" },
+};
+
+const TIPO_FILTER_KEY = {
+  fotografia: 0,
+  sonido:     1,
+  banquete:   2,
+  barra:      3,
 };
 
 export default function PaquetesPage() {
@@ -59,9 +71,7 @@ export default function PaquetesPage() {
   }, [search]);
 
   const fetchParams = useMemo(
-    () => ({
-      search: searchDebounced || undefined,
-    }),
+    () => ({ search: searchDebounced || undefined }),
     [searchDebounced]
   );
 
@@ -79,23 +89,30 @@ export default function PaquetesPage() {
       base = base.filter((p) => (p.nombre || "").toLowerCase().includes(q));
     }
     if (tipoFilter !== "todos") {
-      const isSonido = tipoFilter === "sonido" ? 1 : 0;
-      base = base.filter((p) => p.is_paquete_sonido === isSonido);
+      const tipoNum = TIPO_FILTER_KEY[tipoFilter];
+      base = base.filter((p) => p.is_paquete_sonido === tipoNum);
     }
     return base;
   }, [items, searchDebounced, tipoFilter]);
 
   const counts = useMemo(() => ({
-    foto:   items.filter((p) => p.is_paquete_sonido === 0).length,
-    sonido: items.filter((p) => p.is_paquete_sonido === 1).length,
+    0: items.filter((p) => p.is_paquete_sonido === 0).length,
+    1: items.filter((p) => p.is_paquete_sonido === 1).length,
+    2: items.filter((p) => p.is_paquete_sonido === 2).length,
+    3: items.filter((p) => p.is_paquete_sonido === 3).length,
   }), [items]);
 
   const grouped = useMemo(() => {
-    const foto   = filteredItems.filter((p) => p.is_paquete_sonido === 0);
-    const sonido = filteredItems.filter((p) => p.is_paquete_sonido === 1);
     const result = [];
-    if (foto.length > 0)   result.push({ key: "fotografia", label: "Fotografía", items: foto });
-    if (sonido.length > 0) result.push({ key: "sonido",     label: "Sonido",     items: sonido });
+    [
+      { key: "fotografia", tipo: 0, label: "Fotografía" },
+      { key: "sonido",     tipo: 1, label: "Sonido" },
+      { key: "banquete",   tipo: 2, label: "Banquete" },
+      { key: "barra",      tipo: 3, label: "Barra" },
+    ].forEach(({ key, tipo, label }) => {
+      const paquetes = filteredItems.filter((p) => p.is_paquete_sonido === tipo);
+      if (paquetes.length > 0) result.push({ key, label, items: paquetes });
+    });
     return result;
   }, [filteredItems]);
 
@@ -103,16 +120,25 @@ export default function PaquetesPage() {
     todos: "Todos",
     fotografia: "Fotografía",
     sonido: "Sonido",
+    banquete: "Banquete",
+    barra: "Barra",
   };
 
-  const handleExportNow = () => {
-    const html = previewPaquetesReportPdf({
+  const handleExportNow = async () => {
+    const html = await previewPaquetesReportPdf({
       items: filteredItems,
       tipoLabel: TIPO_LABEL_MAP[tipoFilter] || "Todos",
     });
     setExportPreviewHtml(html);
     setExportPreviewOpen(true);
   };
+
+  const STAT_CARDS = [
+    { filterKey: "fotografia", tipoNum: 0 },
+    { filterKey: "sonido",     tipoNum: 1 },
+    { filterKey: "banquete",   tipoNum: 2 },
+    { filterKey: "barra",      tipoNum: 3 },
+  ];
 
   return (
     <main className="paq-main">
@@ -123,7 +149,7 @@ export default function PaquetesPage() {
           <div className="paq-filters-panel">
             <Space direction="vertical" size={2} style={{ marginBottom: 16 }}>
               <Title level={2} className="paq-title">Paquetes</Title>
-              <Text className="paq-subtitle">Catálogo de paquetes de fotografía y sonido</Text>
+              <Text className="paq-subtitle">Catálogo de paquetes de fotografía, sonido, banquete y barra</Text>
             </Space>
 
             <Row gutter={[16, 14]}>
@@ -149,6 +175,8 @@ export default function PaquetesPage() {
                     { label: "Todos", value: "todos" },
                     { label: "Fotografía", value: "fotografia" },
                     { label: "Sonido", value: "sonido" },
+                    { label: "Banquete", value: "banquete" },
+                    { label: "Barra", value: "barra" },
                   ]}
                 />
               </Col>
@@ -172,33 +200,26 @@ export default function PaquetesPage() {
           </div>
 
           <div className="paq-stats-row">
-            <Card
-              className={`paq-stat-card paq-stat-foto ${tipoFilter === "fotografia" ? "paq-stat-active" : ""}`}
-              hoverable
-              onClick={() => setTipoFilter((p) => (p === "fotografia" ? "todos" : "fotografia"))}
-            >
-              <Space align="center" size={10}>
-                <div className="paq-stat-icon paq-stat-icon-foto"><CameraOutlined /></div>
-                <div>
-                  <div className="paq-stat-value">{counts.foto}</div>
-                  <div className="paq-stat-label">Fotografía</div>
-                </div>
-              </Space>
-            </Card>
-
-            <Card
-              className={`paq-stat-card paq-stat-sonido ${tipoFilter === "sonido" ? "paq-stat-active" : ""}`}
-              hoverable
-              onClick={() => setTipoFilter((p) => (p === "sonido" ? "todos" : "sonido"))}
-            >
-              <Space align="center" size={10}>
-                <div className="paq-stat-icon paq-stat-icon-sonido"><SoundOutlined /></div>
-                <div>
-                  <div className="paq-stat-value">{counts.sonido}</div>
-                  <div className="paq-stat-label">Sonido</div>
-                </div>
-              </Space>
-            </Card>
+            {STAT_CARDS.map(({ filterKey, tipoNum }) => {
+              const cfg = TIPO_CARD_CONFIG[tipoNum];
+              const isActive = tipoFilter === filterKey;
+              return (
+                <Card
+                  key={filterKey}
+                  className={`paq-stat-card ${isActive ? "paq-stat-active" : ""}`}
+                  hoverable
+                  onClick={() => setTipoFilter((p) => (p === filterKey ? "todos" : filterKey))}
+                >
+                  <Space align="center" size={10}>
+                    <div className={`paq-stat-icon ${cfg.iconCls}`}>{cfg.icon}</div>
+                    <div>
+                      <div className="paq-stat-value">{counts[tipoNum]}</div>
+                      <div className="paq-stat-label">{cfg.label}</div>
+                    </div>
+                  </Space>
+                </Card>
+              );
+            })}
           </div>
 
           <div className="paq-toolbar">
@@ -238,63 +259,64 @@ export default function PaquetesPage() {
           {grouped.map(({ key, items: paquetes }) => (
             <div key={key} className="paq-category-block">
               <div className="paq-grid">
-                {paquetes.map((paq) => (
-                  <div key={`${paq.is_paquete_sonido}-${paq.id_paquete}`} className="paq-card">
+                {paquetes.map((paq) => {
+                  const cfg = TIPO_CARD_CONFIG[paq.is_paquete_sonido] ?? TIPO_CARD_CONFIG[0];
+                  return (
+                    <div key={`${paq.is_paquete_sonido}-${paq.id_paquete}`} className="paq-card">
 
-                    <div className="paq-card-banner paq-card-banner-foto"
-                      style={{ background: paq.is_paquete_sonido ? "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" : "linear-gradient(135deg, #1a1a2e 0%, #6d28d9 100%)" }}
-                    >
-                      <div className="paq-card-banner-icon">
-                        {paq.is_paquete_sonido ? <SoundOutlined /> : <CameraOutlined />}
+                      <div className="paq-card-banner paq-card-banner-foto"
+                        style={{ background: cfg.bannerBg }}
+                      >
+                        <div className="paq-card-banner-icon">{cfg.icon}</div>
                       </div>
-                    </div>
 
-                    <div className="paq-card-header">
-                      <div className="paq-card-head">
-                        <Paragraph className="paq-card-name" ellipsis={{ rows: 2 }}>
-                          {paq.nombre}
-                        </Paragraph>
-                        <span className={`paq-tipo-badge ${paq.is_paquete_sonido ? "paq-tipo-sonido" : "paq-tipo-foto"}`}>
-                          {paq.is_paquete_sonido ? "Sonido" : "Fotografía"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="paq-card-body">
-                      <div className="paq-contenidos-box">
-                        <UnorderedListOutlined className="paq-info-icon" />
-                        <div className="paq-info-text">
-                          <span className="paq-info-label">Contenidos</span>
-                          <span className="paq-info-value">
-                            {paq.contenidos_count ?? 0} {paq.contenidos_count === 1 ? "elemento" : "elementos"}
+                      <div className="paq-card-header">
+                        <div className="paq-card-head">
+                          <Paragraph className="paq-card-name" ellipsis={{ rows: 2 }}>
+                            {paq.nombre}
+                          </Paragraph>
+                          <span className={`paq-tipo-badge ${cfg.badgeCls}`}>
+                            {cfg.label}
                           </span>
                         </div>
                       </div>
-                      <div className="paq-active-box">
-                        <CheckCircleOutlined className={`paq-active-icon ${paq.active ? "paq-active-on" : "paq-active-off"}`} />
-                        <span className={`paq-active-label ${paq.active ? "paq-active-on" : "paq-active-off"}`}>
-                          {paq.active ? "Vigente" : "Descontinuado"}
-                        </span>
+
+                      <div className="paq-card-body">
+                        <div className="paq-contenidos-box">
+                          <UnorderedListOutlined className="paq-info-icon" />
+                          <div className="paq-info-text">
+                            <span className="paq-info-label">Contenidos</span>
+                            <span className="paq-info-value">
+                              {paq.contenidos_count ?? 0} {paq.contenidos_count === 1 ? "elemento" : "elementos"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="paq-active-box">
+                          <CheckCircleOutlined className={`paq-active-icon ${paq.active ? "paq-active-on" : "paq-active-off"}`} />
+                          <span className={`paq-active-label ${paq.active ? "paq-active-on" : "paq-active-off"}`}>
+                            {paq.active ? "Vigente" : "Descontinuado"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="paq-card-footer">
+                        <button
+                          className="paq-btn-details"
+                          onClick={() =>
+                            canConsultar
+                              ? navigate(`/app/paquetes/${paq.id_paquete}?tipo=${paq.is_paquete_sonido}`)
+                              : undefined
+                          }
+                          style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
+                          title={!canConsultar ? "Sin permiso de consulta" : undefined}
+                        >
+                          VER DETALLES
+                          <ArrowRightOutlined />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="paq-card-footer">
-                      <button
-                        className="paq-btn-details"
-                        onClick={() =>
-                          canConsultar
-                            ? navigate(`/app/paquetes/${paq.id_paquete}?is_sonido=${paq.is_paquete_sonido}`)
-                            : undefined
-                        }
-                        style={!canConsultar ? { cursor: "not-allowed", opacity: 0.45 } : {}}
-                        title={!canConsultar ? "Sin permiso de consulta" : undefined}
-                      >
-                        VER DETALLES
-                        <ArrowRightOutlined />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

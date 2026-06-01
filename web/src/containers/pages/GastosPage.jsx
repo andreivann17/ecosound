@@ -132,8 +132,8 @@ export default function GastosPage() {
     quincena: "Esta quincena", semana: "Esta semana", custom: "Personalizado",
   };
 
-  const handleExport = () => {
-    const html = previewGastosReportPdf({
+  const handleExport = async () => {
+    const html = await previewGastosReportPdf({
       items: filteredItems,
       periodoLabel: PERIODO_LABEL_MAP[periodo] || "Todos los gastos",
     });

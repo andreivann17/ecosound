@@ -271,8 +271,8 @@ export default function EventosPage() {
     1: "Bodas", 2: "XV", 3: "Graduación", 4: "Corporativo", 5: "Cumpleaños", 6: "Otro",
   };
 
-  const handleExportNow = () => {
-    const html = previewEventosReportPdf({
+  const handleExportNow = async () => {
+    const html = await previewEventosReportPdf({
       items: filteredItems,
       periodFrom: dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined,
       periodTo: dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined,

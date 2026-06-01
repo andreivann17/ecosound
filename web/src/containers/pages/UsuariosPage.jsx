@@ -31,8 +31,9 @@ export default function UsuariosPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportHtml, setExportHtml]  = useState("");
 
-  const handleExport = () => {
-    setExportHtml(previewUsuariosReportPdf({ items: filteredItems }));
+  const handleExport = async () => {
+    const html = await previewUsuariosReportPdf({ items: filteredItems });
+    setExportHtml(html);
     setExportOpen(true);
   };
 

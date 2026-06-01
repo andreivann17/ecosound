@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -32,7 +33,7 @@ function fmtDatetime(v) {
   return d.isValid() ? d.format("DD/MM/YYYY HH:mm") : "—";
 }
 
-function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }) {
+function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false, empresa }) {
   const now = new Date();
   const createdAt = dayjs(now).format("D [de] MMMM [de] YYYY");
   const periodoStr =
@@ -118,10 +119,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 <div class="page">
 
   <div class="header">
-    <div>
-      <div class="header-brand">HerrSoft Events</div>
-      <div class="header-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="header-right">
       <div class="header-title">Reporte de Conteos de Inventario</div>
       <div>Periodo: ${escapeHtml(periodoStr)}</div>
@@ -171,12 +169,14 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 </html>`;
 }
 
-export function previewConteosReportPdf(payload) {
-  return buildHtml({ ...payload, autoPrint: false });
+export async function previewConteosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, autoPrint: false, empresa });
 }
 
-export function printConteosReportPdf(payload) {
-  const html = buildHtml({ ...payload, autoPrint: false });
+export async function printConteosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, autoPrint: false, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

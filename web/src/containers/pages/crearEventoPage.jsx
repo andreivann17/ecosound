@@ -44,8 +44,10 @@ import {
   CameraOutlined,
   SoundOutlined,
   PlusOutlined,
+  ImportOutlined,
 } from "@ant-design/icons";
 
+import ImportarCotizacionModal from "./ImportarCotizacionModal";
 import "./EventosPage.css";
 
 const { Title, Text } = Typography;
@@ -193,6 +195,7 @@ export default function CrearEventoPage() {
 
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [importCotizacionOpen, setImportCotizacionOpen] = useState(false);
 
   useEffect(() => {
     dispatch(actionCiudadesGet());
@@ -216,13 +219,15 @@ export default function CrearEventoPage() {
   const [hayBarra, setHayBarra] = useState(false);
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
+  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   // Config maestra de servicios. id_servicio coincide con la tabla `servicios` (1..4).
   const SERVICIOS = [
     { id: 1, key: "sonido",   label: "Sonido",     icon: SERVICE_ICONS.sonido,   paquetes: paquetesSonido },
     { id: 2, key: "foto",     label: "Fotografía", icon: SERVICE_ICONS.foto,     paquetes: paquetesFoto },
-    { id: 3, key: "banquete", label: "Banquete",   icon: SERVICE_ICONS.banquete, paquetes: [] },
-    { id: 4, key: "barra",    label: "Barra",      icon: SERVICE_ICONS.barra,    paquetes: [] },
+    { id: 3, key: "banquete", label: "Banquete",   icon: SERVICE_ICONS.banquete, paquetes: paquetesBanquete },
+    { id: 4, key: "barra",    label: "Barra",      icon: SERVICE_ICONS.barra,    paquetes: paquetesBarra },
   ];
   const activosByServicio = {
     1: hayEventoSonido,
@@ -251,8 +256,13 @@ export default function CrearEventoPage() {
         });
         const todos = res.data || [];
         const toOption = (p) => ({ label: p.nombre, value: p.id_paquete });
-        setPaquetesSonido(todos.filter((p) => p.is_paquete_sonido).map(toOption));
-        setPaquetesFoto(todos.filter((p) => !p.is_paquete_sonido).map(toOption));
+        // El backend devuelve is_paquete_sonido como tipo_id numérico:
+        // 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra (NO es un boolean).
+        const byTipo = (t) => todos.filter((p) => Number(p.is_paquete_sonido) === t).map(toOption);
+        setPaquetesFoto(byTipo(0));
+        setPaquetesSonido(byTipo(1));
+        setPaquetesBanquete(byTipo(2));
+        setPaquetesBarra(byTipo(3));
       } catch {}
     };
     fetchPaquetes();
@@ -330,6 +340,59 @@ export default function CrearEventoPage() {
     form.setFieldsValue(baseValues);
     fetchDocumentos(eventoEditar.id_evento);
   }, [eventoEditar, form]);
+
+  // ── Hidratación desde una COTIZACIÓN importada ──
+  // Reutiliza la misma lógica que la edición de evento: pone los campos
+  // comunes (cliente, tipo, importes, misa) y por cada servicio activa el
+  // card correspondiente con sus campos. NO copia el contrato ni fechas
+  // de creación — son específicas del nuevo evento que se está creando.
+  const hydrateFromCotizacion = (c) => {
+    if (!c) return;
+    const mh = c.hora_misa ? dayjs(c.hora_misa, "HH:mm") : null;
+    const baseValues = {
+      cliente_nombre:    c.cliente_nombre,
+      domicilio:         c.domicilio,
+      celular:           c.celular,
+      id_tipo_evento:    c.id_tipo_evento ?? null,
+      importe:           c.importe          ? toDecimal(c.importe)          : "",
+      fecha_anticipo:    c.fecha_anticipo   ? dayjs(c.fecha_anticipo)       : null,
+      importe_anticipo:  c.importe_anticipo ? toDecimal(c.importe_anticipo) : "",
+      direccion_misa:    c.direccion_misa ?? "",
+      hora_misa:         mh,
+    };
+
+    // Reseteamos servicios antes de aplicar para no mezclar con datos previos.
+    setHayEventoSonido(false);
+    setHayEventoFoto(false);
+    setHayBanquete(false);
+    setHayBarra(false);
+
+    if (Array.isArray(c.servicios) && c.servicios.length > 0) {
+      const activos = new Set();
+      c.servicios.forEach((sv) => {
+        const id = sv.id_servicio;
+        if (!id) return;
+        activos.add(id);
+        baseValues[svField(id, "fecha")]       = sv.fecha       ? dayjs(sv.fecha) : null;
+        baseValues[svField(id, "hora_inicio")] = sv.hora_inicio ? dayjs(sv.hora_inicio, "HH:mm") : null;
+        baseValues[svField(id, "hora_final")]  = sv.hora_final  ? dayjs(sv.hora_final,  "HH:mm") : null;
+        baseValues[svField(id, "id_ciudad")]   = sv.id_ciudad ?? null;
+        baseValues[svField(id, "lugar")]       = sv.lugar ?? "";
+        baseValues[svField(id, "id_paquete")]  = sv.id_paquete ?? null;
+        baseValues[svField(id, "comentarios")] = sv.comentarios ?? "";
+      });
+      setHayEventoSonido(activos.has(1));
+      setHayEventoFoto(activos.has(2));
+      setHayBanquete(activos.has(3));
+      setHayBarra(activos.has(4));
+    }
+
+    form.setFieldsValue(baseValues);
+    notification.success({
+      message: "Cotización importada",
+      description: `Se cargaron los datos de la cotización ${c.code ? `#${c.code}` : ""}. Revisa los campos antes de guardar.`,
+    });
+  };
 
   const fetchDocumentos = async (id) => {
     setLoadingDocs(true);
@@ -653,6 +716,16 @@ export default function CrearEventoPage() {
           </Space>
 
           <Space>
+            {!isEditing && (
+              <Button
+                icon={<ImportOutlined />}
+                onClick={() => setImportCotizacionOpen(true)}
+                disabled={saving}
+                className="eventos-btn-clean"
+              >
+                Importar de cotización
+              </Button>
+            )}
             <Button
               className="eventos-btn-clean"
               onClick={() => navigate("/app/eventos")}
@@ -1084,6 +1157,15 @@ export default function CrearEventoPage() {
         </Form>
 
       </div>
+
+      <ImportarCotizacionModal
+        open={importCotizacionOpen}
+        onClose={() => setImportCotizacionOpen(false)}
+        onPick={(cot) => {
+          hydrateFromCotizacion(cot);
+          setImportCotizacionOpen(false);
+        }}
+      />
     </main>
   );
 }

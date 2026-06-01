@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -115,7 +116,7 @@ function barRows(items, labelKey, valueKey, color, maxVal) {
   }).join("");
 }
 
-function buildHtml({ data, periodoDescripcion }) {
+function buildHtml({ data, periodoDescripcion, empresa }) {
   if (!data) return "";
   const createdAt = dayjs().format("D [de] MMMM [de] YYYY [a las] HH:mm");
 
@@ -135,10 +136,7 @@ function buildHtml({ data, periodoDescripcion }) {
 <body><div class="page">
 
   <div class="hdr">
-    <div>
-      <div class="hdr-brand">HerrSoft Events</div>
-      <div class="hdr-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="hdr-right">
       <div class="hdr-title">Reporte de Estadísticas</div>
       <div>Período: ${esc(periodoDescripcion || "—")}</div>
@@ -292,12 +290,14 @@ function buildHtml({ data, periodoDescripcion }) {
 </div></body></html>`;
 }
 
-export function previewEstadisticasReportPdf(payload) {
-  return buildHtml(payload);
+export async function previewEstadisticasReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, empresa });
 }
 
-export function printEstadisticasReportPdf(payload) {
-  const html = buildHtml(payload);
+export async function printEstadisticasReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

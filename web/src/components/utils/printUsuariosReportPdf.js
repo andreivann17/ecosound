@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -12,7 +13,7 @@ function esc(s) {
     .replaceAll('"', "&quot;");
 }
 
-function buildHtml({ items }) {
+function buildHtml({ items, empresa }) {
   const total   = items.length;
   const activos = items.filter((u) => u.active).length;
   const inactivos = total - activos;
@@ -77,10 +78,7 @@ function buildHtml({ items }) {
 <body><div class="page">
 
   <div class="hdr">
-    <div>
-      <div class="hdr-brand">HerrSoft Events</div>
-      <div class="hdr-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="hdr-right">
       <div class="hdr-title">Reporte de Usuarios</div>
       <div>Generado: ${esc(createdAt)}</div>
@@ -132,12 +130,14 @@ function buildHtml({ items }) {
 </div></body></html>`;
 }
 
-export function previewUsuariosReportPdf(payload) {
-  return buildHtml(payload);
+export async function previewUsuariosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, empresa });
 }
 
-export function printUsuariosReportPdf(payload) {
-  const html = buildHtml(payload);
+export async function printUsuariosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

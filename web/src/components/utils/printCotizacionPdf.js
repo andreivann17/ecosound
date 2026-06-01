@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -37,7 +38,7 @@ function buildHtml(data) {
   const {
     folio, cliente, vendedor, tipoLabel,
     comentarios, importe, servicios = [],
-    validezDias = 15, logo,
+    validezDias = 15, logo, nombre_empresa,
   } = data || {};
 
   const fecha = dayjs().format("DD/MM/YYYY");
@@ -62,8 +63,11 @@ function buildHtml(data) {
     : `Propuesta de servicios para evento${tipoLabel ? ` de ${tipoLabel}` : ""}.`;
 
   const logoTag = logo
-    ? `<img src="${e(logo)}" style="height:52px;width:auto;display:block;margin-bottom:10px;" alt="HerrSoft Events"/>`
-    : `<div style="font-size:17pt;font-weight:900;line-height:1;margin-bottom:6px;letter-spacing:-.5px;">HerrSoft<br/>Events</div>`;
+    ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <img src="${e(logo)}" style="height:52px;width:auto;max-width:140px;object-fit:contain;display:block;" alt="logo"/>
+        ${nombre_empresa ? `<div style="font-size:15pt;font-weight:900;line-height:1.2;color:#fff;">${e(nombre_empresa)}</div>` : ""}
+      </div>`
+    : `<div style="font-size:17pt;font-weight:900;line-height:1;margin-bottom:6px;letter-spacing:-.5px;">${nombre_empresa ? e(nombre_empresa) : "HerrSoft<br/>Events"}</div>`;
 
   const css = `
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -289,12 +293,14 @@ tfoot td { border:1px solid #c8d1dc; padding:9px 10px; }
 </body></html>`;
 }
 
-export function previewCotizacionPdf(data) {
-  return buildHtml(data);
+export async function previewCotizacionPdf(data) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...data, logo: empresa.logoDataUrl || data?.logo, nombre_empresa: empresa.nombre || data?.nombre_empresa });
 }
 
-export function printCotizacionPdf(data) {
-  const html = buildHtml(data);
+export async function printCotizacionPdf(data) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...data, logo: empresa.logoDataUrl || data?.logo, nombre_empresa: empresa.nombre || data?.nombre_empresa });
   const el = document.createElement("div");
   el.innerHTML = html;
   html2pdf().set({

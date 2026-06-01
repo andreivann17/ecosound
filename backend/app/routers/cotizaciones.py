@@ -1098,6 +1098,32 @@ def list_paquetes_fotografia(_cu: Dict[str, Any] = Depends(get_current_user)):
         conn.close()
 
 
+@router.get("/config/paquetes-banquete")
+def list_paquetes_banquete(_cu: Dict[str, Any] = Depends(get_current_user)):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_paquete_banquete, nombre FROM paquetes_banquete WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
+@router.get("/config/paquetes-barra")
+def list_paquetes_barra(_cu: Dict[str, Any] = Depends(get_current_user)):
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_paquete_barra, nombre FROM paquetes_barra WHERE active = 1 ORDER BY nombre ASC"
+            )
+            return cur.fetchall() or []
+    finally:
+        conn.close()
+
+
 # ================== EVENTOS CRUD ==================
 
 @router.get("/{id_cotizacion}")

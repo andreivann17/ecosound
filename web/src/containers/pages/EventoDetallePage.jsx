@@ -242,6 +242,8 @@ export default function EventoDetallePage() {
 
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
+  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   const pdfInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -251,14 +253,18 @@ export default function EventoDetallePage() {
     setLoading(true);
     Promise.all([
       apiEventosInstance.get(`/eventos/${idEvento}`, { headers: authHeaderEventos() }),
-      apiEventosInstance.get("/eventos/config/paquetes-sonido", { headers: authHeaderEventos() }),
+      apiEventosInstance.get("/eventos/config/paquetes-sonido",     { headers: authHeaderEventos() }),
       apiEventosInstance.get("/eventos/config/paquetes-fotografia", { headers: authHeaderEventos() }),
+      apiEventosInstance.get("/eventos/config/paquetes-banquete",   { headers: authHeaderEventos() }).catch(() => ({ data: [] })),
+      apiEventosInstance.get("/eventos/config/paquetes-barra",      { headers: authHeaderEventos() }).catch(() => ({ data: [] })),
     ])
-      .then(([evRes, psRes, pfRes]) => {
+      .then(([evRes, psRes, pfRes, pbqRes, pbrRes]) => {
         if (mounted) {
           setEvento(evRes.data);
-          setPaquetesSonido(Array.isArray(psRes.data) ? psRes.data : []);
-          setPaquetesFoto(Array.isArray(pfRes.data) ? pfRes.data : []);
+          setPaquetesSonido(Array.isArray(psRes.data)  ? psRes.data  : []);
+          setPaquetesFoto(Array.isArray(pfRes.data)    ? pfRes.data  : []);
+          setPaquetesBanquete(Array.isArray(pbqRes.data) ? pbqRes.data : []);
+          setPaquetesBarra(Array.isArray(pbrRes.data)    ? pbrRes.data : []);
         }
       })
       .catch(() => notification.error({ message: "No se pudo cargar el evento" }))
@@ -781,12 +787,22 @@ export default function EventoDetallePage() {
 
           const paqueteName = (sv) => {
             if (!sv.id_paquete) return null;
+            // Cada servicio resuelve su nombre de paquete contra su catálogo:
+            // 1=Sonido, 2=Fotografía, 3=Banquete, 4=Barra
             if (sv.id_servicio === 1) {
               return paquetesSonido.find((p) => p.id_paquete_sonido === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 2) {
               return paquetesFoto.find((p) => p.id_paquete_fotografia === sv.id_paquete)?.nombre
+                || `Paquete #${sv.id_paquete}`;
+            }
+            if (sv.id_servicio === 3) {
+              return paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre
+                || `Paquete #${sv.id_paquete}`;
+            }
+            if (sv.id_servicio === 4) {
+              return paquetesBarra.find((p) => p.id_paquete_barra === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             return `Paquete #${sv.id_paquete}`;

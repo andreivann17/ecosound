@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -27,7 +28,7 @@ const fmtFecha = (s) => {
   return d.isValid() ? d.format("D MMM YYYY") : "—";
 };
 
-function buildHtml({ items, periodoLabel }) {
+function buildHtml({ items, periodoLabel, empresa }) {
   const total = items.reduce((s, g) => s + parseFloat(g.monto || 0), 0);
   const conDoc = items.filter((g) => g.filename).length;
 
@@ -108,10 +109,7 @@ function buildHtml({ items, periodoLabel }) {
 <body><div class="page">
 
   <div class="hdr">
-    <div>
-      <div class="hdr-brand">HerrSoft Events</div>
-      <div class="hdr-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="hdr-right">
       <div class="hdr-title">Reporte de Gastos</div>
       <div>Período: ${esc(periodoLabel || "Todos los gastos")}</div>
@@ -178,12 +176,14 @@ function buildHtml({ items, periodoLabel }) {
 </div></body></html>`;
 }
 
-export function previewGastosReportPdf(payload) {
-  return buildHtml(payload);
+export async function previewGastosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, empresa });
 }
 
-export function printGastosReportPdf(payload) {
-  const html = buildHtml(payload);
+export async function printGastosReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

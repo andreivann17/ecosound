@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -83,7 +84,7 @@ function computeStats(items) {
   return { pendientes, aceptadas, rechazadas, total: (items || []).length, totalImporte };
 }
 
-function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }) {
+function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false, empresa }) {
   const rows = mapRows(items);
   const stats = computeStats(items);
   const now = new Date();
@@ -175,10 +176,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 <div class="page">
 
   <div class="header">
-    <div>
-      <div class="header-brand">HerrSoft Events</div>
-      <div class="header-sub">Seguimiento de cotizaciones</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="header-right">
       <div class="header-title">Reporte de Cotizaciones</div>
       <div>Periodo: ${escapeHtml(periodoStr)}</div>
@@ -237,12 +235,14 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false }
 </html>`;
 }
 
-export function previewCotizacionesReportPdf(payload) {
-  return buildHtml({ ...payload, autoPrint: false });
+export async function previewCotizacionesReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ ...payload, autoPrint: false, empresa });
 }
 
-export function printCotizacionesReportPdf(payload) {
-  const html = buildHtml({ ...payload, autoPrint: false });
+export async function printCotizacionesReportPdf(payload) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ ...payload, autoPrint: false, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   html2pdf()

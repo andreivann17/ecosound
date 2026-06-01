@@ -1,5 +1,4 @@
 import mysql.connector
-import datetime as dt
 
 conn = mysql.connector.connect(
     host="localhost",
@@ -10,77 +9,72 @@ conn = mysql.connector.connect(
 )
 
 try:
-    # Leer todos los contratos
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
+        cur.execute("SET sql_mode = ''")
+
+    with conn.cursor() as cur:
+
+        # --- SONIDO (id_servicio=1): todos los contratos ---
         cur.execute(
             """
-            SELECT id_contrato, fecha_evento, hora_inicio, hora_final,
-                   lugar_evento, id_paquete_sonido, id_paquete_fotografia,
-                   id_user, id_cliente, id_ciudad
-            FROM contratos
+            INSERT INTO eventos_servicios
+                (id_evento, fecha_evento, hora_inicio, hora_final,
+                 lugar, id_paquete, datetime, id_user, id_cliente,
+                 id_ciudad, id_servicio)
+            SELECT
+                c.id_contrato,
+                c.fecha_evento,
+                c.hora_inicio,
+                c.hora_final,
+                c.lugar_evento,
+                c.id_paquete_sonido,
+                NOW(),
+                c.id_user,
+                c.id_cliente,
+                c.id_ciudad,
+                1
+            FROM contratos c
+            WHERE NOT EXISTS (
+                SELECT 1 FROM eventos_servicios es
+                WHERE es.id_evento = c.id_contrato AND es.id_servicio = 1
+            )
             """
         )
-        contratos = cur.fetchall()
+        sonido = cur.rowcount
 
-    # Ver qué combinaciones (id_evento, id_servicio) ya existen para no duplicar
-    with conn.cursor() as cur:
-        cur.execute("SELECT id_evento, id_servicio FROM eventos_servicios")
-        ya_existen = set(cur.fetchall())
+        # --- FOTOGRAFIA (id_servicio=2): solo los que tienen paquete foto ---
+        cur.execute(
+            """
+            INSERT INTO eventos_servicios
+                (id_evento, fecha_evento, hora_inicio, hora_final,
+                 lugar, id_paquete, datetime, id_user, id_cliente,
+                 id_ciudad, id_servicio)
+            SELECT
+                c.id_contrato,
+                c.fecha_evento,
+                c.hora_inicio,
+                c.hora_final,
+                c.lugar_evento,
+                c.id_paquete_fotografia,
+                NOW(),
+                c.id_user,
+                c.id_cliente,
+                c.id_ciudad,
+                2
+            FROM contratos c
+            WHERE c.id_paquete_fotografia IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM eventos_servicios es
+                WHERE es.id_evento = c.id_contrato AND es.id_servicio = 2
+              )
+            """
+        )
+        foto = cur.rowcount
 
-    filas = []
-    now = dt.datetime.now()
-
-    for c in contratos:
-        id_ev = c["id_contrato"]
-
-        if c["id_paquete_sonido"] and (id_ev, 1) not in ya_existen:
-            filas.append((
-                id_ev,
-                c["fecha_evento"],
-                c["hora_inicio"],
-                c["hora_final"],
-                c["lugar_evento"],
-                c["id_paquete_sonido"],
-                now,
-                c["id_user"],
-                c["id_cliente"],
-                c["id_ciudad"],
-                None,
-                1,          # sonido
-            ))
-
-        if c["id_paquete_fotografia"] and (id_ev, 2) not in ya_existen:
-            filas.append((
-                id_ev,
-                c["fecha_evento"],
-                c["hora_inicio"],
-                c["hora_final"],
-                c["lugar_evento"],
-                c["id_paquete_fotografia"],
-                now,
-                c["id_user"],
-                c["id_cliente"],
-                c["id_ciudad"],
-                None,
-                2,          # fotografia
-            ))
-
-    if not filas:
-        print("Nada nuevo que insertar (ya existen o no tienen paquete).")
-    else:
-        with conn.cursor() as cur:
-            cur.executemany(
-                """
-                INSERT INTO eventos_servicios
-                    (id_evento, fecha_evento, hora_inicio, hora_final,
-                     lugar, id_paquete, datetime, id_user, id_cliente,
-                     id_ciudad, comentarios, id_servicio)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                filas,
-            )
-        conn.commit()
-        print(f"Listo: {len(filas)} filas insertadas en eventos_servicios.")
+    conn.commit()
+    print(f"Sonido insertados : {sonido}")
+    print(f"Foto insertados   : {foto}")
+    print(f"Total             : {sonido + foto}")
 
 finally:
     conn.close()

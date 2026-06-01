@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, notification, Select, Tag } from "antd";
+import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, notification, Select, Tag, Upload } from "antd";
 import {
   CalendarOutlined,
   ToolOutlined,
@@ -18,9 +18,12 @@ import {
   ScheduleOutlined,
   EnvironmentOutlined,
   DollarOutlined,
+  ShopOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { PATH } from "../../redux/utils";
+import { clearEmpresaConfigCache } from "../../components/utils/empresaConfig";
 import "./ConfiguracionPage.css";
 
 const { Title, Text } = Typography;
@@ -479,6 +482,15 @@ function PanelEventos() {
 function PanelGeneral() {
   const [notifApi, notifHolder] = notification.useNotification();
 
+  // ── Empresa ──
+  const [empresa, setEmpresa] = useState({ nombre_empresa: "", path: null });
+  const [loadingEmpresa, setLoadingEmpresa] = useState(true);
+  const [savingEmpresa, setSavingEmpresa] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [editandoEmpresa, setEditandoEmpresa] = useState(false);
+  const [empresaDraft, setEmpresaDraft] = useState({ nombre_empresa: "", path: null });
+
   // ── Avisos ──
   const [avisos, setAvisos] = useState([]);
   const [loadingAvisos, setLoadingAvisos] = useState(true);
@@ -492,12 +504,79 @@ function PanelGeneral() {
   const [addingCiudad, setAddingCiudad] = useState(false);
 
   useEffect(() => {
+    fetchEmpresa();
     fetchAvisos();
     fetchCiudades();
   }, []);
 
   const notif = (type, msg) =>
     notifApi[type]({ message: type === "success" ? "Listo" : "Error", description: msg, placement: "topRight" });
+
+  const fetchEmpresa = async () => {
+    setLoadingEmpresa(true);
+    try {
+      const res = await api.get("/general/empresa", { headers: authHeader() });
+      const data = res.data || {};
+      setEmpresa(data);
+      setEmpresaDraft(data);
+      setEditandoEmpresa(!data.nombre_empresa);
+    } catch {
+      notif("error", "Error al cargar configuración de empresa");
+    } finally {
+      setLoadingEmpresa(false);
+    }
+  };
+
+  const handleEditarEmpresa = () => {
+    setEmpresaDraft({ ...empresa });
+    setLogoFile(null);
+    setLogoPreview(null);
+    setEditandoEmpresa(true);
+  };
+
+  const handleCancelarEmpresa = () => {
+    setEmpresaDraft({ ...empresa });
+    setLogoFile(null);
+    setLogoPreview(null);
+    setEditandoEmpresa(false);
+  };
+
+  const handleLogoChange = (file) => {
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    return false;
+  };
+
+  const logoSrc = (path) => path ? `${PATH}/${path}` : null;
+
+  const handleSaveEmpresa = async () => {
+    const nombre = (empresaDraft.nombre_empresa || "").trim();
+    if (!nombre) {
+      notif("error", "El nombre de la empresa es requerido");
+      return;
+    }
+    setSavingEmpresa(true);
+    try {
+      const form = new FormData();
+      form.append("nombre_empresa", nombre);
+      if (logoFile) form.append("logo", logoFile);
+      const res = await api.post("/general/empresa", form, {
+        headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
+      });
+      const updated = { nombre_empresa: nombre, path: res.data.path || empresa.path };
+      setEmpresa(updated);
+      setEmpresaDraft(updated);
+      setLogoFile(null);
+      setLogoPreview(null);
+      setEditandoEmpresa(false);
+      clearEmpresaConfigCache();
+      notif("success", "Configuración de empresa guardada");
+    } catch {
+      notif("error", "Error al guardar configuración de empresa");
+    } finally {
+      setSavingEmpresa(false);
+    }
+  };
 
   const fetchAvisos = async () => {
     setLoadingAvisos(true);
@@ -600,6 +679,102 @@ function PanelGeneral() {
   return (
     <div className="cfg-panel-body">
       {notifHolder}
+
+      {/* ── Empresa ──────────────────────────────────── */}
+      <div className="cfg-block">
+        <div className="cfg-block-header">
+          <ShopOutlined className="cfg-block-icon" />
+          <div>
+            <div className="cfg-block-title">Datos de la empresa</div>
+            <div className="cfg-block-desc">Nombre y logo usados en reportes PDF de todos los módulos</div>
+          </div>
+        </div>
+
+        {loadingEmpresa ? (
+          <div className="cfg-loading-row"><Spin size="small" /></div>
+        ) : !editandoEmpresa ? (
+          /* ── Modo vista ── */
+          <div className="cfg-empresa-card">
+            <div className={`cfg-empresa-logo-zone cfg-empresa-logo-zone--view${empresa.path ? " cfg-empresa-logo-zone--filled" : ""}`}>
+              {empresa.path ? (
+                <img src={logoSrc(empresa.path)} alt="Logo empresa" className="cfg-empresa-logo-img" />
+              ) : (
+                <div className="cfg-empresa-logo-empty">
+                  <ShopOutlined className="cfg-empresa-logo-empty-icon" />
+                  <span>Sin logo</span>
+                </div>
+              )}
+            </div>
+            <div className="cfg-empresa-fields">
+              <div className="cfg-empresa-view-nombre">
+                {empresa.nombre_empresa || <span className="cfg-empresa-view-vacio">Sin nombre configurado</span>}
+              </div>
+              <button type="button" className="cfg-empresa-edit-btn" onClick={handleEditarEmpresa}>
+                Editar
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Modo edición ── */
+          <div className="cfg-empresa-card">
+            <Upload accept="image/*" showUploadList={false} beforeUpload={handleLogoChange}>
+              <div className={`cfg-empresa-logo-zone${(logoPreview || empresa.path) ? " cfg-empresa-logo-zone--filled" : ""}`}>
+                {(logoPreview || empresa.path) ? (
+                  <img
+                    src={logoPreview || logoSrc(empresa.path)}
+                    alt="Logo empresa"
+                    className="cfg-empresa-logo-img"
+                  />
+                ) : (
+                  <div className="cfg-empresa-logo-empty">
+                    <UploadOutlined className="cfg-empresa-logo-empty-icon" />
+                    <span>Subir logo</span>
+                    <span className="cfg-empresa-logo-empty-hint">PNG · JPG · WEBP</span>
+                  </div>
+                )}
+                <div className="cfg-empresa-logo-overlay">
+                  <UploadOutlined />
+                  <span>{empresa.path ? "Cambiar" : "Subir"}</span>
+                </div>
+              </div>
+            </Upload>
+
+            <div className="cfg-empresa-fields">
+              <div className="cfg-empresa-field">
+                <label className="cfg-empresa-label">Nombre de la empresa</label>
+                <Input
+                  value={empresaDraft.nombre_empresa || ""}
+                  onChange={(e) => setEmpresaDraft((prev) => ({ ...prev, nombre_empresa: e.target.value }))}
+                  placeholder="Nombre de la empresa"
+                  className="cfg-empresa-input"
+                  maxLength={225}
+                  size="large"
+                />
+              </div>
+              {logoFile && (
+                <div className="cfg-empresa-file-badge">
+                  <UploadOutlined style={{ fontSize: 12 }} />
+                  {logoFile.name}
+                </div>
+              )}
+              <div className="cfg-empresa-actions">
+                <Button
+                  onClick={handleSaveEmpresa}
+                  loading={savingEmpresa}
+                  className="cfg-tipo-btn-add"
+                >
+                  Guardar cambios
+                </Button>
+                <button type="button" className="cfg-empresa-cancel-btn" onClick={handleCancelarEmpresa}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="cfg-divider" style={{ marginBottom: 50 }} />
 
       {/* ── Avisos de inicio ─────────────────────────── */}
       <div className="cfg-block">

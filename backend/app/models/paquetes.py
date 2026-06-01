@@ -2,57 +2,57 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from ..db import get_connection
 
+# tipo: 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra
+_TIPO: Dict[int, tuple] = {
+    0: ("paquetes_fotografia", "id_paquete_fotografia"),
+    1: ("paquetes_sonido",     "id_paquete_sonido"),
+    2: ("paquetes_banquete",   "id_paquete_banquete"),
+    3: ("paquetes_barra",      "id_paquete_barra"),
+}
+
+_TIPO_STR: Dict[str, int] = {
+    "fotografia": 0,
+    "sonido":     1,
+    "banquete":   2,
+    "barra":      3,
+}
+
+# Columns in `contratos` for existing types (2 and 3 not yet linked)
+_TIPO_CONTRATO_COL: Dict[int, str] = {
+    0: "id_paquete_fotografia",
+    1: "id_paquete_sonido",
+}
+
 
 def list_paquetes(tipo: Optional[str] = None, search: Optional[str] = None, id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
     conn = get_connection()
     try:
+        tipo_num = _TIPO_STR.get(tipo) if tipo else None
         rows: List[Dict[str, Any]] = []
         with conn.cursor(dictionary=True) as cur:
-            if tipo != "sonido":
-                cond_f = "p.active_sistema = 1"
-                params_f: List[Any] = []
+            for tipo_id, (table, pk) in _TIPO.items():
+                if tipo_num is not None and tipo_num != tipo_id:
+                    continue
+                cond = "p.active_sistema = 1"
+                params: List[Any] = []
                 if id_cliente is not None:
-                    cond_f += " AND p.id_cliente = %s"
-                    params_f.append(id_cliente)
+                    cond += " AND p.id_cliente = %s"
+                    params.append(id_cliente)
                 if search:
-                    cond_f += " AND p.nombre LIKE %s"
-                    params_f.append(f"%{search}%")
+                    cond += " AND p.nombre LIKE %s"
+                    params.append(f"%{search}%")
                 cur.execute(
                     f"""
-                    SELECT p.id_paquete_fotografia AS id_paquete, p.nombre, p.active,
-                        0 AS is_paquete_sonido,
+                    SELECT p.{pk} AS id_paquete, p.nombre, p.active,
+                        {tipo_id} AS is_paquete_sonido,
                         (SELECT COUNT(*) FROM paquetes_contenido pc
-                         WHERE pc.id_paquete = p.id_paquete_fotografia
-                           AND pc.is_paquete_sonido = 0 AND pc.active = 1) AS contenidos_count
-                    FROM paquetes_fotografia p
-                    WHERE {cond_f}
+                         WHERE pc.id_paquete = p.{pk}
+                           AND pc.is_paquete_sonido = {tipo_id} AND pc.active = 1) AS contenidos_count
+                    FROM {table} p
+                    WHERE {cond}
                     ORDER BY p.nombre ASC
                     """,
-                    params_f,
-                )
-                rows += cur.fetchall() or []
-
-            if tipo != "fotografia":
-                cond_s = "p.active_sistema = 1"
-                params_s: List[Any] = []
-                if id_cliente is not None:
-                    cond_s += " AND p.id_cliente = %s"
-                    params_s.append(id_cliente)
-                if search:
-                    cond_s += " AND p.nombre LIKE %s"
-                    params_s.append(f"%{search}%")
-                cur.execute(
-                    f"""
-                    SELECT p.id_paquete_sonido AS id_paquete, p.nombre, p.active,
-                        1 AS is_paquete_sonido,
-                        (SELECT COUNT(*) FROM paquetes_contenido pc
-                         WHERE pc.id_paquete = p.id_paquete_sonido
-                           AND pc.is_paquete_sonido = 1 AND pc.active = 1) AS contenidos_count
-                    FROM paquetes_sonido p
-                    WHERE {cond_s}
-                    ORDER BY p.nombre ASC
-                    """,
-                    params_s,
+                    params,
                 )
                 rows += cur.fetchall() or []
         return rows
@@ -60,32 +60,24 @@ def list_paquetes(tipo: Optional[str] = None, search: Optional[str] = None, id_c
         conn.close()
 
 
-def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict[str, Any]]:
+def get_paquete_by_id(id_paquete: int, tipo: int) -> Optional[Dict[str, Any]]:
+    if tipo not in _TIPO:
+        return None
+    table, pk = _TIPO[tipo]
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if is_paquete_sonido:
-                cur.execute(
-                    """
-                    SELECT id_paquete_sonido AS id_paquete, nombre, active, active_sistema,
-                        1 AS is_paquete_sonido, id_cliente
-                    FROM paquetes_sonido WHERE id_paquete_sonido = %s AND active_sistema = 1 LIMIT 1
-                    """,
-                    (id_paquete,),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT id_paquete_fotografia AS id_paquete, nombre, active, active_sistema,
-                        0 AS is_paquete_sonido, id_cliente
-                    FROM paquetes_fotografia WHERE id_paquete_fotografia = %s AND active_sistema = 1 LIMIT 1
-                    """,
-                    (id_paquete,),
-                )
+            cur.execute(
+                f"""
+                SELECT {pk} AS id_paquete, nombre, active, active_sistema,
+                    {tipo} AS is_paquete_sonido, id_cliente
+                FROM {table} WHERE {pk} = %s AND active_sistema = 1 LIMIT 1
+                """,
+                (id_paquete,),
+            )
             row = cur.fetchone()
             if not row:
                 return None
-
             cur.execute(
                 """
                 SELECT id_paquete_contenido, descripcion
@@ -93,7 +85,7 @@ def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict
                 WHERE id_paquete = %s AND is_paquete_sonido = %s AND active = 1
                 ORDER BY id_paquete_contenido ASC
                 """,
-                (id_paquete, int(is_paquete_sonido)),
+                (id_paquete, tipo),
             )
             row["contenidos"] = cur.fetchall() or []
         return row
@@ -101,34 +93,32 @@ def get_paquete_by_id(id_paquete: int, is_paquete_sonido: bool) -> Optional[Dict
         conn.close()
 
 
-def create_paquete(nombre: str, is_paquete_sonido: bool, id_cliente: Optional[int] = None) -> Dict[str, Any]:
+def create_paquete(nombre: str, tipo: int, id_cliente: Optional[int] = None) -> Dict[str, Any]:
+    if tipo not in _TIPO:
+        raise ValueError(f"Tipo inválido: {tipo}")
+    table, pk = _TIPO[tipo]
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            if is_paquete_sonido:
-                cur.execute(
-                    "INSERT INTO paquetes_sonido (nombre, active, active_sistema, id_cliente) VALUES (%s, 1, 1, %s)",
-                    (nombre.strip(), id_cliente),
-                )
-            else:
-                cur.execute(
-                    "INSERT INTO paquetes_fotografia (nombre, active, active_sistema, id_cliente) VALUES (%s, 1, 1, %s)",
-                    (nombre.strip(), id_cliente),
-                )
+            cur.execute(
+                f"INSERT INTO {table} (nombre, active, active_sistema, id_cliente) VALUES (%s, 1, 1, %s)",
+                (nombre.strip(), id_cliente),
+            )
             new_id = cur.lastrowid
         conn.commit()
-        return {"id_paquete": new_id, "is_paquete_sonido": int(is_paquete_sonido)}
+        return {"id_paquete": new_id, "is_paquete_sonido": tipo}
     finally:
         conn.close()
 
 
-def update_paquete(id_paquete: int, is_paquete_sonido: bool, data: Dict[str, Any]) -> int:
+def update_paquete(id_paquete: int, tipo: int, data: Dict[str, Any]) -> int:
+    if tipo not in _TIPO:
+        return 0
+    table, pk = _TIPO[tipo]
     allowed = {"nombre", "active"}
     updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
         return 0
-    table = "paquetes_sonido" if is_paquete_sonido else "paquetes_fotografia"
-    pk = "id_paquete_sonido" if is_paquete_sonido else "id_paquete_fotografia"
     conn = get_connection()
     try:
         set_clause = ", ".join(f"{k} = %s" for k in updates)
@@ -145,9 +135,10 @@ def update_paquete(id_paquete: int, is_paquete_sonido: bool, data: Dict[str, Any
         conn.close()
 
 
-def delete_paquete(id_paquete: int, is_paquete_sonido: bool) -> int:
-    table = "paquetes_sonido" if is_paquete_sonido else "paquetes_fotografia"
-    pk = "id_paquete_sonido" if is_paquete_sonido else "id_paquete_fotografia"
+def delete_paquete(id_paquete: int, tipo: int) -> int:
+    if tipo not in _TIPO:
+        return 0
+    table, pk = _TIPO[tipo]
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -162,7 +153,7 @@ def delete_paquete(id_paquete: int, is_paquete_sonido: bool) -> int:
         conn.close()
 
 
-def add_contenido(id_paquete: int, is_paquete_sonido: bool, descripcion: str, id_cliente: Optional[int] = None) -> Dict[str, Any]:
+def add_contenido(id_paquete: int, tipo: int, descripcion: str, id_cliente: Optional[int] = None) -> Dict[str, Any]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -171,7 +162,7 @@ def add_contenido(id_paquete: int, is_paquete_sonido: bool, descripcion: str, id
                 INSERT INTO paquetes_contenido (is_paquete_sonido, descripcion, id_paquete, active, id_cliente)
                 VALUES (%s, %s, %s, 1, %s)
                 """,
-                (int(is_paquete_sonido), descripcion.strip(), id_paquete, id_cliente),
+                (tipo, descripcion.strip(), id_paquete, id_cliente),
             )
             new_id = cur.lastrowid
         conn.commit()
@@ -199,16 +190,21 @@ def delete_contenido(id_contenido: int) -> int:
 
 def get_paquete_analisis(
     id_paquete: int,
-    is_paquete_sonido: bool,
+    tipo: int,
     date_from: str,
     date_to: str,
     date_field: str = "fecha_evento",
 ) -> Dict[str, Any]:
     if date_field not in ("fecha_evento", "fecha_creacion_contrato"):
         date_field = "fecha_evento"
-    col   = "id_paquete_sonido"   if is_paquete_sonido else "id_paquete_fotografia"
-    table = "paquetes_sonido"     if is_paquete_sonido else "paquetes_fotografia"
-    pk    = "id_paquete_sonido"   if is_paquete_sonido else "id_paquete_fotografia"
+
+    # Análisis linked to contratos only for tipos 0 and 1 (existing columns)
+    if tipo not in _TIPO_CONTRATO_COL:
+        return {"stats": {"eventos_count": 0, "total_horas": 0, "tasa_pct": 0, "total_eventos_negocio": 0}, "eventos": [], "comparacion_tipo": []}
+
+    col   = _TIPO_CONTRATO_COL[tipo]
+    table, pk = _TIPO[tipo]
+
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:

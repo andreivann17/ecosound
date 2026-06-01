@@ -250,6 +250,8 @@ export default function CotizacionDetallePage() {
 
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
+  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   const pdfInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -259,14 +261,18 @@ export default function CotizacionDetallePage() {
     setLoading(true);
     Promise.all([
       apiCotizacionesInstance.get(`/cotizaciones/${idCotizacion}`, { headers: authHeaderCotizaciones() }),
-      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-sonido", { headers: authHeaderCotizaciones() }),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-sonido",     { headers: authHeaderCotizaciones() }),
       apiCotizacionesInstance.get("/cotizaciones/config/paquetes-fotografia", { headers: authHeaderCotizaciones() }),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-banquete",   { headers: authHeaderCotizaciones() }).catch(() => ({ data: [] })),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-barra",      { headers: authHeaderCotizaciones() }).catch(() => ({ data: [] })),
     ])
-      .then(([evRes, psRes, pfRes]) => {
+      .then(([evRes, psRes, pfRes, pbqRes, pbrRes]) => {
         if (mounted) {
           setEvento(evRes.data);
-          setPaquetesSonido(Array.isArray(psRes.data) ? psRes.data : []);
-          setPaquetesFoto(Array.isArray(pfRes.data) ? pfRes.data : []);
+          setPaquetesSonido(Array.isArray(psRes.data)   ? psRes.data   : []);
+          setPaquetesFoto(Array.isArray(pfRes.data)     ? pfRes.data   : []);
+          setPaquetesBanquete(Array.isArray(pbqRes.data) ? pbqRes.data : []);
+          setPaquetesBarra(Array.isArray(pbrRes.data)    ? pbrRes.data : []);
         }
       })
       .catch(() => notification.error({ message: "No se pudo cargar la cotización" }))
@@ -631,6 +637,8 @@ export default function CotizacionDetallePage() {
       if (sv.id_paquete) {
         if (sv.id_servicio === 1) paquete = paquetesSonido.find((p) => p.id_paquete_sonido === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
         else if (sv.id_servicio === 2) paquete = paquetesFoto.find((p) => p.id_paquete_fotografia === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
+        else if (sv.id_servicio === 3) paquete = paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
+        else if (sv.id_servicio === 4) paquete = paquetesBarra.find((p) => p.id_paquete_barra === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
         else paquete = `Paquete #${sv.id_paquete}`;
       }
       return {
@@ -660,8 +668,9 @@ export default function CotizacionDetallePage() {
     };
   };
 
-  const handleOpenReport = () => {
-    setReportHtml(previewCotizacionPdf(buildReportData()));
+  const handleOpenReport = async () => {
+    const html = await previewCotizacionPdf(buildReportData());
+    setReportHtml(html);
     setReportOpen(true);
   };
 
@@ -884,12 +893,21 @@ export default function CotizacionDetallePage() {
 
           const paqueteName = (sv) => {
             if (!sv.id_paquete) return null;
+            // 1=Sonido, 2=Fotografía, 3=Banquete, 4=Barra
             if (sv.id_servicio === 1) {
               return paquetesSonido.find((p) => p.id_paquete_sonido === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 2) {
               return paquetesFoto.find((p) => p.id_paquete_fotografia === sv.id_paquete)?.nombre
+                || `Paquete #${sv.id_paquete}`;
+            }
+            if (sv.id_servicio === 3) {
+              return paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre
+                || `Paquete #${sv.id_paquete}`;
+            }
+            if (sv.id_servicio === 4) {
+              return paquetesBarra.find((p) => p.id_paquete_barra === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             return `Paquete #${sv.id_paquete}`;

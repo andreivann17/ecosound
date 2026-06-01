@@ -1,6 +1,7 @@
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
+import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
@@ -42,7 +43,7 @@ function groupDetalles(detalles) {
   return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
 }
 
-function buildHtml({ conteo, autoPrint = false }) {
+function buildHtml({ conteo, autoPrint = false, empresa }) {
   const detalles = conteo?.detalles || [];
   const grouped = groupDetalles(detalles);
   const now = dayjs().format("D [de] MMMM [de] YYYY");
@@ -132,10 +133,7 @@ function buildHtml({ conteo, autoPrint = false }) {
 <div class="page">
 
   <div class="header">
-    <div>
-      <div class="header-brand">HerrSoft Events</div>
-      <div class="header-sub">Producción de eventos</div>
-    </div>
+    ${empresaBrandHtml(empresa)}
     <div class="header-right">
       <div class="header-title">Conteo de Inventario — ${escapeHtml(TIPO_MAP[conteo?.tipo] || conteo?.tipo || "")}</div>
       <div>Fecha del conteo: ${escapeHtml(fmtFecha(conteo?.fecha))}</div>
@@ -194,12 +192,14 @@ function buildHtml({ conteo, autoPrint = false }) {
 </html>`;
 }
 
-export function previewConteoDetallePdf(conteo) {
-  return buildHtml({ conteo, autoPrint: false });
+export async function previewConteoDetallePdf(conteo) {
+  const empresa = await getEmpresaConfig();
+  return buildHtml({ conteo, autoPrint: false, empresa });
 }
 
-export function printConteoDetallePdf(conteo) {
-  const html = buildHtml({ conteo, autoPrint: false });
+export async function printConteoDetallePdf(conteo) {
+  const empresa = await getEmpresaConfig();
+  const html = buildHtml({ conteo, autoPrint: false, empresa });
   const element = document.createElement("div");
   element.innerHTML = html;
   const tipo = TIPO_MAP[conteo?.tipo] || conteo?.tipo || "conteo";
