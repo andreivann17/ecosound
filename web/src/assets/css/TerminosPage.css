@@ -1,0 +1,251 @@
+/* ===== TerminosPage ===== */
+
+.terminos-root {
+  background: #f8faff;
+  min-height: 100vh;
+}
+
+/* HERO */
+.terminos-hero {
+  background: linear-gradient(135deg, #012770 0%, #01369e 60%, #1d4ed8 100%);
+  padding: 80px 24px 64px;
+  text-align: center;
+  color: #fff;
+}
+
+.terminos-hero-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  margin: 12px 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.terminos-hero-meta {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 20px;
+}
+
+.terminos-fecha {
+  font-style: italic;
+}
+
+.terminos-hero-aviso {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.92);
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+/* BODY */
+.terminos-body {
+  padding: 56px 24px 72px;
+}
+
+.terminos-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .terminos-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* ÍNDICE */
+.terminos-indice {
+  position: sticky;
+  top: 80px;
+  background: #fff;
+  border: 1px solid #e4eaf5;
+  border-radius: 16px;
+  padding: 20px 18px;
+  box-shadow: 0 2px 12px rgba(1,39,112,0.06);
+}
+
+.terminos-indice-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.terminos-indice-lista {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.terminos-indice-link {
+  display: block;
+  font-size: 0.82rem;
+  color: #374151;
+  text-decoration: none;
+  padding: 5px 8px;
+  border-radius: 8px;
+  line-height: 1.4;
+  transition: background 0.15s, color 0.15s;
+}
+
+.terminos-indice-link:hover {
+  background: #eff4ff;
+  color: #012770;
+}
+
+/* CLÁUSULAS */
+.terminos-clausulas {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.terminos-clausula {
+  background: #fff;
+  border: 1px solid #e4eaf5;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(1,39,112,0.04);
+  scroll-margin-top: 90px;
+}
+
+.terminos-clausula-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f4fc;
+  background: #f8faff;
+}
+
+.terminos-clausula-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  background: linear-gradient(135deg, #012770 0%, #1d4ed8 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
+.terminos-clausula-titulo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f1c3f;
+  margin: 0;
+}
+
+.terminos-clausula-body {
+  padding: 20px 24px;
+}
+
+.terminos-clausula-body p {
+  font-size: 0.93rem;
+  color: #374151;
+  line-height: 1.75;
+  margin: 0 0 12px;
+}
+
+.terminos-clausula-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* CONTACTO */
+.terminos-contacto {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #eff4ff;
+  border: 1px solid #c7d9ff;
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.terminos-contacto svg {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  color: #1d4ed8;
+  margin-top: 2px;
+}
+
+.terminos-contacto-label {
+  font-size: 0.9rem;
+  color: #374151;
+  margin: 0 0 6px;
+}
+
+.terminos-contacto-email {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #012770;
+  text-decoration: none;
+}
+
+.terminos-contacto-email:hover {
+  text-decoration: underline;
+}
+
+/* CTA */
+.terminos-cta {
+  background: linear-gradient(135deg, #012770 0%, #01369e 60%, #1d4ed8 100%);
+  padding: 72px 24px;
+  text-align: center;
+}
+
+.terminos-cta-inner {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.terminos-cta-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.terminos-cta-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.terminos-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #012770;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 14px 28px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.terminos-cta-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
