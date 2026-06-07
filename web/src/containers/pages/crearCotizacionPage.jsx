@@ -79,12 +79,13 @@ const SERVICE_ICONS = {
       <circle cx="12" cy="13" r="3" />
     </svg>
   ),
-  banquete: (
+  decoracion: (
     <svg {..._SVG_PROPS}>
-      <path d="M4 3v6a3 3 0 0 0 3 3v9" />
-      <path d="M7 3v9" />
-      <path d="M17 3v8c0 1.5-1 3-3 3v6" />
-      <path d="M14 11h6" />
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
     </svg>
   ),
   barra: (
@@ -235,30 +236,30 @@ export default function CrearCotizacionPage() {
   // Si está editando un evento existente, el useEffect de abajo activa lo que tenga datos.
   const [hayEventoSonido, setHayEventoSonido] = useState(false);
   const [hayEventoFoto, setHayEventoFoto] = useState(false);
-  const [hayBanquete, setHayBanquete] = useState(false);
+  const [hayDecoracion, setHayDecoracion] = useState(false);
   const [hayBarra, setHayBarra] = useState(false);
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
-  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesDecoracion, setPaquetesDecoracion] = useState([]);
   const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   // Config maestra de servicios. id_servicio coincide con la tabla `servicios` (1..4).
   const SERVICIOS = [
-    { id: 1, key: "sonido",   label: "Sonido",     icon: SERVICE_ICONS.sonido,   paquetes: paquetesSonido },
-    { id: 2, key: "foto",     label: "Fotografía", icon: SERVICE_ICONS.foto,     paquetes: paquetesFoto },
-    { id: 3, key: "banquete", label: "Banquete",   icon: SERVICE_ICONS.banquete, paquetes: paquetesBanquete },
-    { id: 4, key: "barra",    label: "Barra",      icon: SERVICE_ICONS.barra,    paquetes: paquetesBarra },
+    { id: 1, key: "sonido",     label: "Sonido",        icon: SERVICE_ICONS.sonido,     paquetes: paquetesSonido },
+    { id: 2, key: "foto",       label: "Fotografía",    icon: SERVICE_ICONS.foto,       paquetes: paquetesFoto },
+    { id: 3, key: "decoracion", label: "Decoraciones",  icon: SERVICE_ICONS.decoracion, paquetes: paquetesDecoracion },
+    { id: 4, key: "barra",      label: "Barra",         icon: SERVICE_ICONS.barra,      paquetes: paquetesBarra },
   ];
   const activosByServicio = {
     1: hayEventoSonido,
     2: hayEventoFoto,
-    3: hayBanquete,
+    3: hayDecoracion,
     4: hayBarra,
   };
   const setActivoByServicio = (id, value) => {
     if (id === 1) setHayEventoSonido(value);
     if (id === 2) setHayEventoFoto(value);
-    if (id === 3) setHayBanquete(value);
+    if (id === 3) setHayDecoracion(value);
     if (id === 4) setHayBarra(value);
   };
   const serviciosActivos = SERVICIOS.filter((s) => activosByServicio[s.id]);
@@ -281,7 +282,7 @@ export default function CrearCotizacionPage() {
         const byTipo = (t) => todos.filter((p) => Number(p.is_paquete_sonido) === t).map(toOption);
         setPaquetesFoto(byTipo(0));
         setPaquetesSonido(byTipo(1));
-        setPaquetesBanquete(byTipo(2));
+        setPaquetesDecoracion(byTipo(2));
         setPaquetesBarra(byTipo(3));
       } catch {}
     };
@@ -325,7 +326,7 @@ export default function CrearCotizacionPage() {
       });
       setHayEventoSonido(activos.has(1));
       setHayEventoFoto(activos.has(2));
-      setHayBanquete(activos.has(3));
+      setHayDecoracion(activos.has(3));
       setHayBarra(activos.has(4));
     } else {
       // 2) Formato legacy: campos planos en el evento. Activamos sonido si hay

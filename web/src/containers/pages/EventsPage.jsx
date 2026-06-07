@@ -215,8 +215,8 @@ export default function EventsPage() {
             hasta el cobro, todo conectado y todo en orden.
           </p>
           <div className="events-hero-actions">
-            <button className="landing-btn-primary" onClick={() => setShowDemo(true)}>
-              Solicitar Demo →
+            <button className="landing-btn-primary" onClick={() => navigate("/contratar")}>
+              Contratar →
             </button>
           </div>
           <div className="events-stats">
@@ -298,8 +298,8 @@ export default function EventsPage() {
         <p className="events-cta-sub">
           Arranca el mismo día. Te acompañamos en cada paso.
         </p>
-        <button className="events-cta-btn" onClick={() => setShowDemo(true)}>
-          Solicitar Demo gratuita →
+        <button className="events-cta-btn" onClick={() => navigate("/contratar")}>
+          Contratar →
         </button>
       </section>
 

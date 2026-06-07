@@ -161,7 +161,7 @@
 
 .paq-stat-icon-foto     { background: #ede9fe; color: #6d28d9; }
 .paq-stat-icon-sonido   { background: #dbeafe; color: #1d4ed8; }
-.paq-stat-icon-banquete { background: #d1fae5; color: #065f46; }
+.paq-stat-icon-decoracion { background: #d1fae5; color: #065f46; }
 .paq-stat-icon-barra    { background: #fef3c7; color: #92400e; }
 
 .paq-stat-value {
@@ -299,7 +299,7 @@
 
 .paq-tipo-foto     { background: #ede9fe; color: #5b21b6; }
 .paq-tipo-sonido   { background: #dbeafe; color: #1e40af; }
-.paq-tipo-banquete { background: #d1fae5; color: #065f46; }
+.paq-tipo-decoracion { background: #d1fae5; color: #065f46; }
 .paq-tipo-barra    { background: #fef3c7; color: #92400e; }
 
 .paq-card-body {

@@ -116,6 +116,9 @@ export const actionLogin = (params, onSuccess, onError) => {
 
     
 
+      localStorage.setItem("usuario_cliente", data?.usuario_cliente === 1 ? "1" : "0");
+      localStorage.setItem("id_cliente_tenant", String(data?.id_cliente || 0));
+
       if (data?.role) {
         localStorage.setItem("role", data.role);
         if (data.role === "admin") {

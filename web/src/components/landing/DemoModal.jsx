@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import { API_URL } from "../../api";
 
-const WHATSAPP_NUMBER = "521XXXXXXXXXX"; // 👈 actualiza
+const WHATSAPP_NUMBER = "526532091200";
 const EMPTY = { negocio: "", responsable: "", correo: "", celular: "" };
 
 export default function DemoModal({ open, onClose }) {

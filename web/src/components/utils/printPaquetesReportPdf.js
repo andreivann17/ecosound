@@ -5,8 +5,8 @@ import { getEmpresaConfig, empresaBrandHtml } from "./empresaConfig";
 
 dayjs.locale("es");
 
-const _TIPO_LABEL = { 0: "Fotografía", 1: "Sonido", 2: "Banquete", 3: "Barra" };
-const _TIPO_CLS   = { 0: "foto", 1: "sonido", 2: "banquete", 3: "barra" };
+const _TIPO_LABEL = { 0: "Fotografía", 1: "Sonido", 2: "Decoraciones", 3: "Barra" };
+const _TIPO_CLS   = { 0: "foto", 1: "sonido", 2: "decoracion", 3: "barra" };
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -23,7 +23,7 @@ function buildHtml({ items, tipoLabel, autoPrint = false, empresa }) {
 
   const totalFoto      = (items || []).filter((p) => p.is_paquete_sonido === 0).length;
   const totalSonido    = (items || []).filter((p) => p.is_paquete_sonido === 1).length;
-  const totalBanquete  = (items || []).filter((p) => p.is_paquete_sonido === 2).length;
+  const totalDecoracion = (items || []).filter((p) => p.is_paquete_sonido === 2).length;
   const totalBarra     = (items || []).filter((p) => p.is_paquete_sonido === 3).length;
   const totalVigentes      = (items || []).filter((p) => p.active).length;
   const totalDescontinuados = (items || []).filter((p) => !p.active).length;
@@ -69,7 +69,7 @@ function buildHtml({ items, tipoLabel, autoPrint = false, empresa }) {
     .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 7pt; font-weight: 700; letter-spacing: 0.2px; }
     .badge-foto       { background: #ede9fe; color: #5b21b6; }
     .badge-sonido     { background: #dbeafe; color: #1e40af; }
-    .badge-banquete   { background: #d1fae5; color: #065f46; }
+    .badge-decoracion   { background: #d1fae5; color: #065f46; }
     .badge-barra      { background: #fef3c7; color: #92400e; }
     .badge-vigente    { background: #dcfce7; color: #166534; }
     .badge-descont    { background: #fee2e2; color: #991b1b; }
@@ -84,7 +84,7 @@ function buildHtml({ items, tipoLabel, autoPrint = false, empresa }) {
       .page { margin: 0; width: auto; padding: 16mm 20mm 20mm 20mm; }
       .badge-foto      { background: #ede9fe !important; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-sonido    { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .badge-banquete  { background: #d1fae5 !important; color: #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge-decoracion  { background: #d1fae5 !important; color: #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-barra     { background: #fef3c7 !important; color: #92400e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-vigente   { background: #dcfce7 !important; color: #166534 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .badge-descont   { background: #fee2e2 !important; color: #991b1b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -149,7 +149,7 @@ function buildHtml({ items, tipoLabel, autoPrint = false, empresa }) {
     </div>
     <div class="summary-item">
       <div class="summary-label">Banquete</div>
-      <div class="summary-value teal">${totalBanquete}</div>
+      <div class="summary-value teal">${totalDecoracion}</div>
     </div>
     <div class="summary-item">
       <div class="summary-label">Barra</div>

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/img/logo_herrsoft.webp";
 
-const WHATSAPP_NUMBER = "521XXXXXXXXXX"; // 👈 mismo número que en LandingPage
+const WHATSAPP_NUMBER = "526532091200";
 
 export default function LandingFooter() {
   return (
@@ -28,16 +28,9 @@ export default function LandingFooter() {
               Todo en un solo lugar, sin complicaciones.
             </p>
             <div className="footer-social">
-              <a href="#" className="footer-social-icon" aria-label="Facebook">
+              <a href="https://www.facebook.com/profile.php?id=61590346480534" target="_blank" rel="noreferrer" className="footer-social-icon" aria-label="Facebook">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
-                </svg>
-              </a>
-              <a href="#" className="footer-social-icon" aria-label="Instagram">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5"/>
-                  <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
                 </svg>
               </a>
               <a href="https://www.youtube.com/@HerrSoft" target="_blank" rel="noreferrer" className="footer-social-icon" aria-label="YouTube">
@@ -59,7 +52,7 @@ export default function LandingFooter() {
             <span className="footer-col-title">Productos</span>
             <Link to="/productos" className="footer-link">Nuestros productos</Link>
             <Link to="/events" className="footer-link">Herrsoft Events</Link>
-            <Link to="/contacto" className="footer-link">Solicitar Demo</Link>
+            <Link to="/contratar" className="footer-link">Contratar</Link>
           </div>
 
           <div className="footer-links-col">
@@ -76,6 +69,12 @@ export default function LandingFooter() {
             <Link to="/contacto" className="footer-link">Contáctanos</Link>
           </div>
 
+          <div className="footer-links-col">
+            <span className="footer-col-title">Legal</span>
+            <Link to="/terminos" className="footer-link">Términos y condiciones</Link>
+            <Link to="/privacidad" className="footer-link">Política de privacidad</Link>
+          </div>
+
         </div>
       </div>
 
@@ -83,6 +82,11 @@ export default function LandingFooter() {
       <div className="footer-bottom">
         <div className="footer-bottom-inner">
           <span className="footer-copy">© 2026 Herrsoft. Todos los derechos reservados.</span>
+          <div className="footer-legal-links">
+            <Link to="/terminos" className="footer-legal-link">Términos de Uso</Link>
+            <span className="footer-legal-sep">·</span>
+            <Link to="/privacidad" className="footer-legal-link">Privacidad</Link>
+          </div>
           <span className="footer-made">Hecho en México 🇲🇽</span>
         </div>
       </div>

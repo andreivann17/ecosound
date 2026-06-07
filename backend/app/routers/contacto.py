@@ -5,7 +5,7 @@ import datetime as dt
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from ..db import get_admin_connection
+from ..db import get_connection
 from ..utils.email import send_email_bg
 
 router = APIRouter(prefix="/contacto", tags=["contacto"])
@@ -111,7 +111,7 @@ def create_contacto_demo(payload: ContactoPayload, request: Request):
     ip = request.client.host if request.client else ""
     now = dt.datetime.now()
 
-    conn = get_admin_connection()
+    conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(

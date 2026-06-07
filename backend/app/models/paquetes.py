@@ -2,18 +2,18 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from ..db import get_connection
 
-# tipo: 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra
+# tipo: 0=Fotografía, 1=Sonido, 2=Decoraciones, 3=Barra
 _TIPO: Dict[int, tuple] = {
     0: ("paquetes_fotografia", "id_paquete_fotografia"),
     1: ("paquetes_sonido",     "id_paquete_sonido"),
-    2: ("paquetes_banquete",   "id_paquete_banquete"),
+    2: ("paquetes_decoraciones", "id_paquete_decoracion"),
     3: ("paquetes_barra",      "id_paquete_barra"),
 }
 
 _TIPO_STR: Dict[str, int] = {
     "fotografia": 0,
     "sonido":     1,
-    "banquete":   2,
+    "decoracion": 2,
     "barra":      3,
 }
 

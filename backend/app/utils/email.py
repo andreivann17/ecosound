@@ -2,14 +2,24 @@
 from __future__ import annotations
 
 import smtplib
+import sys
 import threading
 from email.message import EmailMessage
 from typing import List
 
 SMTP_USER = "soporte.herrsoft@gmail.com"
-SMTP_PASS = "rthy fkql nlep hnai"
+SMTP_PASS = "cdpc nhne pxrz cfto"
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
+
+
+def _log(msg: str) -> None:
+    """Imprime de forma segura aunque la consola no soporte emojis/Unicode (p. ej. cp1252 en Windows)."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(msg.encode(encoding, errors="replace").decode(encoding), flush=True)
 
 
 def _do_send(to_emails: List[str], subject: str, html: str) -> None:
@@ -18,15 +28,19 @@ def _do_send(to_emails: List[str], subject: str, html: str) -> None:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
             for email in to_emails:
-                msg = EmailMessage()
-                msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
-                msg["To"] = email
-                msg["Subject"] = subject
-                msg.set_content("Este correo requiere un cliente compatible con HTML.")
-                msg.add_alternative(html, subtype="html")
-                server.send_message(msg)
-    except Exception:
-        pass
+                try:
+                    msg = EmailMessage()
+                    msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
+                    msg["To"] = email
+                    msg["Subject"] = subject
+                    msg.set_content("Este correo requiere un cliente compatible con HTML.")
+                    msg.add_alternative(html, subtype="html")
+                    server.send_message(msg)
+                    _log(f"[email] Enviado a {email} — {subject}")
+                except Exception as e:
+                    _log(f"[email] ERROR al enviar correo a {email}: {e}")
+    except Exception as e:
+        _log(f"[email] ERROR de conexión SMTP ({to_emails}): {e}")
 
 
 def send_email_bg(to_emails: List[str], subject: str, html: str) -> None:

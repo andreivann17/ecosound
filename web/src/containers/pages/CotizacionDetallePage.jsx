@@ -250,7 +250,7 @@ export default function CotizacionDetallePage() {
 
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
-  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesDecoracion, setPaquetesDecoracion] = useState([]);
   const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   const pdfInputRef = useRef(null);
@@ -263,7 +263,7 @@ export default function CotizacionDetallePage() {
       apiCotizacionesInstance.get(`/cotizaciones/${idCotizacion}`, { headers: authHeaderCotizaciones() }),
       apiCotizacionesInstance.get("/cotizaciones/config/paquetes-sonido",     { headers: authHeaderCotizaciones() }),
       apiCotizacionesInstance.get("/cotizaciones/config/paquetes-fotografia", { headers: authHeaderCotizaciones() }),
-      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-banquete",   { headers: authHeaderCotizaciones() }).catch(() => ({ data: [] })),
+      apiCotizacionesInstance.get("/cotizaciones/config/paquetes-decoracion",  { headers: authHeaderCotizaciones() }).catch(() => ({ data: [] })),
       apiCotizacionesInstance.get("/cotizaciones/config/paquetes-barra",      { headers: authHeaderCotizaciones() }).catch(() => ({ data: [] })),
     ])
       .then(([evRes, psRes, pfRes, pbqRes, pbrRes]) => {
@@ -271,7 +271,7 @@ export default function CotizacionDetallePage() {
           setEvento(evRes.data);
           setPaquetesSonido(Array.isArray(psRes.data)   ? psRes.data   : []);
           setPaquetesFoto(Array.isArray(pfRes.data)     ? pfRes.data   : []);
-          setPaquetesBanquete(Array.isArray(pbqRes.data) ? pbqRes.data : []);
+          setPaquetesDecoracion(Array.isArray(pbqRes.data) ? pbqRes.data : []);
           setPaquetesBarra(Array.isArray(pbrRes.data)    ? pbrRes.data : []);
         }
       })
@@ -637,7 +637,7 @@ export default function CotizacionDetallePage() {
       if (sv.id_paquete) {
         if (sv.id_servicio === 1) paquete = paquetesSonido.find((p) => p.id_paquete_sonido === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
         else if (sv.id_servicio === 2) paquete = paquetesFoto.find((p) => p.id_paquete_fotografia === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
-        else if (sv.id_servicio === 3) paquete = paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
+        else if (sv.id_servicio === 3) paquete = paquetesDecoracion.find((p) => p.id_paquete_decoracion === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
         else if (sv.id_servicio === 4) paquete = paquetesBarra.find((p) => p.id_paquete_barra === sv.id_paquete)?.nombre || `Paquete #${sv.id_paquete}`;
         else paquete = `Paquete #${sv.id_paquete}`;
       }
@@ -903,7 +903,7 @@ export default function CotizacionDetallePage() {
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 3) {
-              return paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre
+              return paquetesDecoracion.find((p) => p.id_paquete_decoracion === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 4) {

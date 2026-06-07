@@ -345,7 +345,7 @@ def _cap_end_same_day(start_dt: dt.datetime) -> dt.datetime:
     return end_dt
 
 
-_SERVICIO_NOMBRES = {1: "Sonido", 2: "Fotografía", 3: "Banquete", 4: "Barra"}
+_SERVICIO_NOMBRES = {1: "Sonido", 2: "Fotografía", 3: "Decoraciones", 4: "Barra"}
 # Servicios que no tienen flujo propio de agenda (sonido=1 y foto=2 lo tienen)
 _SERVICIOS_EXTRA = {3, 4}
 
@@ -367,7 +367,7 @@ def _sync_agendas_servicios_extra(
             """
             UPDATE agenda SET active = 0
             WHERE source_table = 'eventos' AND source_id = %s AND active = 1
-              AND (description LIKE 'Servicio: Banquete.%%' OR description LIKE 'Servicio: Barra.%%')
+              AND (description LIKE 'Servicio: Decoraciones.%%' OR description LIKE 'Servicio: Barra.%%')
             """,
             (id_evento,),
         )
@@ -554,7 +554,14 @@ async def crear_evento(
     fecha_base = payload_dict.get("fecha_evento")
     dt_foto = payload_dict.get("datetime_fotografia")
 
-    if not fecha_base and not dt_foto:
+    # Solo exigir fecha si el evento incluye Sonido (id=1) o Fotografía (id=2).
+    # Decoraciones y Barra tienen su propia fecha dentro del array de servicios.
+    _svs = servicios_payload or []
+    _requiere_fecha_top = (
+        not _svs
+        or any(isinstance(s, dict) and s.get("id_servicio") in (1, 2) for s in _svs)
+    )
+    if not fecha_base and not dt_foto and _requiere_fecha_top:
         raise HTTPException(status_code=400, detail="Se requiere fecha_evento o datetime_fotografia")
 
     # Sound event: compute start/end only when fecha_evento is present
@@ -603,9 +610,12 @@ async def crear_evento(
             with conn.cursor() as cur:
                 cur.execute("START TRANSACTION")
 
-            # id_cliente desde JWT (siempre presente), fallback a tenant_id
+            # id_cliente: JWT → tenant_id → DB directo (no filtra usuario_cliente)
+            from ..models.users import get_user_tenant_info as _gti
             _raw_id_cliente = current_user.get("id_cliente")
             id_cliente = int(_raw_id_cliente) if _raw_id_cliente else tenant_id
+            if not id_cliente:
+                id_cliente = _gti(user_id).get("id_cliente") or None
 
             result = evento_model.create_evento(
                 data=payload.model_dump(exclude_none=True),
@@ -1194,13 +1204,13 @@ def list_paquetes_fotografia(_cu: Dict[str, Any] = Depends(get_current_user)):
         conn.close()
 
 
-@router.get("/config/paquetes-banquete")
-def list_paquetes_banquete(_cu: Dict[str, Any] = Depends(get_current_user)):
+@router.get("/config/paquetes-decoracion")
+def list_paquetes_decoracion(_cu: Dict[str, Any] = Depends(get_current_user)):
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT id_paquete_banquete, nombre FROM paquetes_banquete WHERE active = 1 ORDER BY nombre ASC"
+                "SELECT id_paquete_decoracion, nombre FROM paquetes_decoraciones WHERE active = 1 ORDER BY nombre ASC"
             )
             return cur.fetchall() or []
     finally:

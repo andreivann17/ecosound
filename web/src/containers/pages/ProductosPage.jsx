@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import DemoModal from "../../components/landing/DemoModal";
+import logoEvents from "../../assets/img/logo_hersoft_event.webp";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/ProductosPage.css";
 
@@ -57,18 +58,9 @@ export default function ProductosPage() {
             <div className="producto-card-top producto-card-top--events">
               <div className="producto-card-badge-avail">Disponible</div>
               <div className="producto-icon-wrap">
-                <svg viewBox="0 0 48 48" fill="none">
-                  <rect width="48" height="48" rx="14" fill="rgba(255,255,255,0.15)"/>
-                  <rect x="10" y="14" width="28" height="26" rx="4" stroke="white" strokeWidth="2"/>
-                  <line x1="10" y1="22" x2="38" y2="22" stroke="white" strokeWidth="2"/>
-                  <line x1="18" y1="10" x2="18" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-                  <line x1="30" y1="10" x2="30" y2="18" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-                  <circle cx="18" cy="30" r="2" fill="white"/>
-                  <circle cx="24" cy="30" r="2" fill="white"/>
-                  <circle cx="30" cy="30" r="2" fill="white"/>
-                </svg>
+                <img src={logoEvents} alt="Herrsoft Events" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               </div>
-              <h2 className="producto-name">Herrsoft Events</h2>
+              <h2 className="producto-name">HerrSoft Events</h2>
               <p className="producto-tagline">
                 Todo lo que necesitas para gestionar eventos sin perder el hilo.
               </p>
@@ -91,8 +83,8 @@ export default function ProductosPage() {
                 ))}
               </ul>
               <div className="producto-card-actions">
-                <button className="producto-btn-primary" onClick={() => setShowDemo(true)}>
-                  Solicitar Demo →
+                <button className="producto-btn-primary" onClick={() => navigate("/contratar")}>
+                  Contratar →
                 </button>
                 <Link to="/events" className="producto-btn-secondary">
                   Ver funcionalidades
@@ -106,15 +98,11 @@ export default function ProductosPage() {
             <div className="producto-card-top producto-card-top--restaurant">
               <div className="producto-card-badge-soon">Próximamente</div>
               <div className="producto-icon-wrap">
-                <svg viewBox="0 0 48 48" fill="none">
-                  <rect width="48" height="48" rx="14" fill="rgba(255,255,255,0.15)"/>
-                  <path d="M16 12v8c0 3.31 2.69 6 6 6v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M22 26v8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M28 12c0 0 4 3 4 8s-4 8-4 8v8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="14" y1="36" x2="34" y2="36" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M21 15V2a5 5 0 00-5 5v6h3v7a1 1 0 002 0V15z"/>
                 </svg>
               </div>
-              <h2 className="producto-name">Herrsoft Restaurantes</h2>
+              <h2 className="producto-name">HerrSoft Restaurantes</h2>
               <p className="producto-tagline">
                 Sistema completo para restaurantes que quieren operar sin caos.
               </p>

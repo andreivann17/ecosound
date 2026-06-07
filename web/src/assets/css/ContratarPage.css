@@ -33,7 +33,7 @@
 }
 
 .ctp-section--wide {
-  max-width: 760px;
+  max-width: 940px;
 }
 
 @keyframes ctp-fade-in {
@@ -440,6 +440,26 @@
   margin-top: 2px;
 }
 
+.ctp-billing-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #1e3a6e;
+  line-height: 1.5;
+}
+
+.ctp-billing-notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #012770;
+}
+
 .ctp-tos {
   font-size: 12px;
   color: #4b5563;
@@ -477,7 +497,7 @@
   margin: 0;
 }
 
-/* ── Success (paso 4) ─────────────────────────── */
+/* ── Success (paso 4 legacy) ──────────────────── */
 .ctp-success-text {
   font-size: 15px;
   color: #4b5563;
@@ -486,17 +506,591 @@
   max-width: 420px;
 }
 
+/* ══════════════════════════════════════════════
+   PANTALLA DE BIENVENIDA (paso 4 rediseñado)
+   ══════════════════════════════════════════════ */
+
+.ctw-root {
+  width: 100%;
+  max-width: 820px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: ctp-fade-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Hero */
+.ctw-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 24px 48px;
+  width: 100%;
+}
+
+.ctw-check {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8f0fe 0%, #d1fae5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(1, 39, 112, 0.14);
+}
+
+.ctw-check svg {
+  width: 40px;
+  height: 40px;
+}
+
+.ctw-hero-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #0d1224;
+  margin: 0 0 12px;
+  line-height: 1.1;
+}
+
+.ctw-hero-sub {
+  font-size: 15px;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ctw-hero-sub strong {
+  color: #012770;
+}
+
+/* Divider con texto */
+.ctw-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 0 4px;
+}
+
+.ctw-divider::before,
+.ctw-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.ctw-divider-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* Grid de opciones de acceso */
+.ctw-access-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 44px;
+}
+
+.ctw-access-card {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  background: #fff;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ctw-access-card:hover {
+  border-color: #012770;
+  box-shadow: 0 8px 28px rgba(1, 39, 112, 0.12);
+  transform: translateY(-2px);
+}
+
+.ctw-access-card--primary {
+  border-color: #012770;
+  background: linear-gradient(160deg, #f0f4ff 0%, #ffffff 60%);
+}
+
+.ctw-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.ctw-card-icon--blue  { background: rgba(1, 39, 112, 0.1); color: #012770; }
+.ctw-card-icon--slate { background: #f1f5f9; color: #475569; }
+
+.ctw-card-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #012770;
+  background: rgba(1, 39, 112, 0.08);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+
+.ctw-card-tag--gray {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.ctw-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0d1224;
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.ctw-card-desc {
+  font-size: 13.5px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  flex: 1;
+}
+
+.ctw-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 18px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: background 0.18s, transform 0.12s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ctw-card-btn--primary {
+  background: #012770;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(1, 39, 112, 0.28);
+}
+
+.ctw-card-btn--primary:hover {
+  background: #01369e;
+  transform: translateY(-1px);
+}
+
+.ctw-card-btn--outline {
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #d1d5db;
+}
+
+.ctw-card-btn--outline:hover {
+  border-color: #012770;
+  color: #012770;
+  background: #f0f4ff;
+}
+
+/* Próximos pasos */
+.ctw-steps {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+}
+
+.ctw-steps-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin: 0 0 18px;
+}
+
+.ctw-steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ctw-steps-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.ctw-step-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #012770;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* Soporte */
+.ctw-support {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+.ctw-support-label {
+  font-size: 13.5px;
+  color: #6b7280;
+}
+
+.ctw-support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #012770;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(1, 39, 112, 0.06);
+  transition: background 0.15s;
+}
+
+.ctw-support-link:hover { background: rgba(1, 39, 112, 0.12); }
+
+/* ── Fila nombre + apellido ───────────────────── */
+.ctp-names-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .ctp-names-row { grid-template-columns: 1fr; }
+}
+
+/* ── Dos cards de plan ────────────────────────── */
+.ctp-plans--two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ctp-plan-badge {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 7px 16px;
+  background: linear-gradient(90deg, #16a34a, #15803d); /* verde — anual */
+}
+
+.ctp-plan-badge--muted {
+  background: linear-gradient(90deg, #2d4fa1, #012770); /* azul discreto — mensual */
+}
+
+.ctp-plan-precio-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 18px 24px 4px;
+}
+
+.ctp-plan-precio-num {
+  font-size: 34px;
+  font-weight: 800;
+  color: #0d1224;
+  letter-spacing: -0.5px;
+}
+
+.ctp-plan-precio-periodo {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ctp-plan-ahorro {
+  margin: 0 24px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: inline-block;
+}
+
+.ctp-plan-check--inactive {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.5);
+}
+
+/* ── Stepper de 3 pasos ───────────────────────── */
+.ctp-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 32px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.ctp-stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctp-stepper-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  color: #9ca3af;
+  transition: all 0.25s;
+}
+
+.ctp-stepper-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.25s;
+}
+
+.ctp-stepper-line {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  min-width: 36px;
+  max-width: 64px;
+  margin-bottom: 20px;
+  transition: background 0.25s;
+}
+
+.ctp-stepper-line--done {
+  background: #012770;
+}
+
+.ctp-stepper-active .ctp-stepper-circle {
+  background: #012770;
+  border-color: #012770;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(1, 39, 112, 0.3);
+}
+
+.ctp-stepper-active .ctp-stepper-label {
+  color: #012770;
+}
+
+.ctp-stepper-done .ctp-stepper-circle {
+  background: #012770;
+  border-color: #012770;
+  color: #fff;
+}
+
+.ctp-stepper-done .ctp-stepper-label {
+  color: #374151;
+}
+
+/* ── Indicador de estado del correo ───────────── */
+.ctp-email-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 2px 0 0 2px;
+  min-height: 18px;
+}
+
+.ctp-email-status--checking { color: #6b7280; }
+.ctp-email-status--ok       { color: #16a34a; }
+.ctp-email-status--taken    { color: #b91c1c; }
+
+.ctp-email-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid #d1d5db;
+  border-top-color: #6b7280;
+  border-radius: 50%;
+  animation: ctp-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ctp-spin { to { transform: rotate(360deg); } }
+
+/* ── Barra de fuerza de contraseña ────────────── */
+.ctp-pwd-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0 0 2px;
+}
+
+.ctp-pwd-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.ctp-pwd-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+  transition: background 0.3s;
+}
+
+.ctp-pwd-label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 52px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+/* ── Marketing checkbox ───────────────────────── */
+.ctp-marketing {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.ctp-marketing input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: #012770;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Verificación de correo (paso 1.5) ────────── */
+.ctp-verify-icon {
+  width: 72px;
+  height: 72px;
+  background: #eff6ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  border: 2px solid #bfdbfe;
+}
+
+.ctp-verify-subtitle {
+  font-size: 15px;
+  color: #4b5563;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+}
+
+.ctp-verify-code-input {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  font-family: monospace;
+  padding: 14px 20px;
+}
+
+.ctp-verify-resend {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.ctp-verify-resend-timer {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.ctp-verify-resend-btn {
+  background: none;
+  border: none;
+  color: #012770;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.ctp-verify-resend-btn:hover {
+  background: #eff6ff;
+}
+
 /* ── Responsive ───────────────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .ctp-main {
     padding: 96px 16px 60px;
   }
-  .ctp-title { font-size: 26px; }
+  .ctp-title    { font-size: 26px; }
   .ctp-title-md { font-size: 22px; text-align: center; }
-  .ctp-actions-row {
-    flex-direction: column-reverse;
-  }
+  .ctp-actions-row { flex-direction: column-reverse; }
   .ctp-actions-row .ctp-cta { max-width: none; }
   .ctp-plan-head { padding: 18px 20px; }
   .ctp-plan-body { padding: 6px 20px 18px; }
+  .ctp-plans--two { grid-template-columns: 1fr; }
+
+  .ctw-hero-title  { font-size: 26px; }
+  .ctw-access-grid { grid-template-columns: 1fr; }
+  .ctw-steps       { padding: 20px 18px; }
+  .ctw-support     { flex-direction: column; text-align: center; }
 }

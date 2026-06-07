@@ -523,9 +523,12 @@ async def crear_evento(
             with conn.cursor() as cur:
                 cur.execute("START TRANSACTION")
 
-            # id_cliente desde JWT (siempre presente), fallback a tenant_id
+            # id_cliente: JWT → tenant_id → DB directo (no filtra usuario_cliente)
+            from ..models.users import get_user_tenant_info as _gti
             _raw_id_cliente = current_user.get("id_cliente")
             id_cliente = int(_raw_id_cliente) if _raw_id_cliente else tenant_id
+            if not id_cliente:
+                id_cliente = _gti(user_id).get("id_cliente") or None
 
             result = evento_model.create_evento(
                 data=payload.model_dump(exclude_none=True),
@@ -1098,13 +1101,13 @@ def list_paquetes_fotografia(_cu: Dict[str, Any] = Depends(get_current_user)):
         conn.close()
 
 
-@router.get("/config/paquetes-banquete")
-def list_paquetes_banquete(_cu: Dict[str, Any] = Depends(get_current_user)):
+@router.get("/config/paquetes-decoracion")
+def list_paquetes_decoracion(_cu: Dict[str, Any] = Depends(get_current_user)):
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT id_paquete_banquete, nombre FROM paquetes_banquete WHERE active = 1 ORDER BY nombre ASC"
+                "SELECT id_paquete_decoracion, nombre FROM paquetes_decoraciones WHERE active = 1 ORDER BY nombre ASC"
             )
             return cur.fetchall() or []
     finally:

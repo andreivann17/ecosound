@@ -174,6 +174,18 @@ def _migrate_ecosound_db():
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            # eventos_servicios — asegurar que id_cliente permite NULL
+            # (cotizaciones_servicios ya lo tiene como DEFAULT NULL)
+            cur.execute("""
+                SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'eventos_servicios'
+                  AND COLUMN_NAME = 'id_cliente'
+            """)
+            _r = cur.fetchone()
+            if _r and _r[0] == 'NO':
+                cur.execute("ALTER TABLE eventos_servicios MODIFY COLUMN id_cliente INT DEFAULT NULL")
+
             # eventos_servicios — asegurar que existan las columnas hora_inicio/hora_final
             # como TIME (en algún punto las dejaron como TIMESTAMP/INT y eso impide
             # guardar correctamente las horas del servicio).
@@ -290,21 +302,51 @@ def _migrate_ecosound_db():
                 """, (col_name,))
                 if cur.fetchone()[0] == 0:
                     cur.execute(f"ALTER TABLE gastos ADD COLUMN {col_name} {col_def}")
+            # Asegurar columnas id_cliente y usuario_cliente en users
+            _users_extra_cols = [
+                ("id_cliente",      "INT DEFAULT NULL"),
+                ("usuario_cliente", "TINYINT(1) NOT NULL DEFAULT 0"),
+            ]
+            for col_name, col_def in _users_extra_cols:
+                cur.execute("""
+                    SELECT COUNT(*) FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'users'
+                      AND COLUMN_NAME = %s
+                """, (col_name,))
+                if cur.fetchone()[0] == 0:
+                    cur.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+
+            # Tabla de privilegios por usuario/módulo
             cur.execute("""
-                SELECT COLUMN_NAME, IS_NULLABLE, COLUMN_DEFAULT
-                FROM information_schema.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'users'
-                  AND COLUMN_NAME IN ('usuario_cliente', 'id_cliente')
+                CREATE TABLE IF NOT EXISTS usuarios_privilegios (
+                    id_privilegio   INT AUTO_INCREMENT PRIMARY KEY,
+                    id_user         INT NOT NULL,
+                    id_modulo       INT NOT NULL,
+                    modulo          TINYINT(1) NOT NULL DEFAULT 1,
+                    consultar       TINYINT(1) NOT NULL DEFAULT 1,
+                    insertar        TINYINT(1) NOT NULL DEFAULT 1,
+                    editar          TINYINT(1) NOT NULL DEFAULT 1,
+                    eliminar        TINYINT(1) NOT NULL DEFAULT 1,
+                    active          TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime        DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    id_user_created INT DEFAULT NULL,
+                    UNIQUE KEY uq_user_modulo (id_user, id_modulo),
+                    INDEX idx_user (id_user)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
-            cols = {r[0]: {"nullable": r[1], "default": r[2]} for r in cur.fetchall()}
-            if "usuario_cliente" in cols and cols["usuario_cliente"]["default"] is None:
+            # Si la tabla ya existía con id_user_created NOT NULL, hacerla nullable
+            cur.execute("""
+                SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME   = 'usuarios_privilegios'
+                  AND COLUMN_NAME  = 'id_user_created'
+            """)
+            _r = cur.fetchone()
+            if _r and _r[0] == "NO":
                 cur.execute(
-                    "ALTER TABLE users MODIFY COLUMN usuario_cliente TINYINT(1) NOT NULL DEFAULT 0"
-                )
-            if "id_cliente" in cols:
-                cur.execute(
-                    "ALTER TABLE users MODIFY COLUMN id_cliente INT(11) DEFAULT NULL"
+                    "ALTER TABLE usuarios_privilegios "
+                    "MODIFY COLUMN id_user_created INT DEFAULT NULL"
                 )
         conn.commit()
     except Exception:
@@ -458,6 +500,25 @@ def _migrate_cotizaciones_db():
             """)
             if cur.fetchone()[0] == 0:
                 cur.execute("ALTER TABLE cotizaciones ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' AFTER folio")
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS contacto (
+                    id_contacto   INT AUTO_INCREMENT PRIMARY KEY,
+                    responsable   VARCHAR(150) NOT NULL,
+                    empresa       VARCHAR(150) DEFAULT NULL,
+                    correo        VARCHAR(150) NOT NULL,
+                    celular       VARCHAR(30)  NOT NULL,
+                    direccion     VARCHAR(255) DEFAULT NULL,
+                    zona          VARCHAR(100) DEFAULT NULL,
+                    mensaje       TEXT DEFAULT NULL,
+                    via           VARCHAR(20)  NOT NULL DEFAULT 'correo',
+                    is_correo     TINYINT(1)   NOT NULL DEFAULT 0,
+                    is_whatsapp   TINYINT(1)   NOT NULL DEFAULT 0,
+                    ip            VARCHAR(60)  DEFAULT NULL,
+                    active        TINYINT(1)   NOT NULL DEFAULT 1,
+                    datetime      DATETIME     DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
         conn.commit()
     except Exception:
         pass
@@ -496,6 +557,54 @@ def _migrate_admin_db():
                     INDEX idx_cliente_app (id_cliente, id_app)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS registros_incompletos (
+                    id_registro_incompleto INT AUTO_INCREMENT PRIMARY KEY,
+                    correo    VARCHAR(225) NOT NULL,
+                    nombre    VARCHAR(225) NOT NULL,
+                    empresa   VARCHAR(125) NOT NULL DEFAULT '',
+                    datetime  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    password  VARBINARY(255) NOT NULL,
+                    active    TINYINT(1)   NOT NULL DEFAULT 1,
+                    INDEX idx_correo_active (correo, active)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            # Permitir NULL en columnas id_user de tablas del administrador
+            # para soportar registros de auto-servicio (sin usuario admin creador)
+            _nullable_cols = [
+                ("clientes",      "id_user",          "INT DEFAULT NULL"),
+                ("apps_clientes", "id_user",          "INT DEFAULT NULL"),
+                ("users",         "id_user_creation", "INT DEFAULT NULL"),
+            ]
+            for table, col, definition in _nullable_cols:
+                cur.execute("""
+                    SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME   = %s
+                      AND COLUMN_NAME  = %s
+                """, (table, col))
+                row2 = cur.fetchone()
+                if row2 and row2[0] == "NO":
+                    cur.execute(
+                        f"ALTER TABLE `{table}` MODIFY COLUMN `{col}` {definition}"
+                    )
+
+            # Asegurar columnas id_cliente y usuario_cliente en administrador.users
+            for col_name, col_def in [
+                ("id_cliente",      "INT DEFAULT NULL"),
+                ("usuario_cliente", "TINYINT(1) NOT NULL DEFAULT 0"),
+            ]:
+                cur.execute("""
+                    SELECT COUNT(*) FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'users'
+                      AND COLUMN_NAME = %s
+                """, (col_name,))
+                if cur.fetchone()[0] == 0:
+                    cur.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+
         conn.commit()
     except Exception:
         pass

@@ -13,20 +13,24 @@ def _hash_password(plain: str) -> str:
 
 
 def check_email_available_for_cliente(email: str) -> Optional[str]:
+    """
+    Bloquea solo si el correo ya tiene una fila activa en ecosound.users (active=1).
+    Si existe con active=0 devuelve None — se reactivará en provision.
+    """
     if not email:
         return None
     conn = get_ecosound_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT usuario_cliente FROM users WHERE email=%s AND active=1",
-                (email.strip(),),
+                "SELECT usuario_cliente FROM users WHERE email=%s AND active=1 LIMIT 1",
+                (email.strip().lower(),),
             )
             row = cur.fetchone()
         if not row:
             return None
         if row["usuario_cliente"] == 1:
-            return "El correo ya está asociado a otro cliente en el sistema."
+            return "Este correo ya tiene una cuenta activa. Inicia sesión o contacta a soporte."
         return "El correo ya pertenece a un usuario administrador del sistema. Usa otro correo para este cliente."
     finally:
         conn.close()
@@ -37,12 +41,19 @@ def _create_user_for_cliente(id_cliente: int, data: Dict[str, Any], id_user: int
     if not email:
         return
     name = f"{data.get('nombre_cliente', '')} {data.get('apellido_cliente', '')}".strip()
-    hashed = _hash_password("123456")
+    hashed = _hash_password(data.get("password_plain") or "123456")
     code = secrets.token_hex(6)
     active = 1 if data.get("habilitar_sistema") else 0
+    creator = id_user if id_user else None  # evitar FK violation con id=0
+
+    # 1) ecosound.users + privilegios
     conn = get_ecosound_connection()
     try:
         with conn.cursor() as cur:
+            # Obtener todos los módulos activos del sistema
+            cur.execute("SELECT id_modulo FROM modulos WHERE active = 1")
+            modulo_ids = [r[0] for r in cur.fetchall()] or list(range(1, 11))
+
             cur.execute(
                 """
                 INSERT INTO users
@@ -50,11 +61,11 @@ def _create_user_for_cliente(id_cliente: int, data: Dict[str, Any], id_user: int
                      datetime, id_cliente, usuario_cliente)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s, 1)
                 """,
-                (code, name, email, hashed, id_user, active, id_cliente),
+                (code, name, email, hashed, creator, active, id_cliente),
             )
             new_user_id = cur.lastrowid
             now = dt.datetime.now()
-            for id_modulo in range(1, 9):
+            for id_modulo in modulo_ids:
                 cur.execute(
                     """
                     INSERT INTO usuarios_privilegios
@@ -65,13 +76,12 @@ def _create_user_for_cliente(id_cliente: int, data: Dict[str, Any], id_user: int
                         modulo=1, insertar=1, consultar=1, editar=1,
                         eliminar=1, active=1, datetime=%s
                     """,
-                    (new_user_id, id_modulo, now, id_user, now),
+                    (new_user_id, id_modulo, now, creator, now),
                 )
         conn.commit()
-    except Exception:
-        pass
     finally:
         conn.close()
+
 
 
 def _update_user_for_cliente(id_cliente: int, data: Dict[str, Any]) -> None:
@@ -257,8 +267,15 @@ def create_cliente(id_app: int, data: Dict[str, Any], id_user: int) -> Dict[str,
             cur.execute(
                 """
                 INSERT INTO clientes
-                    (nombre_cliente, apellido_cliente, rfc, correo, celular, active, id_user, datetime)
-                VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
+                    (nombre_cliente, apellido_cliente, rfc, correo, celular,
+                     nombre_empresa, active, id_user, datetime,
+                     stripe_customer_id, stripe_subscription_id, stripe_price_id,
+                     stripe_payment_method_id, suscripcion_estado,
+                     trial_end, current_period_start, current_period_end,
+                     fecha_terminos_aceptados, terminos_ip, terminos_version,
+                     acepta_marketing)
+                VALUES (%s, %s, %s, %s, %s, %s, 1, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     data.get("nombre_cliente", ""),
@@ -266,8 +283,21 @@ def create_cliente(id_app: int, data: Dict[str, Any], id_user: int) -> Dict[str,
                     data.get("rfc") or None,
                     data.get("correo") or None,
                     data.get("celular") or None,
+                    data.get("nombre_empresa") or None,
                     id_user,
                     now,
+                    data.get("stripe_customer_id") or None,
+                    data.get("stripe_subscription_id") or None,
+                    data.get("stripe_price_id") or None,
+                    data.get("stripe_payment_method_id") or None,
+                    data.get("suscripcion_estado") or None,
+                    data.get("trial_end") or None,
+                    data.get("current_period_start") or None,
+                    data.get("current_period_end") or None,
+                    data.get("fecha_terminos_aceptados") or None,
+                    data.get("terminos_ip") or None,
+                    data.get("terminos_version") or None,
+                    int(bool(data.get("acepta_marketing"))),
                 ),
             )
             new_id = cur.lastrowid
@@ -296,6 +326,101 @@ def create_cliente(id_app: int, data: Dict[str, Any], id_user: int) -> Dict[str,
         return {"id_cliente": new_id}
     finally:
         conn.close()
+
+
+def reactivate_cliente(id_app: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Reactiva una cuenta inactiva: obtiene id_cliente desde ecosound.users,
+    actualiza password y activa el usuario, luego reactiva las filas en
+    administrador.clientes y apps_clientes con los nuevos datos de Stripe.
+    """
+    email_clean = (data.get("correo") or "").strip().lower()
+    now = dt.datetime.now()
+
+    # 1) Obtener id_cliente desde ecosound.users (fuente de verdad)
+    conn_eco = get_ecosound_connection()
+    try:
+        with conn_eco.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_cliente FROM users WHERE email=%s AND usuario_cliente=1 LIMIT 1",
+                (email_clean,),
+            )
+            row = cur.fetchone()
+        if not row:
+            raise ValueError(f"No se encontró usuario con correo {email_clean} para reactivar.")
+        id_cliente = row["id_cliente"]
+
+        # 2) Reactivar user y actualizar password + nombre
+        hashed = _hash_password(data.get("password_plain") or "")
+        nombre_completo = f"{data.get('nombre_cliente', '')} {data.get('apellido_cliente', '')}".strip()
+        with conn_eco.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET active=1, password=%s, name=%s WHERE email=%s AND usuario_cliente=1",
+                (hashed, nombre_completo, email_clean),
+            )
+        conn_eco.commit()
+    finally:
+        conn_eco.close()
+
+    # 3) Reactivar clientes + apps_clientes en administrador con nuevos datos de Stripe
+    conn_adm = get_connection()
+    try:
+        with conn_adm.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE clientes SET
+                    active=1, nombre_cliente=%s, apellido_cliente=%s, nombre_empresa=%s,
+                    stripe_customer_id=%s, stripe_subscription_id=%s, stripe_price_id=%s,
+                    stripe_payment_method_id=%s, suscripcion_estado=%s, trial_end=%s,
+                    current_period_start=%s, current_period_end=%s,
+                    fecha_terminos_aceptados=%s, terminos_ip=%s, terminos_version=%s,
+                    acepta_marketing=%s
+                WHERE id_cliente=%s
+                """,
+                (
+                    data.get("nombre_cliente", ""),
+                    data.get("apellido_cliente", ""),
+                    data.get("nombre_empresa") or None,
+                    data.get("stripe_customer_id") or None,
+                    data.get("stripe_subscription_id") or None,
+                    data.get("stripe_price_id") or None,
+                    data.get("stripe_payment_method_id") or None,
+                    data.get("suscripcion_estado") or "active",
+                    data.get("trial_end") or None,
+                    data.get("current_period_start") or None,
+                    data.get("current_period_end") or None,
+                    data.get("fecha_terminos_aceptados") or None,
+                    data.get("terminos_ip") or None,
+                    data.get("terminos_version") or None,
+                    int(bool(data.get("acepta_marketing"))),
+                    id_cliente,
+                ),
+            )
+            cur.execute(
+                """
+                INSERT INTO apps_clientes
+                    (id_app, id_cliente, active, datetime, id_user,
+                     fecha_proxima_pago, habilitar_sistema, fecha_fin_prueba, tipo_subscripcion)
+                VALUES (%s, %s, 1, %s, NULL, %s, 1, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    active=1, habilitar_sistema=1,
+                    fecha_proxima_pago=%s, fecha_fin_prueba=%s, tipo_subscripcion=%s
+                """,
+                (
+                    id_app, id_cliente, now,
+                    data.get("fecha_proxima_pago") or None,
+                    data.get("fecha_fin_prueba") or None,
+                    data.get("tipo_subscripcion") or "mensual",
+                    data.get("fecha_proxima_pago") or None,
+                    data.get("fecha_fin_prueba") or None,
+                    data.get("tipo_subscripcion") or "mensual",
+                ),
+            )
+        conn_adm.commit()
+    finally:
+        conn_adm.close()
+
+    return {"id_cliente": id_cliente}
 
 
 def update_cliente(id_app: int, id_cliente: int, data: Dict[str, Any]) -> int:

@@ -186,9 +186,11 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     # Verificar si el usuario es un cliente con prueba vencida o cuenta desactivada
+    es_cliente = False
     try:
         user_info = users_model.get_user_by_email(payload.email)
         if user_info and user_info.get("usuario_cliente") == 1:
+            es_cliente = True
             id_cliente = user_info.get("id_cliente")
             if not user_info.get("active"):
                 raise HTTPException(
@@ -250,6 +252,8 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
     return {
         "access_token": access_token,
         "role": role,
+        "usuario_cliente": 1 if es_cliente else 0,
+        "id_cliente": int(tenant.get("id_cliente") or 0),
     }
 
 

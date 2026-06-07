@@ -33,18 +33,18 @@ import "./PaquetesPage.css";
 
 const { Title, Text, Paragraph } = Typography;
 
-// tipo: 0=Fotografía, 1=Sonido, 2=Banquete, 3=Barra
+// tipo: 0=Fotografía, 1=Sonido, 2=Decoraciones, 3=Barra
 const TIPO_CARD_CONFIG = {
-  0: { label: "Fotografía", icon: <CameraOutlined />, bannerBg: "linear-gradient(135deg, #1a1a2e 0%, #6d28d9 100%)", badgeCls: "paq-tipo-foto",     iconCls: "paq-stat-icon-foto" },
-  1: { label: "Sonido",     icon: <SoundOutlined />,  bannerBg: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", badgeCls: "paq-tipo-sonido",   iconCls: "paq-stat-icon-sonido" },
-  2: { label: "Banquete",   icon: <CrownOutlined />,  bannerBg: "linear-gradient(135deg, #064e3b 0%, #10b981 100%)", badgeCls: "paq-tipo-banquete", iconCls: "paq-stat-icon-banquete" },
-  3: { label: "Barra",      icon: <CoffeeOutlined />, bannerBg: "linear-gradient(135deg, #431407 0%, #b45309 100%)", badgeCls: "paq-tipo-barra",    iconCls: "paq-stat-icon-barra" },
+  0: { label: "Fotografía",   icon: <CameraOutlined />, bannerBg: "linear-gradient(135deg, #1a1a2e 0%, #6d28d9 100%)", badgeCls: "paq-tipo-foto",       iconCls: "paq-stat-icon-foto" },
+  1: { label: "Sonido",       icon: <SoundOutlined />,  bannerBg: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", badgeCls: "paq-tipo-sonido",     iconCls: "paq-stat-icon-sonido" },
+  2: { label: "Decoraciones", icon: <CrownOutlined />,  bannerBg: "linear-gradient(135deg, #064e3b 0%, #10b981 100%)", badgeCls: "paq-tipo-decoracion", iconCls: "paq-stat-icon-decoracion" },
+  3: { label: "Barra",        icon: <CoffeeOutlined />, bannerBg: "linear-gradient(135deg, #431407 0%, #b45309 100%)", badgeCls: "paq-tipo-barra",      iconCls: "paq-stat-icon-barra" },
 };
 
 const TIPO_FILTER_KEY = {
   fotografia: 0,
   sonido:     1,
-  banquete:   2,
+  decoracion: 2,
   barra:      3,
 };
 
@@ -107,7 +107,7 @@ export default function PaquetesPage() {
     [
       { key: "fotografia", tipo: 0, label: "Fotografía" },
       { key: "sonido",     tipo: 1, label: "Sonido" },
-      { key: "banquete",   tipo: 2, label: "Banquete" },
+      { key: "decoracion", tipo: 2, label: "Decoraciones" },
       { key: "barra",      tipo: 3, label: "Barra" },
     ].forEach(({ key, tipo, label }) => {
       const paquetes = filteredItems.filter((p) => p.is_paquete_sonido === tipo);
@@ -120,7 +120,7 @@ export default function PaquetesPage() {
     todos: "Todos",
     fotografia: "Fotografía",
     sonido: "Sonido",
-    banquete: "Banquete",
+    decoracion: "Decoraciones",
     barra: "Barra",
   };
 
@@ -136,7 +136,7 @@ export default function PaquetesPage() {
   const STAT_CARDS = [
     { filterKey: "fotografia", tipoNum: 0 },
     { filterKey: "sonido",     tipoNum: 1 },
-    { filterKey: "banquete",   tipoNum: 2 },
+    { filterKey: "decoracion", tipoNum: 2 },
     { filterKey: "barra",      tipoNum: 3 },
   ];
 
@@ -149,7 +149,7 @@ export default function PaquetesPage() {
           <div className="paq-filters-panel">
             <Space direction="vertical" size={2} style={{ marginBottom: 16 }}>
               <Title level={2} className="paq-title">Paquetes</Title>
-              <Text className="paq-subtitle">Catálogo de paquetes de fotografía, sonido, banquete y barra</Text>
+              <Text className="paq-subtitle">Catálogo de paquetes de fotografía, sonido, decoraciones y barra</Text>
             </Space>
 
             <Row gutter={[16, 14]}>
@@ -175,7 +175,7 @@ export default function PaquetesPage() {
                     { label: "Todos", value: "todos" },
                     { label: "Fotografía", value: "fotografia" },
                     { label: "Sonido", value: "sonido" },
-                    { label: "Banquete", value: "banquete" },
+                    { label: "Decoraciones", value: "decoracion" },
                     { label: "Barra", value: "barra" },
                   ]}
                 />

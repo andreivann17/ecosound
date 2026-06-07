@@ -143,8 +143,17 @@ const connectWS = useCallback(() => {
       notifyWsUpdate(
         msg?.descripcion_notificacion || "Nueva notificación detectada."
       );
-
       dispatch(actionNotificacionesGet());
+    }
+
+    if (msg?.type === "CUENTA_ELIMINADA") {
+      const myIdCliente = Number(localStorage.getItem("id_cliente_tenant") || 0);
+      if (myIdCliente && Number(msg.id_cliente) === myIdCliente) {
+        ["token", "tokenadmin", "role", "usuario_cliente", "id_cliente_tenant", "email"].forEach(
+          (k) => localStorage.removeItem(k)
+        );
+        window.location.href = "/login";
+      }
     }
   };
 
@@ -499,6 +508,15 @@ const connectWS = useCallback(() => {
                             </span>
                           )}
                           <div className="eh-user-actions">
+                            {localStorage.getItem("usuario_cliente") === "1" && (
+                              <button
+                                type="button"
+                                className="eh-user-btn"
+                                onClick={() => { setUserOpen(false); navigate("/app/mi-cuenta"); }}
+                              >
+                                Mi cuenta
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="eh-user-btn"

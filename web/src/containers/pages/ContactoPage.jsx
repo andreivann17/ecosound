@@ -1,15 +1,16 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
 import { notification } from "antd";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../api";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/ContactoPage.css";
 
-const WHATSAPP_NUMBER = "521XXXXXXXXXX"; // 👈 mismo número que en LandingPage y LandingFooter
+const WHATSAPP_NUMBER = "526532091200";
 
 const CONTACT_INFO = {
   email: "soporte.herrsoft@gmail.com",
-  telefono: "(55) XXXX-XXXX",          // 👈 actualiza con tu número real
+  telefono: "(653) 209-1200",
   ubicacion: "Av. Puebla y 30, San Luis Río Colorado, Sonora, México",
 };
 
@@ -112,6 +113,7 @@ export default function ContactoPage() {
   const [form, setForm] = useState(EMPTY);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -150,14 +152,15 @@ export default function ContactoPage() {
     } catch (_) { /* abre WA aunque falle el guardado */ }
     const { nombre, email, telefono, negocio, mensaje } = form;
     const msg = [
-      "Hola, me contacto desde la página de Contacto.",
+      "Hola, me pongo en contacto a través de herrsoft.com",
       "",
-      `Nombre: ${nombre}`,
-      `Email: ${email}`,
-      `Teléfono: ${telefono}`,
-      negocio ? `Negocio: ${negocio}` : null,
-      mensaje ? `Mensaje: ${mensaje}` : null,
-    ].filter(Boolean).join("\n");
+      "*Mis datos:*",
+      `• Nombre: ${nombre}`,
+      `• Email: ${email}`,
+      `• Teléfono: ${telefono}`,
+      negocio ? `• Negocio: ${negocio}` : null,
+      mensaje ? ["", "*Mensaje:*", mensaje] : null,
+    ].flat().filter(Boolean).join("\n");
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
     setSent(true);
     setSending(false);
@@ -201,8 +204,8 @@ export default function ContactoPage() {
               <span className="landing-hero-accent">cómo podemos ayudarte</span>
             </h1>
             <p className="contacto-desc">
-              Sin presiones ni compromisos. Cuéntanos qué necesitas y armamos
-              una demo a tu medida, sin costo y sin letra chica.
+              Sin presiones ni compromisos. Cuéntanos qué necesitas y con gusto
+              te orientamos, sin costo y sin letra chica.
             </p>
             <div className="contacto-info-list">
               <div className="contacto-info-item">
@@ -242,7 +245,7 @@ export default function ContactoPage() {
           </div>
 
           <div className="contacto-card">
-            <h2 className="contacto-card-title">Solicita tu demo gratuita</h2>
+            <h2 className="contacto-card-title">Envíanos un mensaje</h2>
             <div className="contacto-form">
               <div className="contacto-row">
                 <div className="demo-field">
@@ -286,6 +289,16 @@ export default function ContactoPage() {
               Enviar solicitud por WhatsApp
             </button>
             <p className="demo-privacy">Al enviar este formulario, aceptas nuestra política de privacidad.</p>
+
+            <div className="contacto-contratar-wrap">
+              <p className="contacto-contratar-hint">¿Ya sabes lo que necesitas?</p>
+              <button className="contacto-contratar-btn" onClick={() => navigate("/contratar")}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+                Ver planes y contratar
+              </button>
+            </div>
           </div>
 
         </div>

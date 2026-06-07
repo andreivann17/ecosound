@@ -13,7 +13,7 @@ TIPO_CREACION = 1
 TIPO_ACTUALIZACION = 2
 TIPO_ELIMINACION = 3
 
-_TIPO_LABEL = {0: "fotografía", 1: "sonido", 2: "banquete", 3: "barra"}
+_TIPO_LABEL = {0: "fotografía", 1: "sonido", 2: "decoraciones", 3: "barra"}
 
 router = APIRouter(prefix="/paquetes", tags=["paquetes"])
 

@@ -242,7 +242,7 @@ export default function EventoDetallePage() {
 
   const [paquetesSonido, setPaquetesSonido] = useState([]);
   const [paquetesFoto, setPaquetesFoto] = useState([]);
-  const [paquetesBanquete, setPaquetesBanquete] = useState([]);
+  const [paquetesDecoracion, setPaquetesDecoracion] = useState([]);
   const [paquetesBarra, setPaquetesBarra] = useState([]);
 
   const pdfInputRef = useRef(null);
@@ -255,7 +255,7 @@ export default function EventoDetallePage() {
       apiEventosInstance.get(`/eventos/${idEvento}`, { headers: authHeaderEventos() }),
       apiEventosInstance.get("/eventos/config/paquetes-sonido",     { headers: authHeaderEventos() }),
       apiEventosInstance.get("/eventos/config/paquetes-fotografia", { headers: authHeaderEventos() }),
-      apiEventosInstance.get("/eventos/config/paquetes-banquete",   { headers: authHeaderEventos() }).catch(() => ({ data: [] })),
+      apiEventosInstance.get("/eventos/config/paquetes-decoracion",  { headers: authHeaderEventos() }).catch(() => ({ data: [] })),
       apiEventosInstance.get("/eventos/config/paquetes-barra",      { headers: authHeaderEventos() }).catch(() => ({ data: [] })),
     ])
       .then(([evRes, psRes, pfRes, pbqRes, pbrRes]) => {
@@ -263,7 +263,7 @@ export default function EventoDetallePage() {
           setEvento(evRes.data);
           setPaquetesSonido(Array.isArray(psRes.data)  ? psRes.data  : []);
           setPaquetesFoto(Array.isArray(pfRes.data)    ? pfRes.data  : []);
-          setPaquetesBanquete(Array.isArray(pbqRes.data) ? pbqRes.data : []);
+          setPaquetesDecoracion(Array.isArray(pbqRes.data) ? pbqRes.data : []);
           setPaquetesBarra(Array.isArray(pbrRes.data)    ? pbrRes.data : []);
         }
       })
@@ -798,7 +798,7 @@ export default function EventoDetallePage() {
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 3) {
-              return paquetesBanquete.find((p) => p.id_paquete_banquete === sv.id_paquete)?.nombre
+              return paquetesDecoracion.find((p) => p.id_paquete_decoracion === sv.id_paquete)?.nombre
                 || `Paquete #${sv.id_paquete}`;
             }
             if (sv.id_servicio === 4) {

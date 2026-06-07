@@ -262,6 +262,46 @@
   color: #9ca3af;
 }
 
+/* ---- BOTÓN CONTRATAR ---- */
+.contacto-contratar-wrap {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1.5px solid #f0f4ff;
+}
+
+.contacto-contratar-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.contacto-contratar-btn {
+  background: transparent;
+  color: #012770;
+  border: 2px solid #012770;
+  border-radius: 50px;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  width: 100%;
+  justify-content: center;
+}
+
+.contacto-contratar-btn:hover {
+  background: #012770;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
 /* ---- FAQ en contacto ---- */
 .contacto-faq {
   background: #fff;

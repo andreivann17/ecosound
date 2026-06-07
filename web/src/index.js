@@ -38,6 +38,7 @@ import CrearTrabajadorPage from "./containers/pages/crearTrabajadorPage.jsx"
 import TrabajadorDetallePage from "./containers/pages/TrabajadorDetallePage.jsx"
 import ConfiguracionPage from "./containers/pages/ConfiguracionPage.jsx"
 import PerfilPage from "./containers/pages/PerfilPage.jsx"
+import MiCuentaPage from "./containers/pages/MiCuentaPage.jsx"
 import PaquetesPage from "./containers/pages/PaquetesPage.jsx"
 import CrearPaquetePage from "./containers/pages/crearPaquetePage.jsx"
 import PaqueteDetallePage from "./containers/pages/PaqueteDetallePage.jsx"
@@ -53,6 +54,8 @@ import ProductosPage from "./containers/pages/ProductosPage.jsx"
 import EventsPage from "./containers/pages/EventsPage.jsx"
 import NosotrosPage from "./containers/pages/NosotrosPage.jsx"
 import ContratarPage from "./containers/pages/ContratarPage.jsx"
+import PrivacidadPage from "./containers/pages/PrivacidadPage.jsx"
+import TerminosPage from "./containers/pages/TerminosPage.jsx"
 import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
 import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
 import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
@@ -129,16 +132,30 @@ const routes = [
     nodeRef: createRef(),
     className: "Contacto",
   },
-  // Ruta /contratar oculta temporalmente — el componente sigue existiendo
-  // (ContratarPage.jsx) pero no es accesible por URL hasta reactivar este bloque.
-  // {
-  //   path: "/contratar",
-  //   value: "contratar",
-  //   name: "Contratar",
-  //   element: <ContratarPage />,
-  //   nodeRef: createRef(),
-  //   className: "Contratar",
-  // },
+  {
+    path: "/contratar",
+    value: "contratar",
+    name: "Contratar",
+    element: <ContratarPage />,
+    nodeRef: createRef(),
+    className: "Contratar",
+  },
+  {
+    path: "/privacidad",
+    value: "privacidad",
+    name: "Privacidad",
+    element: <PrivacidadPage />,
+    nodeRef: createRef(),
+    className: "Privacidad",
+  },
+  {
+    path: "/terminos",
+    value: "terminos",
+    name: "Terminos",
+    element: <TerminosPage />,
+    nodeRef: createRef(),
+    className: "Terminos",
+  },
   {
     path: "/login",
     value: "login",
@@ -463,6 +480,14 @@ const routes = [
     element: <PerfilPage />,
     nodeRef: createRef(),
     className: "Perfil",
+  },
+  {
+    path: "/app/mi-cuenta",
+    value: "mi-cuenta",
+    name: "MiCuenta",
+    element: <MiCuentaPage />,
+    nodeRef: createRef(),
+    className: "MiCuenta",
   },
   {
     path: "/app/paquetes",
@@ -847,6 +872,12 @@ function Example() {
       </div>
     </>
   );
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
 }
 
 const container = document.getElementById("root");

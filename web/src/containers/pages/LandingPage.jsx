@@ -14,13 +14,23 @@ import cliente2 from "../../assets/img/clientes/cliente_2.webp";
 import cliente3 from "../../assets/img/clientes/cliente_3.webp";
 import cliente4 from "../../assets/img/clientes/cliente_4.webp";
 import "../../assets/css/LandingPage.css";
-
+import restauranteShot from "../../assets/img/pexels-simge-tek-595852070-19475469.jpg";
+import promoShot from "../../assets/img/pexels-pavel-danilyuk-7654447.jpg";
 // ============================================================
 // 👈 Cambia este número por tu WhatsApp (con código de país, sin +)
 // ============================================================
-const WHATSAPP_NUMBER = "521XXXXXXXXXX";
+const WHATSAPP_NUMBER = "526532091200";
 
 const HERO_IMAGES = [img1, img2, img3];
+
+// ============================================================
+// 👈 Agrega aquí el import y la ruta de tus screenshots para
+// las diapositivas de "HerrSoft Restaurantes" y "Promoción".
+// Ejemplo:
+const RESTAURANT_SCREENSHOT = restauranteShot;
+// ============================================================
+//const RESTAURANT_SCREENSHOT = null;
+const PROMO_SCREENSHOT = promoShot;
 
 const CLIENTS = [
   { logo: cliente1, name: "Cliente 1", slug: "cliente-1" },
@@ -223,6 +233,9 @@ export default function LandingPage() {
 
   const [currentImage, setCurrentImage] = useState(0);
   const [imageVisible, setImageVisible] = useState(true);
+  const [currentHero, setCurrentHero] = useState(0);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const [heroPaused, setHeroPaused] = useState(false);
   const [clientsVisible, setClientsVisible] = useState(false);
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -244,6 +257,24 @@ export default function LandingPage() {
     }, 3000);
     return () => clearInterval(timer);
   }, []);
+
+  // Carousel del hero — alterna entre Eventos, Restaurantes y Promoción cada 7 segundos
+  useEffect(() => {
+    if (heroPaused) return;
+    const timer = setInterval(() => {
+      setHeroVisible(false);
+      setTimeout(() => {
+        setCurrentHero((prev) => (prev + 1) % 3);
+        setHeroVisible(true);
+      }, 550);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, [heroPaused]);
+
+  const goToHero = (i) => {
+    setHeroVisible(false);
+    setTimeout(() => { setCurrentHero(i); setHeroVisible(true); }, 350);
+  };
 
   // Animación de clientes al entrar al viewport
   useEffect(() => {
@@ -291,63 +322,171 @@ export default function LandingPage() {
   return (
     <div className="landing-root">
 
-      {/* ===================== HERO ===================== */}
-      <section className="landing-hero" id="inicio">
-        <div className="landing-hero-inner">
+      {/* ===================== HERO — carousel de pantallas completas ===================== */}
+      <section
+        className="landing-hero"
+        id="inicio"
+        onMouseEnter={() => setHeroPaused(true)}
+        onMouseLeave={() => setHeroPaused(false)}
+      >
 
-          <div className="landing-hero-text">
-            <h1 className="landing-hero-title">
-              Organiza cada evento<br />
-              <span className="landing-hero-accent">con todo bajo control</span>
-            </h1>
-            <p className="landing-hero-subtitle">
-              Para los que hacen que cada evento sea memorable. Maneja tu agenda,
-              inventario, paquetes y cobros desde un solo lugar, sin complicaciones.
-            </p>
-            <div className="landing-hero-buttons">
-              <button className="landing-btn-primary" onClick={openModal}>
-                Solicitar Demo →
-              </button>
-              <button
-                className="landing-btn-secondary"
-                onClick={() => setShowVideo(true)}
-              >
-                ▷ Ver cómo funciona
-              </button>
+        {/* ---- Slide 1: HerrSoft Events (vista original, sin cambios) ---- */}
+        <div className={`landing-hero-slide ${currentHero === 0 && heroVisible ? "lp-hero-visible" : ""}`}>
+          <div className="landing-hero-inner">
+
+            <div className="landing-hero-text">
+              <img src={logoEvents} alt="HerrSoft Events" className="landing-hero-product-logo" />
+              <h1 className="landing-hero-title">
+                Organiza cada evento<br />
+                <span className="landing-hero-accent">con todo bajo control</span>
+              </h1>
+              <p className="landing-hero-subtitle">
+                Para los que hacen que cada evento sea memorable. Maneja tu agenda,
+                inventario, paquetes y cobros desde un solo lugar, sin complicaciones.
+              </p>
+              <div className="landing-hero-buttons">
+                <button className="landing-btn-primary" onClick={() => navigate("/contratar")}>
+                  Contratar →
+                </button>
+                <button
+                  className="landing-btn-secondary"
+                  onClick={() => setShowVideo(true)}
+                >
+                  ▷ Ver cómo funciona
+                </button>
+              </div>
+              <div className="landing-hero-stats">
+                <CountUpStat num="500+" label="Eventos agendados" />
+                <CountUpStat num="12+" label="Módulos integrados" />
+                <CountUpStat num="99%" label="Satisfacción" />
+              </div>
             </div>
-            <div className="landing-hero-stats">
-              <CountUpStat num="500+" label="Eventos agendados" />
-              <CountUpStat num="12+" label="Módulos integrados" />
-              <CountUpStat num="99%" label="Satisfacción" />
+
+            {/* Carousel de imágenes */}
+            <div className="landing-carousel">
+              <div className={`landing-carousel-slide ${imageVisible ? "lp-visible" : ""}`}>
+                {imgSrc ? (
+                  <img src={imgSrc} alt={`Vista ${currentImage + 1}`} className="landing-carousel-img" />
+                ) : (
+                  <div className="landing-carousel-placeholder">
+                    <div className="landing-carousel-placeholder-inner">
+                      <span>Imagen {currentImage + 1}</span>
+                      <small>Agrega la ruta en HERO_IMAGES</small>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="landing-carousel-dots">
+                {HERO_IMAGES.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`landing-carousel-dot ${i === currentImage ? "lp-dot-active" : ""}`}
+                    onClick={() => { setImageVisible(false); setTimeout(() => { setCurrentImage(i); setImageVisible(true); }, 300); }}
+                    aria-label={`Imagen ${i + 1}`}
+                  />
+                ))}
+              </div>
             </div>
+
           </div>
+        </div>
 
-          {/* Carousel de imágenes */}
-          <div className="landing-carousel">
-            <div className={`landing-carousel-slide ${imageVisible ? "lp-visible" : ""}`}>
-              {imgSrc ? (
-                <img src={imgSrc} alt={`Vista ${currentImage + 1}`} className="landing-carousel-img" />
+        {/* ---- Slide 2: Próximamente — HerrSoft Restaurantes ---- */}
+        <div className={`landing-hero-slide landing-hero-slide--olive ${currentHero === 1 && heroVisible ? "lp-hero-visible" : ""}`}>
+          <div className="landing-hero-inner">
+
+            <div className="landing-hero-text landing-hero-text--light">
+              <span className="landing-hero-pill">Próximamente</span>
+              <h1 className="landing-hero-title landing-hero-title--light">
+                Llega HerrSoft Restaurantes<br />
+                <span className="landing-hero-accent landing-hero-accent--light">para crecer con orden</span>
+              </h1>
+              <p className="landing-hero-subtitle landing-hero-subtitle--light">
+                El sistema pensado para restaurantes, cafeterías y fondas: mesas y
+                reservaciones, órdenes en tiempo real, pantalla de cocina, inventario
+                de ingredientes y caja, todo desde un solo lugar.
+              </p>
+              <div className="landing-hero-buttons">
+                <button className="landing-btn-light" onClick={() => navigate("/productos")}>
+                  Conocer más →
+                </button>
+              </div>
+              <span className="landing-hero-note">Muy pronto disponible. Te avisaremos en cuanto esté listo.</span>
+            </div>
+
+            <div className="landing-carousel landing-carousel--static">
+              {RESTAURANT_SCREENSHOT ? (
+                <img src={RESTAURANT_SCREENSHOT} alt="Vista previa de HerrSoft Restaurantes" className="landing-carousel-img" />
               ) : (
-                <div className="landing-carousel-placeholder">
-                  <div className="landing-carousel-placeholder-inner">
-                    <span>Imagen {currentImage + 1}</span>
-                    <small>Agrega la ruta en HERO_IMAGES</small>
+                <div className="landing-carousel-placeholder landing-carousel-placeholder--themed">
+                  <div className="landing-carousel-placeholder-inner landing-carousel-placeholder-inner--light">
+                    <span>HerrSoft Restaurantes</span>
+                    <small>Agrega la ruta en RESTAURANT_SCREENSHOT</small>
                   </div>
                 </div>
               )}
             </div>
-            <div className="landing-carousel-dots">
-              {HERO_IMAGES.map((_, i) => (
-                <button
-                  key={i}
-                  className={`landing-carousel-dot ${i === currentImage ? "lp-dot-active" : ""}`}
-                  onClick={() => { setImageVisible(false); setTimeout(() => { setCurrentImage(i); setImageVisible(true); }, 300); }}
-                  aria-label={`Imagen ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
 
+          </div>
+        </div>
+
+        {/* ---- Slide 3: Promoción — meses gratis ---- */}
+        <div className={`landing-hero-slide landing-hero-slide--gold ${currentHero === 2 && heroVisible ? "lp-hero-visible" : ""}`}>
+          <div className="landing-hero-inner">
+
+            <div className="landing-hero-text landing-hero-text--light">
+              <span className="landing-hero-pill">Oferta por tiempo limitado</span>
+              <h1 className="landing-hero-title landing-hero-title--light">
+                Tu primer mes<br />
+                <span className="landing-hero-accent landing-hero-accent--light">va por nuestra cuenta</span>
+              </h1>
+              <p className="landing-hero-subtitle landing-hero-subtitle--light">
+                Contrata HerrSoft hoy y empieza a operar con todo bajo control desde
+                el primer día. Estos son los meses que te regalamos según tu plan:
+              </p>
+              <div className="landing-hero-pricing">
+                <div className="landing-hero-pill-card">
+                  <span className="landing-hero-pill-card-label">Plan mensual</span>
+                  <span className="landing-hero-pill-card-value">+ 1 mes gratis</span>
+                </div>
+                <div className="landing-hero-pill-card">
+                  <span className="landing-hero-pill-card-label">Plan anual</span>
+                  <span className="landing-hero-pill-card-value">+ 2 meses gratis</span>
+                </div>
+              </div>
+              <div className="landing-hero-buttons " style={{marginTop:20}}>
+                <button className="landing-btn-light" onClick={() => navigate("/contratar")}>
+                  Quiero esta promoción →
+                </button>
+              </div>
+            </div>
+
+            <div className="landing-carousel landing-carousel--static">
+              {PROMO_SCREENSHOT ? (
+                <img src={PROMO_SCREENSHOT} alt="Promoción HerrSoft" className="landing-carousel-img" />
+              ) : (
+                <div className="landing-carousel-placeholder landing-carousel-placeholder--themed">
+                  <div className="landing-carousel-placeholder-inner landing-carousel-placeholder-inner--light">
+                    <span>Promoción HerrSoft</span>
+                    <small>Agrega la ruta en PROMO_SCREENSHOT</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+
+        {/* Navegación del carousel del hero */}
+        <div className="landing-hero-dots">
+          {[0, 1, 2].map((i) => (
+            <button
+              key={i}
+              className={`landing-hero-dot ${i === currentHero ? "lp-dot-active" : ""}`}
+              onClick={() => goToHero(i)}
+              aria-label={`Vista ${i + 1}`}
+            />
+          ))}
         </div>
       </section>
 
@@ -381,7 +520,7 @@ export default function LandingPage() {
       >
         <div className="landing-features-inner">
           <div className="landing-features-header">
-            <img src={logoEvents} alt="Herrsoft" className="lf-section-logo" />
+            <img src={logoEvents} alt="HerrSoft" className="lf-section-logo" />
             <span className="landing-features-badge">Funcionalidades</span>
             <h2 className="landing-features-title">
               El sistema que trabaja<br />

@@ -48,6 +48,7 @@ export default function ModalReautenticar({ open, onClose }) {
       localStorage.setItem("token", token);
       localStorage.setItem("tokenadmin", token);
       localStorage.setItem("email", values.email);
+      localStorage.setItem("usuario_cliente", data?.usuario_cliente === 1 ? "1" : "0");
       if (data?.role) {
         localStorage.setItem("role", data.role);
         localStorage.setItem("activeButtonAdmin", data.role === "admin" ? "1" : "0");
