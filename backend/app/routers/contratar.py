@@ -346,6 +346,255 @@ def get_mis_pagos(id_cliente: Optional[int] = Depends(get_tenant_filter)):
     return list_pagos(id_app=ID_APP, id_cliente=id_cliente)
 
 
+# ─── VINCULAR TARJETA (clientes en efectivo → pago con tarjeta) ─────────────
+
+
+class VincularIniciarPayload(BaseModel):
+    plan: str = "herrsoft_events_mensual"
+
+
+class VincularConfirmarPayload(BaseModel):
+    setup_intent_id: str
+    plan: str = "herrsoft_events_mensual"
+
+
+def _link_stripe_customer_id(id_cliente: int, customer_id: str) -> None:
+    from ..db import get_admin_connection as _adm
+    conn = _adm()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE clientes SET stripe_customer_id=%s WHERE id_cliente=%s",
+                (customer_id, id_cliente),
+            )
+        conn.commit()
+    except Exception as e:
+        print(f"[vincular] _link_stripe_customer_id error: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+def _link_stripe_subscription_data(
+    id_cliente: int,
+    sub_id: str,
+    customer_id: str,
+    pm_id: Optional[str],
+    price_id: Optional[str],
+    tipo_sub: str,
+    fecha_proxima_pago: str,
+    estado: str,
+) -> None:
+    from ..db import get_admin_connection as _adm
+    conn = _adm()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """UPDATE clientes SET
+                       stripe_customer_id=%s,
+                       stripe_subscription_id=%s,
+                       stripe_payment_method_id=%s,
+                       stripe_price_id=%s,
+                       suscripcion_estado=%s
+                   WHERE id_cliente=%s""",
+                (customer_id, sub_id, pm_id, price_id, estado, id_cliente),
+            )
+            cur.execute(
+                """UPDATE apps_clientes SET
+                       tipo_subscripcion=%s,
+                       fecha_proxima_pago=%s
+                   WHERE id_cliente=%s AND id_app=%s""",
+                (tipo_sub, fecha_proxima_pago, id_cliente, ID_APP),
+            )
+        conn.commit()
+    except Exception as e:
+        print(f"[vincular] _link_stripe_subscription_data error: {e}", flush=True)
+    finally:
+        conn.close()
+
+
+@router.post("/vincular-tarjeta/iniciar")
+def vincular_tarjeta_iniciar(
+    payload: VincularIniciarPayload,
+    id_cliente: Optional[int] = Depends(get_tenant_filter),
+):
+    """
+    Paso 1 — vinculación de tarjeta para clientes en efectivo.
+
+    Crea un Customer en Stripe (si no existe) y un SetupIntent.
+    El frontend usa clientSecret con Stripe Elements para capturar la tarjeta.
+    No se cobra nada en este paso.
+
+    Respuesta: {clientSecret, setupIntentId, customerId}
+    """
+    if stripe is None or not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Stripe no está configurado.")
+    if not id_cliente:
+        raise HTTPException(status_code=403, detail="Esta cuenta no está asociada a un cliente.")
+
+    from ..models.clientes import get_cliente_by_id
+    cliente = get_cliente_by_id(ID_APP, id_cliente)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+
+    price_id = STRIPE_PRICE_IDS.get(payload.plan)
+    if not price_id:
+        raise HTTPException(status_code=400, detail=f"Plan no reconocido: {payload.plan}")
+
+    if (
+        cliente.get("stripe_subscription_id")
+        and cliente.get("suscripcion_estado") in ("active", "trialing")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Esta cuenta ya tiene una suscripción activa con tarjeta.",
+        )
+
+    nombre = f"{cliente.get('nombre_cliente', '')} {cliente.get('apellido_cliente', '')}".strip()
+    correo = (cliente.get("correo") or "").strip()
+
+    try:
+        customer_id = cliente.get("stripe_customer_id") or None
+        if not customer_id:
+            customer = stripe.Customer.create(
+                email=correo,
+                name=nombre,
+                metadata={
+                    "id_cliente": str(id_cliente),
+                    "origen": "vincular_tarjeta",
+                },
+            )
+            customer_id = customer.id
+            _link_stripe_customer_id(id_cliente, customer_id)
+
+        si = stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            usage="off_session",
+            metadata={
+                "id_cliente": str(id_cliente),
+                "plan": payload.plan,
+            },
+        )
+
+        return {
+            "clientSecret": si.client_secret,
+            "setupIntentId": si.id,
+            "customerId": customer_id,
+        }
+
+    except stripe.error.StripeError as e:
+        msg = getattr(e, "user_message", None) or str(e)
+        raise HTTPException(status_code=400, detail=msg)
+
+
+@router.post("/vincular-tarjeta/confirmar")
+def vincular_tarjeta_confirmar(
+    payload: VincularConfirmarPayload,
+    id_cliente: Optional[int] = Depends(get_tenant_filter),
+):
+    """
+    Paso 2 — vinculación de tarjeta para clientes en efectivo.
+
+    Se llama DESPUÉS de que Stripe Elements confirma el SetupIntent en el frontend.
+    Crea la Subscription y cobra el primer período con la tarjeta guardada.
+    La BD se actualiza con stripe_subscription_id, stripe_payment_method_id, etc.
+    El webhook invoice.payment_succeeded actualiza el estado a "active" al confirmarse el cobro.
+
+    Respuesta: {ok, subscriptionId, status, fechaProximoPago}
+    """
+    if stripe is None or not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Stripe no está configurado.")
+    if not id_cliente:
+        raise HTTPException(status_code=403, detail="Esta cuenta no está asociada a un cliente.")
+
+    from ..models.clientes import get_cliente_by_id
+    cliente = get_cliente_by_id(ID_APP, id_cliente)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+
+    price_id = STRIPE_PRICE_IDS.get(payload.plan)
+    if not price_id:
+        raise HTTPException(status_code=400, detail=f"Plan no reconocido: {payload.plan}")
+
+    customer_id = cliente.get("stripe_customer_id")
+    if not customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No se encontró el Customer de Stripe. Reinicia el proceso.",
+        )
+
+    try:
+        si = stripe.SetupIntent.retrieve(payload.setup_intent_id)
+        if si.status != "succeeded":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El SetupIntent no fue confirmado por Stripe (estado: {si.status}).",
+            )
+
+        pm_id = si.payment_method
+        if pm_id and not isinstance(pm_id, str):
+            pm_id = getattr(pm_id, "id", None)
+        if not pm_id:
+            raise HTTPException(status_code=400, detail="No se obtuvo el método de pago del SetupIntent.")
+
+        # Establecer tarjeta como método por defecto del Customer
+        stripe.Customer.modify(customer_id, invoice_settings={"default_payment_method": pm_id})
+
+        # Crear la Subscription — cobra de inmediato con la tarjeta guardada
+        subscription = stripe.Subscription.create(
+            customer=customer_id,
+            items=[{"price": price_id}],
+            default_payment_method=pm_id,
+            expand=["latest_invoice.payment_intent"],
+            metadata={
+                "id_cliente": str(id_cliente),
+                "origen": "vincular_tarjeta",
+            },
+        )
+
+        sub_id = subscription.id
+        estado = getattr(subscription, "status", "active") or "active"
+
+        # Calcular fecha_proxima_pago desde current_period_end de Stripe
+        cp_end_ts = getattr(subscription, "current_period_end", None)
+        if cp_end_ts is None:
+            items = getattr(subscription, "items", None)
+            items_data = getattr(items, "data", []) if items else []
+            if items_data:
+                cp_end_ts = getattr(items_data[0], "current_period_end", None)
+
+        try:
+            fecha_proxima_pago = dt.datetime.fromtimestamp(int(cp_end_ts)).date().isoformat() if cp_end_ts else None
+        except Exception:
+            fecha_proxima_pago = None
+        if not fecha_proxima_pago:
+            fecha_proxima_pago = _calc_trial_end(payload.plan).isoformat()
+
+        tipo_sub = "anual" if "anual" in (payload.plan or "") else "mensual"
+
+        _link_stripe_subscription_data(
+            id_cliente=id_cliente,
+            sub_id=sub_id,
+            customer_id=customer_id,
+            pm_id=pm_id,
+            price_id=price_id,
+            tipo_sub=tipo_sub,
+            fecha_proxima_pago=fecha_proxima_pago,
+            estado=estado,
+        )
+
+        return {
+            "ok": True,
+            "subscriptionId": sub_id,
+            "status": estado,
+            "fechaProximoPago": fecha_proxima_pago,
+        }
+
+    except stripe.error.StripeError as e:
+        msg = getattr(e, "user_message", None) or str(e)
+        raise HTTPException(status_code=400, detail=msg)
+
+
 @router.post("/solicitar-eliminar-cuenta")
 async def solicitar_eliminar_cuenta(id_cliente: Optional[int] = Depends(get_tenant_filter)):
     """Desactiva la cuenta del cliente (habilitar_sistema=0, users.active=0) y envía correo."""

@@ -302,6 +302,17 @@ def _migrate_ecosound_db():
                 """, (col_name,))
                 if cur.fetchone()[0] == 0:
                     cur.execute(f"ALTER TABLE gastos ADD COLUMN {col_name} {col_def}")
+            # Asegurar id_cliente en paquetes_decoraciones y paquetes_barra
+            for _tbl in ("paquetes_decoraciones", "paquetes_barra"):
+                cur.execute("""
+                    SELECT COUNT(*) FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = %s
+                      AND COLUMN_NAME = 'id_cliente'
+                """, (_tbl,))
+                if cur.fetchone()[0] == 0:
+                    cur.execute(f"ALTER TABLE `{_tbl}` ADD COLUMN id_cliente INT DEFAULT NULL")
+
             # Asegurar columnas id_cliente y usuario_cliente en users
             _users_extra_cols = [
                 ("id_cliente",      "INT DEFAULT NULL"),
