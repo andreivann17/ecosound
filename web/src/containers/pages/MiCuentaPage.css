@@ -475,6 +475,112 @@
   background: #2563eb;
 }
 
+/* ── Vincular tarjeta: selector de planes ──────────────────── */
+
+.mcv-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 20px;
+}
+
+.mcv-plan {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #252525;
+  border: 1.5px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mcv-plan:hover {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+}
+
+.mcv-plan--selected {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.mcv-plan-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #4a4a4a;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+
+.mcv-plan--selected .mcv-plan-radio {
+  border-color: #60a5fa;
+}
+
+.mcv-plan-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #60a5fa;
+}
+
+.mcv-plan-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.mcv-plan-precio {
+  font-size: 12px;
+  color: #a7a7a7;
+  margin-top: 2px;
+}
+
+.mcv-plan-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+/* ── Vincular tarjeta: formulario Stripe ───────────────────── */
+
+.mcv-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #93c5fd;
+  line-height: 1.55;
+}
+
+.mcv-stripe-wrap {
+  margin-bottom: 4px;
+}
+
+.mcv-protected {
+  font-size: 11px;
+  color: #6a6a6a;
+  text-align: center;
+  margin: 12px 0 0;
+}
+
 /* antd Input overrides inside delete modal (v4) */
 .mc-delete-modal .ant-input,
 .mc-delete-modal .ant-input-affix-wrapper {

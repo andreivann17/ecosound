@@ -55,7 +55,7 @@ STRIPE_PRICE_IDS = {
 if stripe is not None and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
-TRIAL_ENABLED = False  # cambiar a True para activar periodos de prueba en producción
+TRIAL_ENABLED = True  # cambiar a True para activar periodos de prueba en producción
 
 
 # ─── CÁLCULO DE FECHAS DE COBRO ─────────────────────────────────────────────

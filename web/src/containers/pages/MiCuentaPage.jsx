@@ -2,6 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Input } from "antd";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import {
   SearchOutlined,
   UserOutlined,
@@ -18,6 +25,24 @@ import {
 } from "@ant-design/icons";
 import { API_URL } from "../../api";
 import "./MiCuentaPage.css";
+
+const STRIPE_PK = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
+const stripePromise = STRIPE_PK ? loadStripe(STRIPE_PK) : null;
+
+const VINCULAR_PLANS = [
+  {
+    id: "herrsoft_events_mensual",
+    nombre: "Plan Mensual",
+    precio: "$550 MXN / mes",
+    badge: "🎁 1 mes gratis",
+  },
+  {
+    id: "herrsoft_events_anual",
+    nombre: "Plan Anual",
+    precio: "$5,500 MXN / año",
+    badge: "🎉 2 meses gratis",
+  },
+];
 
 const authHeader = () => {
   const token = localStorage.getItem("token") || localStorage.getItem("tokenadmin");
@@ -93,6 +118,86 @@ const SECTIONS = [
   },
 ];
 
+// ─── Formulario de Stripe Elements para vincular tarjeta ─────────────────────
+// Debe vivir fuera del componente principal para no re-montarse en cada render.
+
+function VincularTarjetaForm({ plan, onError, onSuccess }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements || submitting) return;
+    setSubmitting(true);
+    onError("");
+
+    const { error, setupIntent } = await stripe.confirmSetup({
+      elements,
+      redirect: "if_required",
+    });
+
+    if (error) {
+      setSubmitting(false);
+      onError(error.message || "No se pudo guardar la tarjeta.");
+      return;
+    }
+
+    if (setupIntent?.status === "succeeded") {
+      try {
+        await axios.post(
+          `${API_URL}/contratar/vincular-tarjeta/confirmar`,
+          { setup_intent_id: setupIntent.id, plan },
+          { headers: authHeader() }
+        );
+        onSuccess();
+      } catch (err) {
+        setSubmitting(false);
+        onError(
+          err?.response?.data?.detail ||
+            "Error al activar la suscripción. Intenta de nuevo."
+        );
+      }
+    } else {
+      setSubmitting(false);
+      onError("No se pudo confirmar la tarjeta. Intenta de nuevo.");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="mcv-notice">
+        <svg
+          width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{ flexShrink: 0, marginTop: 1 }}
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        Tu tarjeta se guardará de forma segura. El primer cobro se realizará
+        en el próximo ciclo de facturación. Hoy no se te cobra nada.
+      </div>
+      <div className="mcv-stripe-wrap">
+        <PaymentElement options={{ layout: "tabs" }} />
+      </div>
+      <button
+        type="submit"
+        className="mcd-btn mcd-btn--primary"
+        style={{ width: "100%", padding: "11px 20px", fontSize: 14, marginTop: 8 }}
+        disabled={!stripe || submitting}
+      >
+        {submitting ? "Guardando tarjeta…" : "Guardar tarjeta y activar suscripción"}
+      </button>
+      <p className="mcv-protected">🔒 Pagos procesados de forma segura por Stripe</p>
+    </form>
+  );
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
 export default function MiCuentaPage() {
   const navigate = useNavigate();
   const [view, setView] = useState("main"); // "main" | "historial"
@@ -105,6 +210,14 @@ export default function MiCuentaPage() {
   const [loadingPagos, setLoadingPagos] = useState(true);
   const [pagosError, setPagosError] = useState("");
 
+  // ── Estado: vincular tarjeta ─────────────────────────────────────────────
+  const [vincularStep, setVincularStep] = useState(null); // null | "plan" | "card" | "done"
+  const [vincularPlan, setVincularPlan] = useState("herrsoft_events_mensual");
+  const [vincularClientSecret, setVincularClientSecret] = useState(null);
+  const [vincularError, setVincularError] = useState("");
+  const [vincularLoading, setVincularLoading] = useState(false);
+
+  // ── Estado: borrar cuenta ────────────────────────────────────────────────
   const [deleteStep, setDeleteStep] = useState(null);
   const [deletePwd, setDeletePwd] = useState("");
   const [deletePwdConfirm, setDeletePwdConfirm] = useState("");
@@ -112,6 +225,15 @@ export default function MiCuentaPage() {
   const [deletePhrase, setDeletePhrase] = useState("");
   const [deleteSending, setDeleteSending] = useState(false);
   const [deleteApiError, setDeleteApiError] = useState("");
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  const fetchCuenta = () => {
+    axios
+      .get(`${API_URL}/contratar/mi-cuenta`, { headers: authHeader() })
+      .then(({ data }) => setCuenta(data))
+      .catch(() => {});
+  };
 
   const resetDelete = () => {
     setDeleteStep(null);
@@ -122,6 +244,51 @@ export default function MiCuentaPage() {
     setDeleteSending(false);
     setDeleteApiError("");
   };
+
+  const resetVincular = () => {
+    setVincularStep(null);
+    setVincularPlan("herrsoft_events_mensual");
+    setVincularClientSecret(null);
+    setVincularError("");
+    setVincularLoading(false);
+  };
+
+  // ── Effects ──────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (localStorage.getItem("usuario_cliente") !== "1") {
+      navigate("/app", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchCuenta();
+
+    axios
+      .get(`${API_URL}/contratar/mis-pagos`, { headers: authHeader() })
+      .then(({ data }) => {
+        if (!cancelled) setPagos(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPagosError(
+            err?.response?.data?.detail ||
+              "No pudimos cargar tu historial de pagos en este momento."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPagos(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleConfirmDelete = async () => {
     if (deleteSending) return;
@@ -156,43 +323,6 @@ export default function MiCuentaPage() {
     setDeleteStep("phrase");
   };
 
-  useEffect(() => {
-    if (localStorage.getItem("usuario_cliente") !== "1") {
-      navigate("/app", { replace: true });
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    axios
-      .get(`${API_URL}/contratar/mi-cuenta`, { headers: authHeader() })
-      .then(({ data }) => {
-        if (!cancelled) setCuenta(data);
-      })
-      .catch(() => {});
-
-    axios
-      .get(`${API_URL}/contratar/mis-pagos`, { headers: authHeader() })
-      .then(({ data }) => {
-        if (!cancelled) setPagos(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setPagosError(
-            err?.response?.data?.detail || "No pudimos cargar tu historial de pagos en este momento."
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingPagos(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const openBillingPortal = async () => {
     if (openingPortal) return;
     setOpeningPortal(true);
@@ -206,18 +336,48 @@ export default function MiCuentaPage() {
       if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setPortalError(
-        err?.response?.data?.detail || "No pudimos abrir el portal de facturación. Intenta de nuevo en unos minutos."
+        err?.response?.data?.detail ||
+          "No pudimos abrir el portal de facturación. Intenta de nuevo en unos minutos."
       );
     } finally {
       setOpeningPortal(false);
     }
   };
 
+  const handleVincularIniciar = async () => {
+    setVincularLoading(true);
+    setVincularError("");
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/contratar/vincular-tarjeta/iniciar`,
+        { plan: vincularPlan },
+        { headers: authHeader() }
+      );
+      setVincularClientSecret(data.clientSecret);
+      setVincularStep("card");
+    } catch (err) {
+      setVincularError(
+        err?.response?.data?.detail || "No se pudo iniciar el proceso. Intenta de nuevo."
+      );
+    } finally {
+      setVincularLoading(false);
+    }
+  };
+
   const handleItemClick = (item) => {
-    if (item.action === "billing-portal") return openBillingPortal();
+    if (item.action === "billing-portal") {
+      // Clientes en efectivo (sin stripe_customer_id): abrir flujo de vincular tarjeta
+      if (cuenta?.tiene_metodo_pago === false) {
+        setVincularStep("plan");
+        return;
+      }
+      return openBillingPortal();
+    }
     if (item.action === "ver-historial") return setView("historial");
     if (item.path) return navigate(item.path);
   };
+
+  // ── Derivados ────────────────────────────────────────────────────────────
 
   const nombre = cuenta?.nombre?.trim();
   const saludo = nombre ? `¡Hola, ${nombre.split(" ")[0]}!` : "¡Hola!";
@@ -234,6 +394,10 @@ export default function MiCuentaPage() {
       ),
     })).filter((s) => s.items.length > 0);
   }, [query]);
+
+  const selectedVincularPlan = VINCULAR_PLANS.find((p) => p.id === vincularPlan);
+
+  // ── Render: historial ────────────────────────────────────────────────────
 
   if (view === "historial") {
     return (
@@ -290,6 +454,8 @@ export default function MiCuentaPage() {
     );
   }
 
+  // ── Render: main ─────────────────────────────────────────────────────────
+
   return (
     <div className="mc-main">
       <div className="mc-content">
@@ -329,6 +495,8 @@ export default function MiCuentaPage() {
               {section.items.map((item) => {
                 const clickable = !!item.path || !!item.action;
                 const loadingThis = item.action === "billing-portal" && openingPortal;
+                const isCashUser =
+                  item.action === "billing-portal" && cuenta?.tiene_metodo_pago === false;
                 return (
                   <div
                     key={item.label}
@@ -340,7 +508,12 @@ export default function MiCuentaPage() {
                     <div className="mc-item-text">
                       <div className="mc-item-label">{item.label}</div>
                       {item.desc && <div className="mc-item-desc">{item.desc}</div>}
-                      {item.action === "billing-portal" && portalError && (
+                      {isCashUser && (
+                        <div className="mc-item-desc" style={{ color: "#60a5fa", marginTop: 3 }}>
+                          Vincula una tarjeta para automatizar tus cobros
+                        </div>
+                      )}
+                      {!isCashUser && item.action === "billing-portal" && portalError && (
                         <div className="mc-item-desc" style={{ color: "#dc2626" }}>{portalError}</div>
                       )}
                     </div>
@@ -379,6 +552,172 @@ export default function MiCuentaPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Overlay: Vincular tarjeta ────────────────────────────── */}
+        {vincularStep !== null && (
+          <div className="mcd-overlay">
+            <div
+              className="mcd-dialog"
+              style={{ maxWidth: vincularStep === "card" ? 520 : 480 }}
+            >
+              {vincularStep !== "done" && (
+                <button
+                  type="button"
+                  className="mcd-close-btn"
+                  onClick={resetVincular}
+                  aria-label="Cerrar"
+                >
+                  <CloseOutlined />
+                </button>
+              )}
+
+              {/* ── Paso 1: elegir plan ── */}
+              {vincularStep === "plan" && (
+                <div className="mcd-body">
+                  <div
+                    className="mcd-icon"
+                    style={{ background: "rgba(96,165,250,0.12)", color: "#60a5fa" }}
+                  >
+                    <CreditCardOutlined />
+                  </div>
+                  <h3 className="mcd-title">Vincular tarjeta</h3>
+                  <p className="mcd-text">
+                    Elige el plan con el que quieres activar tu suscripción con tarjeta.
+                    Hoy no se te cobra nada; el primer pago se realizará en el próximo
+                    ciclo de facturación.
+                  </p>
+
+                  <div className="mcv-plans">
+                    {VINCULAR_PLANS.map((p) => (
+                      <div
+                        key={p.id}
+                        className={`mcv-plan${vincularPlan === p.id ? " mcv-plan--selected" : ""}`}
+                        onClick={() => setVincularPlan(p.id)}
+                      >
+                        <div className="mcv-plan-radio">
+                          {vincularPlan === p.id && <div className="mcv-plan-radio-dot" />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="mcv-plan-name">{p.nombre}</div>
+                          <div className="mcv-plan-precio">{p.precio}</div>
+                        </div>
+                        <div className="mcv-plan-badge">{p.badge}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {vincularError && <p className="mcd-error">{vincularError}</p>}
+
+                  <div className="mcd-actions">
+                    <button
+                      type="button"
+                      className="mcd-btn mcd-btn--ghost"
+                      onClick={resetVincular}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="mcd-btn mcd-btn--primary"
+                      onClick={handleVincularIniciar}
+                      disabled={vincularLoading}
+                    >
+                      {vincularLoading ? "Preparando…" : "Continuar"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Paso 2: ingresar tarjeta ── */}
+              {vincularStep === "card" && (
+                <div className="mcd-body">
+                  <div
+                    className="mcd-icon"
+                    style={{ background: "rgba(96,165,250,0.12)", color: "#60a5fa" }}
+                  >
+                    <CreditCardOutlined />
+                  </div>
+                  <h3 className="mcd-title">Ingresa tu tarjeta</h3>
+                  <p className="mcd-text" style={{ marginBottom: 8 }}>
+                    <strong style={{ color: "#ffffff" }}>{selectedVincularPlan?.nombre}</strong>
+                    {" — "}
+                    {selectedVincularPlan?.precio}
+                  </p>
+
+                  {vincularError && <p className="mcd-error">{vincularError}</p>}
+
+                  {vincularClientSecret && stripePromise ? (
+                    <Elements
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret: vincularClientSecret,
+                        appearance: {
+                          theme: "night",
+                          variables: {
+                            colorPrimary: "#60a5fa",
+                            borderRadius: "8px",
+                            fontFamily: "system-ui, -apple-system, sans-serif",
+                          },
+                        },
+                      }}
+                    >
+                      <VincularTarjetaForm
+                        plan={vincularPlan}
+                        onError={setVincularError}
+                        onSuccess={() => setVincularStep("done")}
+                      />
+                    </Elements>
+                  ) : (
+                    <p className="mcd-error">
+                      {!stripePromise
+                        ? "Falta configurar la clave pública de Stripe (REACT_APP_STRIPE_PUBLISHABLE_KEY)."
+                        : "No se pudo cargar el formulario de pago. Cierra e intenta de nuevo."}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    className="mcd-btn mcd-btn--ghost"
+                    style={{ marginTop: 14, fontSize: 12 }}
+                    onClick={() => {
+                      setVincularStep("plan");
+                      setVincularClientSecret(null);
+                      setVincularError("");
+                    }}
+                  >
+                    ← Cambiar plan
+                  </button>
+                </div>
+              )}
+
+              {/* ── Paso 3: éxito ── */}
+              {vincularStep === "done" && (
+                <div className="mcd-body mcd-body--center">
+                  <div className="mcd-icon mcd-icon--ok">
+                    <CheckCircleOutlined />
+                  </div>
+                  <h3 className="mcd-title">¡Tarjeta vinculada!</h3>
+                  <p className="mcd-text">
+                    Tu suscripción está activa. A partir del próximo ciclo de facturación,
+                    los cobros se realizarán automáticamente con tu tarjeta registrada.
+                  </p>
+                  <div className="mcd-actions mcd-actions--center">
+                    <button
+                      type="button"
+                      className="mcd-btn mcd-btn--primary"
+                      onClick={() => {
+                        resetVincular();
+                        fetchCuenta();
+                      }}
+                    >
+                      Listo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Overlay: Borrar cuenta ───────────────────────────────── */}
         {deleteStep !== null && (
