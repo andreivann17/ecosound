@@ -60,6 +60,7 @@ export default function ElectronHeader({ hideUserPopover }) {
   useEffect(() => {
     if (isElectron || !navigator?.windowControlsOverlay) return;
     const update = () => {
+      if (!navigator.windowControlsOverlay.visible) { setWcoRight(0); return; }
       const rect = navigator.windowControlsOverlay.getTitlebarAreaRect();
       setWcoRight(Math.max(0, window.innerWidth - rect.x - rect.width));
     };

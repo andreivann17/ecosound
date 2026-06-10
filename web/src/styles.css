@@ -54,6 +54,7 @@
   align-items: center;
   gap: 18px;
   min-width: 0;
+  flex: 1;
 }
 
 .eh-brand{
@@ -121,6 +122,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .eh-ico-btn{
@@ -593,9 +595,8 @@ body { background: #f0f2f5; }
 .eh-bottom{ height: 56px; }     /* Fila 2: flechas+titulo / menú */
 
 /* Columnas */
-.eh-left, .eh-right{ display: flex; align-items: center; gap: 10px; }
-.eh-left { justify-content: flex-start; }
-.eh-right{ justify-content: flex-end; }
+.eh-left, .eh-right{ display: flex; align-items: center; }
+.eh-right{ justify-content: flex-end; flex-shrink: 0; }
 
 /* Elementos interactivos: no-drag */
 .electron-no-drag { -webkit-app-region: no-drag; }
