@@ -876,3 +876,14 @@ body { background: #f0f2f5; }
 .eh-app-item.active .eh-app-item-icon{
   box-shadow: 0 8px 24px rgba(255,255,255,.12);
 }
+
+/* ── PWA Window Controls Overlay ─────────────────────────── */
+@media (display-mode: window-controls-overlay) {
+  .eh-root {
+    top: env(titlebar-area-y, 0px);
+    height: env(titlebar-area-height, 56px);
+  }
+  .eh-bar {
+    height: env(titlebar-area-height, 56px);
+  }
+}

@@ -55,6 +55,19 @@ export default function ElectronHeader({ hideUserPopover }) {
     return typeof window !== "undefined" && !!window.electronAPI;
   }, []);
 
+  // WCO: espacio ocupado por botones nativos de Windows en PWA
+  const [wcoRight, setWcoRight] = useState(0);
+  useEffect(() => {
+    if (isElectron || !navigator?.windowControlsOverlay) return;
+    const update = () => {
+      const rect = navigator.windowControlsOverlay.getTitlebarAreaRect();
+      setWcoRight(Math.max(0, window.innerWidth - rect.x - rect.width));
+    };
+    update();
+    navigator.windowControlsOverlay.addEventListener("geometrychange", update);
+    return () => navigator.windowControlsOverlay.removeEventListener("geometrychange", update);
+  }, [isElectron]);
+
   const isLoginPage = ["/login", "/admin-login", "/signup", "/prelogin"].includes(location.pathname);
   const canShowUser = !isLoginPage;
 
@@ -395,7 +408,7 @@ const connectWS = useCallback(() => {
             )}
           </div>
 
-          <div className="eh-right electron-no-drag">
+          <div className="eh-right electron-no-drag" style={wcoRight > 0 ? { paddingRight: wcoRight } : undefined}>
             {isLoginPage !== true && (
               <>
               

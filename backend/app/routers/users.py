@@ -1,705 +1,588 @@
-# app/routers/users.py
+# app/models/users.py
 from typing import Any, Dict, Optional, List
-import os
+from datetime import datetime
+import bcrypt
 import secrets
-import smtplib
-from email.message import EmailMessage
+import string
 
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
-from pathlib import Path as FsPath
-import re
-import shutil
-
-from ..deps import get_current_user, get_tenant_filter
-from ..models import users as users_model
-
-router = APIRouter(prefix="/users", tags=["users"])
-
-UPLOADS_USERS = FsPath("uploads/usuarios")
-UPLOADS_PERFIL = FsPath("uploads/perfil")
-
-# =================================================
-# ============== RESET PASSWORD ===================
-# =================================================
-
-class EmailRequest(BaseModel):
-    email: EmailStr
+from ..db import get_connection, get_admin_connection
 
 
-class CodeValidationRequest(BaseModel):
-    email: EmailStr
-    code: str
+def _get_conn(use_admin: bool = False):
+    return get_admin_connection() if use_admin else get_connection()
+
+# ==========================
+# ===== EXCEPCIONES ========
+# ==========================
+
+class EmailAlreadyExists(Exception):
+    pass
 
 
-class NewPasswordRequest(BaseModel):
-    email: EmailStr
-    code: str
-    password: str
+# ==========================
+# ====== HELPERS ===========
+# ==========================
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(10)).decode()
 
 
-# -------- Email --------
-
-SMTP_USER = "soporte.herrsoft@gmail.com"
-SMTP_PASS = "rthy fkql nlep hnai"
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+def verify_password(plain: str, hashed) -> bool:
+    hashed_bytes = hashed if isinstance(hashed, bytes) else hashed.encode()
+    return bcrypt.checkpw(plain.encode(), hashed_bytes)
 
 
-def send_reset_email(email: str, token: str) -> None:
-    if not SMTP_USER or not SMTP_PASS:
-        raise RuntimeError("SMTP no configurado")
+# ==========================
+# ===== USUARIOS ===========
+# ==========================
 
-    msg = EmailMessage()
-    msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
-    msg["To"] = email
-    msg["Subject"] = "Restablecimiento de contraseña - HerrSoft Events"
-    msg.set_content(
-        f"""
-Estimado(a) usuario(a),
-
-Se solicitó un restablecimiento de contraseña para tu cuenta en HerrSoft Events.
-
-Código de verificación:
-{token}
-
-Si no solicitó este cambio, ignore este mensaje.
-
-Atentamente,
-HerrSoft Events
-"""
-    )
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-
-
-# -------- Endpoints --------
-
-@router.post("/email/")
-def send_reset_code(payload: EmailRequest):
-    user = users_model.get_user_by_email(payload.email)
-    if not user:
-        return {"status": False}
-
-    token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user["id_cliente"])
-
+def get_user_by_email(email: str, use_admin: bool = False) -> Optional[Dict[str, Any]]:
+    conn = _get_conn(use_admin)
     try:
-        send_reset_email(payload.email, token)
-        return {"status": True}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/validate-code/")
-def validate_code(payload: CodeValidationRequest):
-    ok = users_model.validate_reset_code(payload.email, payload.code)
-    return {"status": ok}
-
-
-@router.post("/new-password/")
-def set_new_password(payload: NewPasswordRequest):
-    valid = users_model.consume_reset_code(email=payload.email, code=payload.code)
-    if not valid:
-        return {"status": False}
-
-    updated = users_model.update_user_password(
-        email=payload.email,
-        new_plain_password=payload.password,
-    )
-    if updated:
-        import datetime as _dt
-        _send_correo_usuario(
-            source_id=3,
-            cfg_flag="correo_recuperar_password",
-            titulo=f"Contraseña restablecida: {payload.email}",
-            icon="🔐",
-            banner="Un usuario recuperó su contraseña",
-            filas=[
-                ("Correo", payload.email),
-                ("Hora",   _dt.datetime.now().strftime("%d/%m/%Y %H:%M")),
-            ],
-        )
-    return {"status": bool(updated)}
-
-
-# ---- ADMIN reset (administrador.users / administrador.users_reset_tokens) ----
-
-@router.post("/admin/email/")
-def send_admin_reset_code(payload: EmailRequest):
-    user = users_model.get_user_by_email(payload.email, use_admin=True)
-    if not user:
-        return {"status": False}
-
-    token = secrets.token_hex(5)
-    users_model.save_reset_token(email=payload.email, code=token, id_cliente=user["id_cliente"], use_admin=True)
-
-    try:
-        send_reset_email(payload.email, token)
-        return {"status": True}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/admin/validate-code/")
-def validate_admin_code(payload: CodeValidationRequest):
-    ok = users_model.validate_reset_code(payload.email, payload.code, use_admin=True)
-    return {"status": ok}
-
-
-@router.post("/admin/new-password/")
-def set_admin_new_password(payload: NewPasswordRequest):
-    valid = users_model.consume_reset_code(email=payload.email, code=payload.code, use_admin=True)
-    if not valid:
-        return {"status": False}
-
-    updated = users_model.update_user_password(
-        email=payload.email,
-        new_plain_password=payload.password,
-        use_admin=True,
-    )
-    return {"status": bool(updated)}
-
-# =================================================
-# ================= CRUD USUARIOS =================
-# =================================================
-
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-
-
-# ================== CONFIG: CORREO ==================
-
-_CFG_USR_DDL = """
-CREATE TABLE IF NOT EXISTS configuracion_usuarios (
-    id_configuracion_usuario  INT        AUTO_INCREMENT PRIMARY KEY,
-    correo_crear_usuario      TINYINT(1) NOT NULL DEFAULT 0,
-    correo_inicio_sesion      TINYINT(1) NOT NULL DEFAULT 0,
-    correo_recuperar_password TINYINT(1) NOT NULL DEFAULT 0,
-    id_user                   INT        NOT NULL DEFAULT 0,
-    id_cliente                INT        NOT NULL DEFAULT 0,
-    active                    TINYINT(1) NOT NULL DEFAULT 1,
-    datetime                  DATETIME   NOT NULL
-)
-"""
-
-def _ensure_cfg_usuarios(conn):
-    with conn.cursor() as cur:
-        cur.execute(_CFG_USR_DDL)
-        cur.execute("SHOW COLUMNS FROM configuracion_usuarios LIKE 'id_cliente'")
-        if not cur.fetchone():
-            cur.execute("ALTER TABLE configuracion_usuarios ADD COLUMN id_cliente INT NOT NULL DEFAULT 0")
-    conn.commit()
-
-
-_USR_CORREO_DEFAULTS = {
-    "correo_crear_usuario":      False,
-    "correo_inicio_sesion":      False,
-    "correo_recuperar_password": False,
-}
-
-
-@router.get("/config/correo")
-def get_config_correo_usuarios(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    tenant_id: Optional[int] = Depends(get_tenant_filter),
-):
-    from ..db import get_connection
-    conn = get_connection()
-    try:
-        _ensure_cfg_usuarios(conn)
         with conn.cursor(dictionary=True) as cur:
-            if tenant_id is not None:
-                cur.execute(
-                    """
-                    SELECT correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password
-                    FROM configuracion_usuarios
-                    WHERE active = 1 AND id_cliente = %s
-                    ORDER BY id_configuracion_usuario DESC
-                    LIMIT 1
-                    """,
-                    (tenant_id,),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password
-                    FROM configuracion_usuarios
-                    WHERE active = 1
-                    ORDER BY id_configuracion_usuario DESC
-                    LIMIT 1
-                    """
-                )
-            row = cur.fetchone()
-        if not row:
-            return _USR_CORREO_DEFAULTS.copy()
-        return {k: bool(v) for k, v in row.items()}
+            cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+            return cur.fetchone()
     finally:
         conn.close()
 
 
-class ConfigCorreoUsuarios(BaseModel):
-    correo_crear_usuario:      bool = False
-    correo_inicio_sesion:      bool = False
-    correo_recuperar_password: bool = False
-    model_config = ConfigDict(extra="ignore")
-
-
-@router.put("/config/correo", status_code=200)
-def save_config_correo_usuarios(
-    payload: ConfigCorreoUsuarios,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    tenant_id: Optional[int] = Depends(get_tenant_filter),
-):
-    from ..db import get_connection
-    import datetime as _dt
-    user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
-    id_cliente_val = tenant_id if tenant_id is not None else 0
-    now = _dt.datetime.now()
+def create_user(*, name: str, email: str, password_plain: str, id_user_creation: int) -> str:
     conn = get_connection()
     try:
-        _ensure_cfg_usuarios(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM users WHERE email=%s", (email,))
+            if cur.fetchone():
+                raise EmailAlreadyExists("Email ya registrado")
+
+            code = secrets.token_hex(6)
+            hashed = hash_password(password_plain)
+
+            cur.execute(
+                """
+                INSERT INTO users
+                (code, name, email, password, id_user_creation, active, datetime)
+                VALUES (%s,%s,%s,%s,%s,1,NOW())
+                """,
+                (code, name, email, hashed, id_user_creation),
+            )
+            conn.commit()
+            return code
+    finally:
+        conn.close()
+
+
+def get_user_id_cliente(id_user: int) -> Optional[int]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT email FROM users WHERE id_user = %s AND usuario_cliente = 1",
+                (id_user,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            email = row[0]
+            cur.execute(
+                "SELECT id_cliente FROM users WHERE email = %s AND usuario_cliente = 1 ORDER BY id_user DESC LIMIT 1",
+                (email,),
+            )
+            row = cur.fetchone()
+        val = row[0] if row else None
+        return int(val) if val else None
+    finally:
+        conn.close()
+
+
+def get_user_tenant_info(id_user: int) -> Dict[str, int]:
+    """Returns id_cliente for the given user (used to embed in JWT)."""
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_cliente FROM users WHERE id_user=%s AND active=1",
+                (id_user,),
+            )
+            row = cur.fetchone()
+        val = (row or {}).get("id_cliente") or 0
+        return {"id_cliente": int(val)}
+    finally:
+        conn.close()
+
+
+def get_user_cliente_flag(id_user: int) -> Optional[int]:
+    """Returns the usuario_cliente value (0 or 1) for the given user, or None if not found."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT usuario_cliente FROM users WHERE id_user=%s", (id_user,))
+            row = cur.fetchone()
+            return int(row[0]) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_id_by_code(code: str) -> Optional[int]:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id_user FROM users WHERE code=%s", (code,))
+            r = cur.fetchone()
+            return r[0] if r else None
+    finally:
+        conn.close()
+
+
+def get_user_by_code(code: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_user, code, name, email, active, path, filename, datetime FROM users WHERE code=%s",
+                (code,),
+            )
+            row = cur.fetchone()
+            if row and hasattr(row.get("datetime"), "isoformat"):
+                row["datetime"] = row["datetime"].isoformat()
+            return row
+    finally:
+        conn.close()
+
+
+def update_user_imagen(code: str, filename: str, path: str) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET filename = %s, path = %s WHERE code = %s",
+                (filename, path, code),
+            )
+            affected = cur.rowcount
+        conn.commit()
+        return affected
+    finally:
+        conn.close()
+
+
+def list_users(*, search: Optional[str] = None, id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            sql = "SELECT id_user, code, name, email, active, datetime, path FROM users WHERE active=1"
+            params: list = []
+            if id_cliente is not None:
+                sql += " AND id_cliente = %s"
+                params.append(id_cliente)
+            if search:
+                sql += " AND (name LIKE %s OR email LIKE %s)"
+                params.extend([f"%{search}%", f"%{search}%"])
+            sql += " ORDER BY id_user DESC"
+            cur.execute(sql, tuple(params))
+            return cur.fetchall()
+    finally:
+        conn.close()
+
+
+def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id_user, code, name, email, active FROM users WHERE id_user=%s",
+                (id,),
+            )
+            return cur.fetchone()
+    finally:
+        conn.close()
+
+def update_user(*, id_user: int, data: Dict[str, Any]) -> int:
+    allowed = {"name", "email", "password", "active"}
+    sets, params = [], []
+
+    for k, v in data.items():
+        if k not in allowed:
+            continue
+        if k == "password":
+            v = hash_password(v)
+        sets.append(f"{k}=%s")
+        params.append(v)
+
+    if not sets:
+        return 0
+
+    params.append(id_user)
+    sql = f"UPDATE users SET {', '.join(sets)} WHERE id_user=%s"
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, tuple(params))
+            conn.commit()
+            return cur.rowcount
+    finally:
+        conn.close()
+
+
+def set_user_active_flag(*, id_user: int, active_value: int) -> int:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET active=%s WHERE id_user=%s",
+                (active_value, id_user),
+            )
+            conn.commit()
+            return cur.rowcount
+    finally:
+        conn.close()
+
+
+# ==========================
+# ===== PERMISOS ===========
+# ==========================
+
+_MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones"]
+_ACTIONS = ["modulo", "consultar", "insertar", "editar", "eliminar"]
+
+
+def _get_modulo_map(conn) -> Dict[str, int]:
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT id_modulo, nombre FROM modulos WHERE active = 1")
+        rows = cur.fetchall() or []
+    return {r["nombre"].lower(): r["id_modulo"] for r in rows}
+
+
+def get_user_permissions(id_user: int) -> Dict[str, Any]:
+    conn = get_connection()
+    try:
+        modulo_map = _get_modulo_map(conn)
+        id_to_nombre = {v: k for k, v in modulo_map.items()}
+
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
                 """
-                SELECT id_configuracion_usuario
-                FROM configuracion_usuarios
-                WHERE active = 1 AND id_cliente = %s
-                ORDER BY id_configuracion_usuario DESC
-                LIMIT 1
+                SELECT id_modulo, modulo, consultar, insertar, editar, eliminar
+                FROM usuarios_privilegios
+                WHERE id_user = %s AND active = 1
                 """,
-                (id_cliente_val,),
+                (id_user,),
             )
-            existing = cur.fetchone()
+            rows = cur.fetchall() or []
 
-        if existing:
-            with conn.cursor() as cur:
+        configured = {id_to_nombre[row["id_modulo"]] for row in rows if row["id_modulo"] in id_to_nombre}
+        # Modules with no privilege row default all actions to True so new modules
+        # are fully accessible without needing manual per-user DB setup.
+        result = {
+            m: {a: (m not in configured) for a in _ACTIONS}
+            for m in _MODULES
+        }
+        for row in rows:
+            nombre = id_to_nombre.get(row["id_modulo"])
+            if nombre and nombre in result:
+                result[nombre]["modulo"]    = bool(row["modulo"])
+                result[nombre]["consultar"] = bool(row["consultar"])
+                result[nombre]["insertar"]  = bool(row["insertar"])
+                result[nombre]["editar"]    = bool(row["editar"])
+                result[nombre]["eliminar"]  = bool(row["eliminar"])
+        return result
+    finally:
+        conn.close()
+
+
+def save_user_permissions(id_user: int, permisos: Dict[str, Any], id_user_created: int = 0) -> None:
+    import datetime as _dt
+    conn = get_connection()
+    try:
+        modulo_map = _get_modulo_map(conn)
+        now = _dt.datetime.now()
+
+        with conn.cursor() as cur:
+            for module in _MODULES:
+                id_modulo = modulo_map.get(module)
+                if not id_modulo:
+                    continue
+                p = permisos.get(module, {})
                 cur.execute(
                     """
-                    UPDATE configuracion_usuarios SET
-                        correo_crear_usuario      = %s,
-                        correo_inicio_sesion      = %s,
-                        correo_recuperar_password = %s,
-                        datetime                  = %s
-                    WHERE id_configuracion_usuario = %s
+                    INSERT INTO usuarios_privilegios
+                        (id_user, id_modulo, modulo, consultar, insertar, editar, eliminar, active, datetime, id_user_created)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        modulo          = VALUES(modulo),
+                        consultar       = VALUES(consultar),
+                        insertar        = VALUES(insertar),
+                        editar          = VALUES(editar),
+                        eliminar        = VALUES(eliminar),
+                        datetime        = VALUES(datetime),
+                        id_user_created = VALUES(id_user_created)
                     """,
                     (
-                        int(payload.correo_crear_usuario),
-                        int(payload.correo_inicio_sesion),
-                        int(payload.correo_recuperar_password),
+                        id_user, id_modulo,
+                        int(bool(p.get("modulo",    False))),
+                        int(bool(p.get("consultar", False))),
+                        int(bool(p.get("insertar",  False))),
+                        int(bool(p.get("editar",    False))),
+                        int(bool(p.get("eliminar",  False))),
                         now,
-                        existing["id_configuracion_usuario"],
-                    ),
-                )
-        else:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO configuracion_usuarios
-                        (correo_crear_usuario, correo_inicio_sesion, correo_recuperar_password,
-                         id_user, id_cliente, active, datetime)
-                    VALUES (%s, %s, %s, %s, %s, 1, %s)
-                    """,
-                    (
-                        int(payload.correo_crear_usuario),
-                        int(payload.correo_inicio_sesion),
-                        int(payload.correo_recuperar_password),
-                        user_id,
-                        id_cliente_val,
-                        now,
+                        id_user_created,
                     ),
                 )
         conn.commit()
     finally:
         conn.close()
-    return {"ok": True}
 
 
-USR_MODULO_CORREO = 4  # id_modulo en configuracion_correos
+# ==========================
+# ===== PERFIL EXTRA =======
+# ==========================
+
+_PERFIL_DDL = """
+CREATE TABLE IF NOT EXISTS perfil (
+    id_perfil        INT(11)      AUTO_INCREMENT PRIMARY KEY,
+    nombre           VARCHAR(125) NOT NULL DEFAULT '',
+    apellido         VARCHAR(125) NOT NULL DEFAULT '',
+    fecha_nacimiento DATETIME     DEFAULT NULL,
+    active           TINYINT(1)   NOT NULL DEFAULT 1,
+    telefono         INT(20)      DEFAULT NULL,
+    id_user          INT(11)      NOT NULL,
+    datetime         DATETIME     NOT NULL,
+    ultima_sesion    DATETIME     DEFAULT NULL,
+    path             VARCHAR(125) DEFAULT NULL,
+    filename         VARCHAR(125) DEFAULT NULL,
+    UNIQUE KEY uq_perfil_user (id_user)
+)
+"""
 
 
-def _cfg_usuarios_flag(flag_key: str) -> bool:
-    from ..db import get_connection as _gc
-    conn = _gc()
+def _ensure_perfil(conn):
+    with conn.cursor() as cur:
+        cur.execute(_PERFIL_DDL)
+    conn.commit()
+
+
+def _get_id_cliente_from_user(conn, id_user: int) -> Optional[int]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT id_cliente FROM users WHERE id_user=%s LIMIT 1", (id_user,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def get_user_full_by_id(id_user: int) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                f"SELECT {flag_key} FROM configuracion_usuarios "
-                "WHERE active=1 ORDER BY id_configuracion_usuario DESC LIMIT 1"
+                "SELECT id_user, code, name, email, active, path, filename, datetime, ultmo_inicio_sesion FROM users WHERE id_user=%s",
+                (id_user,),
             )
             row = cur.fetchone()
-        return bool(row and row.get(flag_key))
-    except Exception:
-        return False
+            if row:
+                for f in ("datetime", "ultmo_inicio_sesion"):
+                    if row.get(f) and hasattr(row[f], "isoformat"):
+                        row[f] = row[f].isoformat()
+            return row
     finally:
         conn.close()
 
 
-def _usuario_html(titulo: str, icon: str, banner_text: str, filas: list) -> str:
-    import datetime as _dt
-    now = _dt.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    rows_html = ""
-    for label, valor in filas:
-        rows_html += f"""
-        <tr><td style="padding:10px 0;border-bottom:1px solid #f0f4f8;">
-          <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;
-                       letter-spacing:0.06em;margin-bottom:4px;">{label}</div>
-          <div style="font-size:14px;font-weight:600;color:#111827;">{valor or "—"}</div>
-        </td></tr>"""
-    return f"""<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f5;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="580" cellpadding="0" cellspacing="0"
-           style="background:#ffffff;border-radius:16px;overflow:hidden;
-                  box-shadow:0 4px 16px rgba(0,0,0,0.08);max-width:580px;">
-      <tr>
-        <td style="background:#01369e;padding:24px 32px;">
-          <table width="100%"><tr>
-            <td>
-              <div style="font-size:22px;font-weight:700;color:#ffffff;">HerrSoft Events</div>
-              <div style="font-size:12px;color:#93c5fd;margin-top:2px;">Sistema de gestión</div>
-            </td>
-            <td align="right">
-              <span style="background:rgba(255,255,255,0.18);color:#fff;font-size:11px;
-                           font-weight:700;letter-spacing:0.06em;padding:4px 12px;border-radius:20px;">
-                USUARIOS
-              </span>
-            </td>
-          </tr></table>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#eff6ff;border-bottom:2px solid #bfdbfe;padding:14px 32px;">
-          <div style="font-size:15px;font-weight:700;color:#01369e;">{icon} {banner_text}</div>
-          <div style="font-size:12px;color:#3b82f6;margin-top:2px;">Enviado el {now}</div>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:24px 32px 0;">
-          <div style="font-size:20px;font-weight:700;color:#111827;">{titulo}</div>
-        </td>
-      </tr>
-      <tr><td style="padding:12px 32px 0;">
-        <hr style="border:none;border-top:1px solid #f0f4f8;margin:0;">
-      </td></tr>
-      <tr>
-        <td style="padding:16px 32px 28px;">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            {rows_html}
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#f8fafc;border-top:1px solid #f0f4f8;padding:16px 32px;">
-          <div style="font-size:11px;color:#9ca3af;text-align:center;">
-            Correo generado automáticamente por <strong>HerrSoft Events</strong> · No respondas a este mensaje.
-          </div>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>"""
-
-
-def _send_correo_usuario(source_id: int, cfg_flag: str, titulo: str, icon: str, banner: str, filas: list) -> None:
+def get_user_perfil(id_user: int) -> Dict[str, Any]:
+    conn = get_connection()
     try:
-        if not _cfg_usuarios_flag(cfg_flag):
-            return
-        from ..utils.email import send_email_bg, get_destinatarios_emails
-        emails = get_destinatarios_emails(USR_MODULO_CORREO, source_id)
-        if not emails:
-            return
-        html = _usuario_html(titulo, icon, banner, filas)
-        send_email_bg(emails, f"{icon} {banner}", html)
-    except Exception:
-        pass
+        _ensure_perfil(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT nombre, apellido, fecha_nacimiento, telefono, ultima_sesion, path, filename FROM perfil WHERE id_user=%s AND active=1",
+                (id_user,),
+            )
+            row = cur.fetchone() or {}
+        for field in ("fecha_nacimiento", "ultima_sesion"):
+            if row.get(field) and hasattr(row[field], "isoformat"):
+                row[field] = row[field].isoformat()
+        return row
+    finally:
+        conn.close()
 
 
-@router.get("")
-def list_users(
-    search: Optional[str] = None,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    tenant_id: Optional[int] = Depends(get_tenant_filter),
-):
-    return users_model.list_users(search=search, id_cliente=tenant_id)
-
-
-@router.post("", status_code=201)
-def create_user(
-    payload: UserCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    creator_id = current_user.get("id")
-    if not creator_id:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-
+def upsert_user_perfil(id_user: int, data: Dict[str, Any]) -> None:
+    allowed = {"nombre", "apellido", "fecha_nacimiento", "telefono"}
+    filtered = {k: v for k, v in data.items() if k in allowed}
+    if not filtered:
+        return
+    conn = get_connection()
     try:
-        name_clean  = payload.name.strip()
-        email_clean = str(payload.email).lower().strip()
-        code = users_model.create_user(
-            name=name_clean,
-            email=email_clean,
-            password_plain=payload.password,
-            id_user_creation=int(creator_id),
-        )
-        import datetime as _dt
-        _send_correo_usuario(
-            source_id=1,
-            cfg_flag="correo_crear_usuario",
-            titulo=f"Nuevo usuario: {name_clean}",
-            icon="👤",
-            banner="Nuevo usuario registrado en el sistema",
-            filas=[
-                ("Nombre",   name_clean),
-                ("Correo",   email_clean),
-                ("Hora",     _dt.datetime.now().strftime("%d/%m/%Y %H:%M")),
-            ],
-        )
-        return {"code": code}
-    except users_model.EmailAlreadyExists as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.get("/me/perfil")
-def get_my_perfil(current_user: Dict[str, Any] = Depends(get_current_user)):
-    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-    user = users_model.get_user_by_id(id_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    perfil = users_model.get_user_perfil(id_user)
-    nombre = perfil.get("nombre") or user.get("name", "")
-    ultima_sesion = perfil.get("ultima_sesion")
-    return {
-        "id": id_user,
-        "code": user.get("code", ""),
-        "name": nombre,
-        "email": user.get("email", ""),
-        **perfil,
-        "ultima_sesion": ultima_sesion,
-    }
+        _ensure_perfil(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT id_perfil FROM perfil WHERE id_user=%s", (id_user,))
+            exists = cur.fetchone()
+        if exists:
+            sets = ", ".join(f"{k}=%s" for k in filtered)
+            params = list(filtered.values()) + [id_user]
+            with conn.cursor() as cur:
+                cur.execute(f"UPDATE perfil SET {sets} WHERE id_user=%s", params)
+        else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
+            cols = ", ".join(filtered.keys())
+            vals = ", ".join(["%s"] * len(filtered))
+            params = list(filtered.values()) + [id_user, id_cliente]
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"INSERT INTO perfil ({cols}, id_user, active, datetime, id_cliente) VALUES ({vals}, %s, 1, NOW(), %s)",
+                    params,
+                )
+        conn.commit()
+    finally:
+        conn.close()
 
 
-class PerfilUpdate(BaseModel):
-    nombre: Optional[str] = None
-    apellido: Optional[str] = None
-    fecha_nacimiento: Optional[str] = None
-    telefono: Optional[str] = None
-    model_config = ConfigDict(extra="ignore")
+def update_perfil_imagen(id_user: int, filename: str, path: str) -> None:
+    conn = get_connection()
+    try:
+        _ensure_perfil(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT id_perfil FROM perfil WHERE id_user=%s", (id_user,))
+            exists = cur.fetchone()
+        if exists:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE perfil SET filename=%s, path=%s WHERE id_user=%s",
+                    (filename, path, id_user),
+                )
+        else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, filename, path, id_cliente) VALUES (%s, '', '', 1, NOW(), %s, %s, %s)",
+                    (id_user, filename, path, id_cliente),
+                )
+        conn.commit()
+    finally:
+        conn.close()
 
 
-@router.patch("/me/perfil")
-def update_my_perfil(
-    payload: PerfilUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-    data = payload.model_dump(exclude_none=True)
-    if data:
-        users_model.upsert_user_perfil(id_user, data)
-        if "nombre" in data:
-            users_model.update_user(id_user=id_user, data={"name": data["nombre"]})
-    return {"ok": True}
+def update_ultima_sesion(id_user: int) -> None:
+    conn = get_connection()
+    try:
+        _ensure_perfil(conn)
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT id_perfil FROM perfil WHERE id_user=%s", (id_user,))
+            exists = cur.fetchone()
+        now = datetime.now()
+        if exists:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE perfil SET ultima_sesion=%s WHERE id_user=%s", (now, id_user))
+        else:
+            id_cliente = _get_id_cliente_from_user(conn, id_user)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, ultima_sesion, id_cliente) VALUES (%s, '', '', 1, %s, %s, %s)",
+                    (id_user, now, now, id_cliente),
+                )
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET ultmo_inicio_sesion=%s WHERE id_user=%s", (now, id_user))
+        conn.commit()
+    finally:
+        conn.close()
 
 
-class ChangePasswordPayload(BaseModel):
-    current_password: str
-    new_password: str
+def change_own_password(id_user: int, current_password: str, new_password: str) -> bool:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT password FROM users WHERE id_user=%s", (id_user,))
+            row = cur.fetchone()
+        if not row:
+            return False
+        if not verify_password(current_password, row["password"]):
+            return False
+        hashed = hash_password(new_password)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET password=%s WHERE id_user=%s", (hashed, id_user))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
 
 
-@router.post("/me/change-password")
-def change_my_password(
-    payload: ChangePasswordPayload,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-    ok = users_model.change_own_password(id_user, payload.current_password, payload.new_password)
-    if not ok:
-        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
-    return {"ok": True}
+def update_user_password(email: str, new_plain_password: str, use_admin: bool = False) -> bool:
+    hashed = hash_password(new_plain_password)
+    conn = _get_conn(use_admin)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET password=%s WHERE email=%s",
+                (hashed, email),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+    finally:
+        conn.close()
 
 
-@router.post("/me/imagen", status_code=200)
-async def upload_my_imagen(
-    file: UploadFile = File(...),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    import datetime as _dt
-    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
+# ==========================
+# === RESET TOKENS =========
+# ==========================
 
-    dest_dir = UPLOADS_PERFIL / str(id_user)
-    dest_dir.mkdir(parents=True, exist_ok=True)
-
-    original_filename = file.filename or "imagen"
-    safe_name = re.sub(r"[^\w.\-]", "_", original_filename)
-    timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    stored_name = f"{timestamp}_{safe_name}"
-    dest_path = dest_dir / stored_name
-
-    with dest_path.open("wb") as fh:
-        shutil.copyfileobj(file.file, fh)
-
-    from ..utils.comprimir import compress_file_best_effort
-    dest_path = compress_file_best_effort(dest_path, max_image_dimension=800)
-    rel_path = str(dest_path).replace("\\", "/")
-    users_model.update_perfil_imagen(id_user, original_filename, rel_path)
-    return {"path": rel_path, "filename": original_filename}
-
-
-@router.get("/me")
-def read_me(current_user: Dict[str, Any] = Depends(get_current_user)):
-    """
-    Devuelve datos reales del usuario autenticado,
-    consultando la base de datos usando el id del token.
-    """
-    id_user = current_user.get("id") or current_user.get("id_user")
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-
-    user = users_model.get_user_by_id(int(id_user))
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    return {
-        "status": True,
-        "user": {
-            "id": user["id_user"],
-            "name": user["name"],
-            "email": user["email"],
-            "code": user.get("code"),
-            "role": user.get("role"),
-        },
-    }
-
-@router.get("/{code}")
-def get_user(code: str, current_user: Dict[str, Any] = Depends(get_current_user)):
-    row = users_model.get_user_by_code(code)
-    if not row:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return row
+def save_reset_token(email: str, code: str, id_cliente: Optional[int] = None, use_admin: bool = False) -> None:
+    conn = _get_conn(use_admin)
+    try:
+        with conn.cursor() as cur:
+            if use_admin:
+                cur.execute(
+                    """
+                    INSERT INTO users_reset_tokens (email, code, created_at, used)
+                    VALUES (%s, %s, NOW(), 0)
+                    """,
+                    (email, code),
+                )
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO users_reset_tokens (email, code, id_cliente, created_at, used)
+                    VALUES (%s, %s, %s, NOW(), 0)
+                    """,
+                    (email, code, id_cliente),
+                )
+            conn.commit()
+    finally:
+        conn.close()
 
 
-class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    active: Optional[int] = None
-    model_config = ConfigDict(extra="allow")
+def validate_reset_code(email: str, code: str, use_admin: bool = False) -> bool:
+    conn = _get_conn(use_admin)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1
+                FROM users_reset_tokens
+                WHERE email=%s
+                  AND code=%s
+                  AND used=0
+                  AND created_at >= NOW() - INTERVAL 1 HOUR
+                """,
+                (email, code),
+            )
+            return cur.fetchone() is not None
+    finally:
+        conn.close()
 
 
-@router.patch("/{code}")
-def update_user(
-    code: str,
-    payload: UserUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = users_model.get_user_id_by_code(code)
-    if not id_user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    data = payload.model_dump(exclude_none=True)
-    updated = users_model.update_user(id_user=id_user, data=data)
-    
-    return {"updated": updated}
-
-
-@router.post("/{code}/imagen", status_code=200)
-async def upload_user_imagen(
-    code: str,
-    file: UploadFile = File(...),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    row = users_model.get_user_by_code(code)
-    if not row:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    suffix = (FsPath(file.filename or "img").suffix or ".jpg").lstrip(".").lower()
-    ext = re.sub(r"[^a-z0-9]", "", suffix) or "jpg"
-    folder = UPLOADS_USERS / code
-    folder.mkdir(parents=True, exist_ok=True)
-    filename = f"perfil.{ext}"
-    dest = folder / filename
-    with dest.open("wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    from ..utils.comprimir import compress_file_best_effort
-    dest = compress_file_best_effort(dest, max_image_dimension=800)
-    filename = dest.name
-    path_str = f"uploads/usuarios/{code}/{filename}"
-    users_model.update_user_imagen(code=code, filename=filename, path=path_str)
-    return {"path": path_str, "filename": filename}
-
-
-@router.get("/me/permisos")
-def get_my_permisos(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
-    if not id_user:
-        raise HTTPException(status_code=401, detail="Usuario inválido")
-    return users_model.get_user_permissions(id_user)
-
-
-@router.get("/{code}/permisos")
-def get_permisos(
-    code: str,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = users_model.get_user_id_by_code(code)
-    if not id_user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return users_model.get_user_permissions(id_user)
-
-
-class PermisosPayload(BaseModel):
-    permisos: Dict[str, Dict[str, bool]]
-    model_config = ConfigDict(extra="ignore")
-
-
-@router.put("/{code}/permisos")
-def save_permisos(
-    code: str,
-    payload: PermisosPayload,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = users_model.get_user_id_by_code(code)
-    if not id_user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    creator_id = int(current_user.get("id") or current_user.get("id_user") or 0)
-    users_model.save_user_permissions(id_user, payload.permisos, id_user_created=creator_id)
-    return {"saved": True}
-
-
-@router.delete("/{code}")
-def delete_user(
-    code: str,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-):
-    id_user = users_model.get_user_id_by_code(code)
-    if not id_user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    if users_model.get_user_cliente_flag(id_user) == 1:
-        raise HTTPException(
-            status_code=403,
-            detail="Este usuario pertenece a un cliente de Events y no puede eliminarse desde aquí.",
-        )
-
-    users_model.set_user_active_flag(id_user=id_user, active_value=0)
-    return {"active": 0}
-
+def consume_reset_code(email: str, code: str, use_admin: bool = False) -> bool:
+    conn = _get_conn(use_admin)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE users_reset_tokens
+                SET used=1
+                WHERE email=%s
+                  AND code=%s
+                  AND used=0
+                  AND created_at >= NOW() - INTERVAL 1 HOUR
+                """,
+                (email, code),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+    finally:
+        conn.close()
