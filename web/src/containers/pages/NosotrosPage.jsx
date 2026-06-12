@@ -5,12 +5,12 @@ import "../../assets/css/NosotrosPage.css";
 
 // 👈 Reemplaza con tus fotos reales
 import foto1 from "../../assets/img/andre.webp";
-// import foto2 from "../../assets/img/coceo_socio.jpeg";
+import foto2 from "../../assets/img/daniel.webp";
 
 const FOUNDERS = [
   {
     name: "Andre Ivann Herrera",
-    role: "Co-CEO · Investigador",
+    role: "Co-CEO",
     bio: "Liderazgo en investigación y desarrollo. Apasionado por construir software que resuelva problemas reales del día a día.",
     initials: "AH",
     color: "linear-gradient(135deg, #012770 0%, #01369e 100%)",
@@ -22,7 +22,8 @@ const FOUNDERS = [
     bio: "Visión de negocio y experiencia operativa. El puente entre lo que el cliente necesita y lo que el software entrega.",
     initials: "DH",
     color: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)",
-    photo: null, // 👈 foto2
+    photo: foto2, // 👈 foto2
+    photoScale: 1.35,
   },
 ];
 
@@ -157,11 +158,11 @@ export default function NosotrosPage() {
         </div>
 
         <div className="founders-grid">
-          {FOUNDERS.map(({ name, role, bio, initials, color, photo }, i) => (
+          {FOUNDERS.map(({ name, role, bio, initials, color, photo, photoScale }, i) => (
             <div key={i} className="founder-card">
               <div className="founder-photo" style={{ background: color }}>
                 {photo ? (
-                  <img src={photo} alt={name} />
+                  <img src={photo} alt={name} style={photoScale ? { transform: `scale(${photoScale})` } : undefined} />
                 ) : (
                   <span className="founder-initials">{initials}</span>
                 )}

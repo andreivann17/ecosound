@@ -10,7 +10,7 @@ from pathlib import Path as FsPath
 from ..realtime.ws_manager import manager
 
 from fastapi import status
-from ..deps import get_current_user
+from ..deps import get_current_user, get_tenant_filter
 from ..models import contratos as contrato_model
 from ..models import agenda as agenda_model
 from ..models import audit as audit_model
@@ -404,6 +404,7 @@ def list_contratos(
     limit: Optional[int] = Query(None, ge=1, le=500),
     offset: Optional[int] = Query(None, ge=0),
     _current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     return contrato_model.list_contratos(
         cliente_nombre=cliente_nombre,
@@ -413,6 +414,7 @@ def list_contratos(
         search=search,
         limit=limit,
         offset=offset,
+        id_cliente=tenant_id,
     )
 
 
@@ -420,20 +422,28 @@ def list_contratos(
 def search_contratos(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
+    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     q_like = f"%{q.strip()}%"
+    params: list = [q_like, q_like]
+    tenant_clause = ""
+    if tenant_id is not None:
+        tenant_clause = " AND id_cliente = %s"
+        params.append(tenant_id)
+    params.append(limit)
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                """
+                f"""
                 SELECT id_contrato, code, cliente_nombre, fecha_evento
                 FROM contratos
-                WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1
+                WHERE (code LIKE %s OR cliente_nombre LIKE %s) AND active = 1{tenant_clause}
                 ORDER BY fecha_evento DESC
                 LIMIT %s
                 """,
-                (q_like, q_like, limit),
+                params,
             )
             return cur.fetchall() or []
     except Exception as e:
@@ -446,6 +456,7 @@ def search_contratos(
 def contrato_cards(
     payload: ContratoCardsReq,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     return contrato_model.cards_contrato(
         cliente_nombre=payload.cliente_nombre,
@@ -453,6 +464,7 @@ def contrato_cards(
         date_to=payload.date_to,
         active=payload.active,
         search=payload.search,
+        id_cliente=tenant_id,
     )
 
 

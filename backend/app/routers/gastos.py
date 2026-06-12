@@ -319,8 +319,9 @@ def create_tipo_gasto(
 def delete_tipo_gasto(
     id_tipo_gasto: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    affected = gastos_model.delete_tipo_gasto(id_tipo_gasto)
+    affected = gastos_model.delete_tipo_gasto(id_tipo_gasto, id_cliente=tenant_id)
     if affected == 0:
         raise HTTPException(status_code=404, detail="Tipo no encontrado.")
     return {"ok": True}

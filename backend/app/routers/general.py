@@ -130,20 +130,16 @@ def list_ciudades(
     current_user: Dict[str, Any] = Depends(get_current_user),
     tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    print(tenant_id)
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if tenant_id:
-                cur.execute(
-                    "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
-                    (tenant_id,),
-                )
-            else:
-                cur.execute(
-                    "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 ORDER BY nombre"
-                )
+            cur.execute(
+                "SELECT id_ciudad, nombre, color_hex FROM ciudades WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
+                (tenant_id,),
+            )
             return cur.fetchall()
     finally:
         conn.close()
@@ -178,6 +174,7 @@ def update_ciudad(
     id_ciudad: int,
     payload: CiudadUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     data = payload.model_dump(exclude_none=True)
@@ -186,10 +183,10 @@ def update_ciudad(
     conn = get_connection()
     try:
         sets = ", ".join(f"{k} = %s" for k in data)
-        vals = list(data.values()) + [id_ciudad]
+        vals = list(data.values()) + [id_ciudad, tenant_id]
         with conn.cursor() as cur:
             cur.execute(
-                f"UPDATE ciudades SET {sets} WHERE id_ciudad = %s AND active = 1",
+                f"UPDATE ciudades SET {sets} WHERE id_ciudad = %s AND id_cliente = %s AND active = 1",
                 vals,
             )
             conn.commit()
@@ -202,12 +199,16 @@ def update_ciudad(
 def delete_ciudad(
     id_ciudad: int,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE ciudades SET active = 0 WHERE id_ciudad = %s", (id_ciudad,))
+            cur.execute(
+                "UPDATE ciudades SET active = 0 WHERE id_ciudad = %s AND id_cliente = %s",
+                (id_ciudad, tenant_id),
+            )
             conn.commit()
         return {"ok": True}
     finally:

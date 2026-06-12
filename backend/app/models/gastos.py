@@ -198,18 +198,15 @@ def get_resumen_gastos(id_cliente: Optional[int] = None) -> Dict[str, Any]:
 # ── Tipos de gasto ──────────────────────────────────────────────────────────
 
 def list_tipo_gastos(id_cliente: Optional[int] = None) -> List[Dict[str, Any]]:
+    if id_cliente is None:
+        return []
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if id_cliente is not None:
-                cur.execute(
-                    "SELECT * FROM tipo_gastos WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
-                    (id_cliente,),
-                )
-            else:
-                cur.execute(
-                    "SELECT * FROM tipo_gastos WHERE active = 1 ORDER BY nombre"
-                )
+            cur.execute(
+                "SELECT * FROM tipo_gastos WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
+                (id_cliente,),
+            )
             return cur.fetchall() or []
     finally:
         conn.close()
@@ -244,13 +241,13 @@ def create_tipo_gasto(nombre: str, id_cliente: Optional[int] = None) -> Dict[str
         conn.close()
 
 
-def delete_tipo_gasto(id_tipo_gasto: int) -> int:
+def delete_tipo_gasto(id_tipo_gasto: int, id_cliente: Optional[int] = None) -> int:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE tipo_gastos SET active = 0 WHERE id_tipo_gasto = %s",
-                (id_tipo_gasto,),
+                "UPDATE tipo_gastos SET active = 0 WHERE id_tipo_gasto = %s AND id_cliente = %s",
+                (id_tipo_gasto, id_cliente),
             )
             affected = cur.rowcount
         conn.commit()

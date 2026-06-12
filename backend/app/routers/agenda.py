@@ -146,19 +146,16 @@ def list_tipos_agenda(
     current_user: Dict[str, Any] = Depends(get_current_user),
     tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if tenant_id:
-                cur.execute(
-                    "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
-                    (tenant_id,),
-                )
-            else:
-                cur.execute(
-                    "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 ORDER BY nombre"
-                )
+            cur.execute(
+                "SELECT id_agenda_evento, nombre FROM agenda_evento WHERE active = 1 AND id_cliente = %s ORDER BY nombre",
+                (tenant_id,),
+            )
             return cur.fetchall()
     finally:
         conn.close()
@@ -192,13 +189,15 @@ def create_tipo_agenda(
 def delete_tipo_agenda(
     id_tipo: int,
     current_user: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     from ..db import get_connection
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE agenda_evento SET active = 0 WHERE id_agenda_evento = %s", (id_tipo,)
+                "UPDATE agenda_evento SET active = 0 WHERE id_agenda_evento = %s AND id_cliente = %s",
+                (id_tipo, tenant_id),
             )
             conn.commit()
         return {"ok": True}

@@ -879,18 +879,15 @@ def list_tipos_evento(
     _cu: Dict[str, Any] = Depends(get_current_user),
     tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
     conn = get_connection()
     try:
         with conn.cursor(dictionary=True) as cur:
-            if tenant_id:
-                cur.execute(
-                    "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 AND id_cliente = %s ORDER BY nombre ASC",
-                    (tenant_id,),
-                )
-            else:
-                cur.execute(
-                    "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 ORDER BY nombre ASC"
-                )
+            cur.execute(
+                "SELECT id_tipo_evento, nombre FROM tipo_eventos WHERE active = 1 AND id_cliente = %s ORDER BY nombre ASC",
+                (tenant_id,),
+            )
             return cur.fetchall() or []
     finally:
         conn.close()
@@ -936,13 +933,14 @@ def create_tipo_evento(
 def delete_tipo_evento(
     id_tipo: int,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE tipo_eventos SET active = 0 WHERE id_tipo_evento = %s AND active = 1",
-                (id_tipo,),
+                "UPDATE tipo_eventos SET active = 0 WHERE id_tipo_evento = %s AND id_cliente = %s AND active = 1",
+                (id_tipo, tenant_id),
             )
             if cur.rowcount == 0:
                 raise HTTPException(status_code=404, detail="Tipo no encontrado")
