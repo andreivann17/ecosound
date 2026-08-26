@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from "react";
-import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, notification, Select, Tag, Upload } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Typography, Switch, Modal, Spin, Input, Button, InputNumber, Select, Tag, Upload } from "antd";
 import {
   CalendarOutlined,
   ToolOutlined,
@@ -24,6 +24,7 @@ import {
 import axios from "axios";
 import { PATH } from "../../redux/utils";
 import { clearEmpresaConfigCache } from "../../components/utils/empresaConfig";
+import Toast from "../../components/toasts/toast";
 import "./ConfiguracionPage.css";
 
 const { Title, Text } = Typography;
@@ -224,7 +225,9 @@ const SESION_RECORDATORIOS = [
 ];
 
 function PanelEventos() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
@@ -247,7 +250,7 @@ function PanelEventos() {
       const res = await api.get("/eventos/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar los tipos de evento" });
+      toast("Error al cargar los tipos de evento");
     } finally {
       setLoadingTipos(false);
     }
@@ -259,7 +262,7 @@ function PanelEventos() {
       const res = await api.get("/eventos/config/correo", { headers: authHeader() });
       setCorreo({ ...CORREO_DEFAULTS, ...res.data });
     } catch {
-      notifApi.error({ message: "Error al cargar configuración de correo" });
+      toast("Error al cargar configuración de correo");
     } finally {
       setLoadingCorreo(false);
     }
@@ -273,10 +276,10 @@ function PanelEventos() {
       const res = await api.post("/eventos/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      notifApi.success({ message: `Tipo "${nombre}" agregado` });
+      toast(`Tipo "${nombre}" agregado`);
     } catch (err) {
       const detail = err?.response?.data?.detail;
-      notifApi.error({ message: detail || "Error al agregar tipo" });
+      toast(detail || "Error al agregar tipo");
     } finally {
       setAddingTipo(false);
     }
@@ -297,9 +300,9 @@ function PanelEventos() {
         try {
           await api.delete(`/eventos/config/tipos/${tipo.id_tipo_evento}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_tipo_evento !== tipo.id_tipo_evento));
-          notifApi.success({ message: "Tipo eliminado" });
+          toast("Tipo eliminado");
         } catch {
-          notifApi.error({ message: "Error al eliminar tipo" });
+          toast("Error al eliminar tipo");
         }
       },
     });
@@ -315,7 +318,7 @@ function PanelEventos() {
       try {
         await api.put("/eventos/config/correo", next, { headers: authHeader() });
       } catch {
-        notifApi.error({ message: "Error al guardar configuración de correo" });
+        toast("Error al guardar configuración de correo");
       } finally {
         setSavingCorreo(false);
       }
@@ -324,7 +327,7 @@ function PanelEventos() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       {/* ── Tipos de evento ─────────────────────────── */}
       <div className="cfg-block">
@@ -480,16 +483,9 @@ function PanelEventos() {
 // ── Paneles vacíos ─────────────────────────────────────────────────────────
 
 function PanelGeneral() {
-  const [notifApi, notifHolder] = notification.useNotification();
-
-  // ── Empresa ──
-  const [empresa, setEmpresa] = useState({ nombre_empresa: "", path: null });
-  const [loadingEmpresa, setLoadingEmpresa] = useState(true);
-  const [savingEmpresa, setSavingEmpresa] = useState(false);
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [editandoEmpresa, setEditandoEmpresa] = useState(false);
-  const [empresaDraft, setEmpresaDraft] = useState({ nombre_empresa: "", path: null });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   // ── Avisos ──
   const [avisos, setAvisos] = useState([]);
@@ -504,79 +500,11 @@ function PanelGeneral() {
   const [addingCiudad, setAddingCiudad] = useState(false);
 
   useEffect(() => {
-    fetchEmpresa();
     fetchAvisos();
     fetchCiudades();
   }, []);
 
-  const notif = (type, msg) =>
-    notifApi[type]({ message: type === "success" ? "Listo" : "Error", description: msg, placement: "topRight" });
-
-  const fetchEmpresa = async () => {
-    setLoadingEmpresa(true);
-    try {
-      const res = await api.get("/general/empresa", { headers: authHeader() });
-      const data = res.data || {};
-      setEmpresa(data);
-      setEmpresaDraft(data);
-      setEditandoEmpresa(!data.nombre_empresa);
-    } catch {
-      notif("error", "Error al cargar configuración de empresa");
-    } finally {
-      setLoadingEmpresa(false);
-    }
-  };
-
-  const handleEditarEmpresa = () => {
-    setEmpresaDraft({ ...empresa });
-    setLogoFile(null);
-    setLogoPreview(null);
-    setEditandoEmpresa(true);
-  };
-
-  const handleCancelarEmpresa = () => {
-    setEmpresaDraft({ ...empresa });
-    setLogoFile(null);
-    setLogoPreview(null);
-    setEditandoEmpresa(false);
-  };
-
-  const handleLogoChange = (file) => {
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
-    return false;
-  };
-
-  const logoSrc = (path) => path ? `${PATH}/${path}` : null;
-
-  const handleSaveEmpresa = async () => {
-    const nombre = (empresaDraft.nombre_empresa || "").trim();
-    if (!nombre) {
-      notif("error", "El nombre de la empresa es requerido");
-      return;
-    }
-    setSavingEmpresa(true);
-    try {
-      const form = new FormData();
-      form.append("nombre_empresa", nombre);
-      if (logoFile) form.append("logo", logoFile);
-      const res = await api.post("/general/empresa", form, {
-        headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
-      });
-      const updated = { nombre_empresa: nombre, path: res.data.path || empresa.path };
-      setEmpresa(updated);
-      setEmpresaDraft(updated);
-      setLogoFile(null);
-      setLogoPreview(null);
-      setEditandoEmpresa(false);
-      clearEmpresaConfigCache();
-      notif("success", "Configuración de empresa guardada");
-    } catch {
-      notif("error", "Error al guardar configuración de empresa");
-    } finally {
-      setSavingEmpresa(false);
-    }
-  };
+  const notif = (_type, msg) => toast(msg);
 
   const fetchAvisos = async () => {
     setLoadingAvisos(true);
@@ -678,103 +606,7 @@ function PanelGeneral() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
-
-      {/* ── Empresa ──────────────────────────────────── */}
-      <div className="cfg-block">
-        <div className="cfg-block-header">
-          <ShopOutlined className="cfg-block-icon" />
-          <div>
-            <div className="cfg-block-title">Datos de la empresa</div>
-            <div className="cfg-block-desc">Nombre y logo usados en reportes PDF de todos los módulos</div>
-          </div>
-        </div>
-
-        {loadingEmpresa ? (
-          <div className="cfg-loading-row"><Spin size="small" /></div>
-        ) : !editandoEmpresa ? (
-          /* ── Modo vista ── */
-          <div className="cfg-empresa-card">
-            <div className={`cfg-empresa-logo-zone cfg-empresa-logo-zone--view${empresa.path ? " cfg-empresa-logo-zone--filled" : ""}`}>
-              {empresa.path ? (
-                <img src={logoSrc(empresa.path)} alt="Logo empresa" className="cfg-empresa-logo-img" />
-              ) : (
-                <div className="cfg-empresa-logo-empty">
-                  <ShopOutlined className="cfg-empresa-logo-empty-icon" />
-                  <span>Sin logo</span>
-                </div>
-              )}
-            </div>
-            <div className="cfg-empresa-fields">
-              <div className="cfg-empresa-view-nombre">
-                {empresa.nombre_empresa || <span className="cfg-empresa-view-vacio">Sin nombre configurado</span>}
-              </div>
-              <button type="button" className="cfg-empresa-edit-btn" onClick={handleEditarEmpresa}>
-                Editar
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* ── Modo edición ── */
-          <div className="cfg-empresa-card">
-            <Upload accept="image/*" showUploadList={false} beforeUpload={handleLogoChange}>
-              <div className={`cfg-empresa-logo-zone${(logoPreview || empresa.path) ? " cfg-empresa-logo-zone--filled" : ""}`}>
-                {(logoPreview || empresa.path) ? (
-                  <img
-                    src={logoPreview || logoSrc(empresa.path)}
-                    alt="Logo empresa"
-                    className="cfg-empresa-logo-img"
-                  />
-                ) : (
-                  <div className="cfg-empresa-logo-empty">
-                    <UploadOutlined className="cfg-empresa-logo-empty-icon" />
-                    <span>Subir logo</span>
-                    <span className="cfg-empresa-logo-empty-hint">PNG · JPG · WEBP</span>
-                  </div>
-                )}
-                <div className="cfg-empresa-logo-overlay">
-                  <UploadOutlined />
-                  <span>{empresa.path ? "Cambiar" : "Subir"}</span>
-                </div>
-              </div>
-            </Upload>
-
-            <div className="cfg-empresa-fields">
-              <div className="cfg-empresa-field">
-                <label className="cfg-empresa-label">Nombre de la empresa</label>
-                <Input
-                  value={empresaDraft.nombre_empresa || ""}
-                  onChange={(e) => setEmpresaDraft((prev) => ({ ...prev, nombre_empresa: e.target.value }))}
-                  placeholder="Nombre de la empresa"
-                  className="cfg-empresa-input"
-                  maxLength={225}
-                  size="large"
-                />
-              </div>
-              {logoFile && (
-                <div className="cfg-empresa-file-badge">
-                  <UploadOutlined style={{ fontSize: 12 }} />
-                  {logoFile.name}
-                </div>
-              )}
-              <div className="cfg-empresa-actions">
-                <Button
-                  onClick={handleSaveEmpresa}
-                  loading={savingEmpresa}
-                  className="cfg-tipo-btn-add"
-                >
-                  Guardar cambios
-                </Button>
-                <button type="button" className="cfg-empresa-cancel-btn" onClick={handleCancelarEmpresa}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="cfg-divider" style={{ marginBottom: 50 }} />
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       {/* ── Avisos de inicio ─────────────────────────── */}
       <div className="cfg-block">
@@ -894,7 +726,9 @@ const ALERTAS_DEFAULTS = {
 };
 
 function PanelInventario() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   // ── Categorías ──
   const [categorias, setCategorias] = useState([]);
   const [loadingCat, setLoadingCat] = useState(true);
@@ -925,7 +759,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/categorias", { headers: authHeader() });
       setCategorias(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar categorías" });
+      toast("Error al cargar categorías");
     } finally {
       setLoadingCat(false);
     }
@@ -937,7 +771,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/config/estados", { headers: authHeader() });
       setEstados(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar estados" });
+      toast("Error al cargar estados");
     } finally {
       setLoadingEst(false);
     }
@@ -949,7 +783,7 @@ function PanelInventario() {
       const res = await api.get("/inventario/config/alertas", { headers: authHeader() });
       setAlertas({ ...ALERTAS_DEFAULTS, ...res.data });
     } catch {
-      notifApi.error({ message: "Error al cargar configuración de alertas" });
+      toast("Error al cargar configuración de alertas");
     } finally {
       setLoadingAlertas(false);
     }
@@ -963,9 +797,9 @@ function PanelInventario() {
       const res = await api.post("/inventario/categorias", { nombre }, { headers: authHeader() });
       setCategorias((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputCat("");
-      notifApi.success({ message: `Categoría "${nombre}" agregada` });
+      toast(`Categoría "${nombre}" agregada`);
     } catch (err) {
-      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar categoría" });
+      toast(err?.response?.data?.detail || "Error al agregar categoría");
     } finally {
       setAddingCat(false);
     }
@@ -982,9 +816,9 @@ function PanelInventario() {
         try {
           await api.delete(`/inventario/categorias/${cat.id_categoria_equipo}`, { headers: authHeader() });
           setCategorias((prev) => prev.filter((c) => c.id_categoria_equipo !== cat.id_categoria_equipo));
-          notifApi.success({ message: "Categoría eliminada" });
+          toast("Categoría eliminada");
         } catch {
-          notifApi.error({ message: "Error al eliminar categoría" });
+          toast("Error al eliminar categoría");
         }
       },
     });
@@ -998,9 +832,9 @@ function PanelInventario() {
       const res = await api.post("/inventario/config/estados", { nombre }, { headers: authHeader() });
       setEstados((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputEst("");
-      notifApi.success({ message: `Estado "${nombre}" agregado` });
+      toast(`Estado "${nombre}" agregado`);
     } catch (err) {
-      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar estado" });
+      toast(err?.response?.data?.detail || "Error al agregar estado");
     } finally {
       setAddingEst(false);
     }
@@ -1017,9 +851,9 @@ function PanelInventario() {
         try {
           await api.delete(`/inventario/config/estados/${est.id_inventario_estado}`, { headers: authHeader() });
           setEstados((prev) => prev.filter((e) => e.id_inventario_estado !== est.id_inventario_estado));
-          notifApi.success({ message: "Estado eliminado" });
+          toast("Estado eliminado");
         } catch {
-          notifApi.error({ message: "Error al eliminar estado" });
+          toast("Error al eliminar estado");
         }
       },
     });
@@ -1032,7 +866,7 @@ function PanelInventario() {
       try {
         await api.put("/inventario/config/alertas", next, { headers: authHeader() });
       } catch {
-        notifApi.error({ message: "Error al guardar configuración" });
+        toast("Error al guardar configuración");
       } finally {
         setSavingAlertas(false);
       }
@@ -1047,7 +881,7 @@ function PanelInventario() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       {/* ── Categorías de equipo ── */}
       <div className="cfg-block">
@@ -1226,7 +1060,9 @@ const SES_RECORDATORIOS = [
 ];
 
 function PanelSesiones() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
@@ -1248,7 +1084,7 @@ function PanelSesiones() {
       const res = await api.get("/sesiones-fotos/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar los tipos de sesión" });
+      toast("Error al cargar los tipos de sesión");
     } finally {
       setLoadingTipos(false);
     }
@@ -1260,7 +1096,7 @@ function PanelSesiones() {
       const res = await api.get("/sesiones-fotos/config/correo", { headers: authHeader() });
       setCorreo({ ...SES_CORREO_DEFAULTS, ...res.data });
     } catch {
-      notifApi.error({ message: "Error al cargar configuración de correo" });
+      toast("Error al cargar configuración de correo");
     } finally {
       setLoadingCorreo(false);
     }
@@ -1274,9 +1110,9 @@ function PanelSesiones() {
       const res = await api.post("/sesiones-fotos/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      notifApi.success({ message: `Tipo "${nombre}" agregado` });
+      toast(`Tipo "${nombre}" agregado`);
     } catch (err) {
-      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
+      toast(err?.response?.data?.detail || "Error al agregar tipo");
     } finally {
       setAddingTipo(false);
     }
@@ -1293,9 +1129,9 @@ function PanelSesiones() {
         try {
           await api.delete(`/sesiones-fotos/config/tipos/${tipo.id_tipo_sesion}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_tipo_sesion !== tipo.id_tipo_sesion));
-          notifApi.success({ message: "Tipo eliminado" });
+          toast("Tipo eliminado");
         } catch {
-          notifApi.error({ message: "Error al eliminar tipo" });
+          toast("Error al eliminar tipo");
         }
       },
     });
@@ -1310,7 +1146,7 @@ function PanelSesiones() {
       try {
         await api.put("/sesiones-fotos/config/correo", next, { headers: authHeader() });
       } catch {
-        notifApi.error({ message: "Error al guardar configuración de correo" });
+        toast("Error al guardar configuración de correo");
       } finally {
         setSavingCorreo(false);
       }
@@ -1319,7 +1155,7 @@ function PanelSesiones() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       <div className="cfg-block">
         <div className="cfg-block-header">
@@ -1430,70 +1266,121 @@ function PanelSesiones() {
   );
 }
 
-const TRAB_CORREO_DEFAULTS = { correo_crear_trabajador: false };
-
 function PanelTrabajadores() {
-  const [notifApi, notifHolder] = notification.useNotification();
-  const [correo, setCorreo] = useState(TRAB_CORREO_DEFAULTS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const debounceRef = useRef(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [puestos, setPuestos] = useState([]);
+  const [loadingPuestos, setLoadingPuestos] = useState(true);
+  const [inputNombre, setInputNombre] = useState("");
+  const [addingPuesto, setAddingPuesto] = useState(false);
 
   useEffect(() => {
-    api.get("/trabajadores/config/correo", { headers: authHeader() })
-      .then((res) => setCorreo({ ...TRAB_CORREO_DEFAULTS, ...res.data }))
-      .catch(() => notifApi.error({ message: "Error al cargar configuración" }))
-      .finally(() => setLoading(false));
+    fetchPuestos();
   }, []);
 
-  const handleToggle = (key, value) => {
-    const next = { ...correo, [key]: value };
-    setCorreo(next);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setSaving(true);
-      try {
-        await api.put("/trabajadores/config/correo", next, { headers: authHeader() });
-      } catch {
-        notifApi.error({ message: "Error al guardar configuración" });
-      } finally {
-        setSaving(false);
-      }
-    }, 600);
+  const fetchPuestos = async () => {
+    setLoadingPuestos(true);
+    try {
+      const res = await api.get("/trabajadores/puestos", { headers: authHeader() });
+      setPuestos(res.data || []);
+    } catch {
+      toast("Error al cargar los tipos de puesto");
+    } finally {
+      setLoadingPuestos(false);
+    }
+  };
+
+  const handleAddPuesto = async () => {
+    const nombre = inputNombre.trim();
+    if (!nombre) return;
+    setAddingPuesto(true);
+    try {
+      const res = await api.post("/trabajadores/puestos", { nombre }, { headers: authHeader() });
+      setPuestos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setInputNombre("");
+      toast(`Puesto "${nombre}" agregado`);
+    } catch (err) {
+      toast(err?.response?.data?.detail || "Error al agregar puesto");
+    } finally {
+      setAddingPuesto(false);
+    }
+  };
+
+  const handleDeletePuesto = (puesto) => {
+    Modal.confirm({
+      title: "¿Eliminar tipo de puesto?",
+      content: (
+        <span>
+          Se eliminará <strong>{puesto.nombre}</strong>. Esta acción no se puede deshacer.
+        </span>
+      ),
+      okText: "Sí, eliminar",
+      okType: "danger",
+      cancelText: "Cancelar",
+      onOk: async () => {
+        try {
+          await api.delete(`/trabajadores/puestos/${puesto.id_puesto}`, { headers: authHeader() });
+          setPuestos((prev) => prev.filter((p) => p.id_puesto !== puesto.id_puesto));
+          toast("Puesto eliminado");
+        } catch {
+          toast("Error al eliminar puesto");
+        }
+      },
+    });
   };
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
       <div className="cfg-block">
         <div className="cfg-block-header">
-          <MailOutlined className="cfg-block-icon" />
+          <TagOutlined className="cfg-block-icon" />
           <div>
-            <div className="cfg-block-title">
-              Notificaciones de correo
-              {saving && <Spin size="small" style={{ marginLeft: 8 }} />}
-            </div>
-            <div className="cfg-block-desc">Correos automáticos relacionados al módulo de trabajadores</div>
+            <div className="cfg-block-title">Tipos de puesto</div>
+            <div className="cfg-block-desc">Categorías que se asignan al registrar un trabajador</div>
           </div>
         </div>
 
-        {loading ? (
+        <div className="cfg-tipo-add-row">
+          <Input
+            value={inputNombre}
+            onChange={(e) => setInputNombre(e.target.value)}
+            placeholder="Nombre del nuevo tipo..."
+            className="cfg-tipo-input"
+            onPressEnter={handleAddPuesto}
+            maxLength={60}
+          />
+          <Button
+            icon={<PlusOutlined />}
+            onClick={handleAddPuesto}
+            loading={addingPuesto}
+            disabled={!inputNombre.trim()}
+            className="cfg-tipo-btn-add"
+          >
+            Agregar
+          </Button>
+        </div>
+
+        {loadingPuestos ? (
           <div className="cfg-loading-row"><Spin size="small" /></div>
+        ) : puestos.length === 0 ? (
+          <div className="cfg-tipo-empty">Sin tipos de puesto registrados</div>
         ) : (
-          <div className="cfg-correo-list">
-            <div className="cfg-correo-entry">
-              <div className="cfg-correo-row cfg-correo-row--highlight">
-                <div className="cfg-correo-row-info">
-                  <span className="cfg-correo-row-label">Al registrar un trabajador</span>
-                  <span className="cfg-correo-row-desc">Envía una notificación cuando se crea un nuevo trabajador en el sistema</span>
-                </div>
-                <Switch
-                  checked={correo.correo_crear_trabajador}
-                  onChange={(v) => handleToggle("correo_crear_trabajador", v)}
-                />
+          <div className="cfg-tipo-chips">
+            {puestos.map((p) => (
+              <div key={p.id_puesto} className="cfg-tipo-chip">
+                <span className="cfg-tipo-chip-label">{p.nombre}</span>
+                <button
+                  type="button"
+                  className="cfg-tipo-chip-del"
+                  onClick={() => handleDeletePuesto(p)}
+                  title="Eliminar"
+                >
+                  <DeleteOutlined />
+                </button>
               </div>
-              {correo.correo_crear_trabajador && <UserSelectorCorreo idModulo={2} sourceId={1} />}
-            </div>
+            ))}
           </div>
         )}
       </div>
@@ -1532,7 +1419,9 @@ const USR_SWITCHES = [
 ];
 
 function PanelUsuarios() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   const [correo, setCorreo] = useState(USR_CORREO_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1541,7 +1430,7 @@ function PanelUsuarios() {
   useEffect(() => {
     api.get("/users/config/correo", { headers: authHeader() })
       .then((res) => setCorreo({ ...USR_CORREO_DEFAULTS, ...res.data }))
-      .catch(() => notifApi.error({ message: "Error al cargar configuración" }))
+      .catch(() => toast("Error al cargar configuración"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -1554,7 +1443,7 @@ function PanelUsuarios() {
       try {
         await api.put("/users/config/correo", next, { headers: authHeader() });
       } catch {
-        notifApi.error({ message: "Error al guardar configuración" });
+        toast("Error al guardar configuración");
       } finally {
         setSaving(false);
       }
@@ -1563,7 +1452,7 @@ function PanelUsuarios() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
       <div className="cfg-block">
         <div className="cfg-block-header">
           <MailOutlined className="cfg-block-icon" />
@@ -1605,7 +1494,9 @@ function PanelUsuarios() {
 // ── Panel Agenda ───────────────────────────────────────────────────────────
 
 function PanelAgenda() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [inputNombre, setInputNombre] = useState("");
@@ -1621,7 +1512,7 @@ function PanelAgenda() {
       const res = await api.get("/agenda/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar los tipos de agenda" });
+      toast("Error al cargar los tipos de agenda");
     } finally {
       setLoadingTipos(false);
     }
@@ -1635,9 +1526,9 @@ function PanelAgenda() {
       const res = await api.post("/agenda/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      notifApi.success({ message: `Tipo "${nombre}" agregado` });
+      toast(`Tipo "${nombre}" agregado`);
     } catch (err) {
-      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
+      toast(err?.response?.data?.detail || "Error al agregar tipo");
     } finally {
       setAddingTipo(false);
     }
@@ -1658,9 +1549,9 @@ function PanelAgenda() {
         try {
           await api.delete(`/agenda/config/tipos/${tipo.id_agenda_evento}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_agenda_evento !== tipo.id_agenda_evento));
-          notifApi.success({ message: "Tipo eliminado" });
+          toast("Tipo eliminado");
         } catch {
-          notifApi.error({ message: "Error al eliminar tipo" });
+          toast("Error al eliminar tipo");
         }
       },
     });
@@ -1668,7 +1559,7 @@ function PanelAgenda() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       <div className="cfg-block">
         <div className="cfg-block-header">
@@ -1729,7 +1620,9 @@ function PanelAgenda() {
 // ── Panel Gastos ───────────────────────────────────────────────────────────
 
 function PanelGastos() {
-  const [notifApi, notifHolder] = notification.useNotification();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const [tipos, setTipos] = useState([]);
   const [loadingTipos, setLoadingTipos] = useState(true);
@@ -1752,7 +1645,7 @@ function PanelGastos() {
       const res = await api.get("/gastos/config/tipos", { headers: authHeader() });
       setTipos(res.data || []);
     } catch {
-      notifApi.error({ message: "Error al cargar los tipos de gasto" });
+      toast("Error al cargar los tipos de gasto");
     } finally {
       setLoadingTipos(false);
     }
@@ -1764,7 +1657,7 @@ function PanelGastos() {
       const res = await api.get("/gastos/config/correo", { headers: authHeader() });
       setCorreo({ correo_registrar_gasto: false, ...res.data });
     } catch {
-      notifApi.error({ message: "Error al cargar configuración de correo" });
+      toast("Error al cargar configuración de correo");
     } finally {
       setLoadingCorreo(false);
     }
@@ -1778,9 +1671,9 @@ function PanelGastos() {
       const res = await api.post("/gastos/config/tipos", { nombre }, { headers: authHeader() });
       setTipos((prev) => [...prev, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       setInputNombre("");
-      notifApi.success({ message: `Tipo "${nombre}" agregado` });
+      toast(`Tipo "${nombre}" agregado`);
     } catch (err) {
-      notifApi.error({ message: err?.response?.data?.detail || "Error al agregar tipo" });
+      toast(err?.response?.data?.detail || "Error al agregar tipo");
     } finally {
       setAddingTipo(false);
     }
@@ -1801,9 +1694,9 @@ function PanelGastos() {
         try {
           await api.delete(`/gastos/config/tipos/${tipo.id_tipo_gasto}`, { headers: authHeader() });
           setTipos((prev) => prev.filter((t) => t.id_tipo_gasto !== tipo.id_tipo_gasto));
-          notifApi.success({ message: "Tipo eliminado" });
+          toast("Tipo eliminado");
         } catch {
-          notifApi.error({ message: "Error al eliminar tipo" });
+          toast("Error al eliminar tipo");
         }
       },
     });
@@ -1818,7 +1711,7 @@ function PanelGastos() {
       try {
         await api.put("/gastos/config/correo", next, { headers: authHeader() });
       } catch {
-        notifApi.error({ message: "Error al guardar configuración de correo" });
+        toast("Error al guardar configuración de correo");
       } finally {
         setSavingCorreo(false);
       }
@@ -1827,7 +1720,7 @@ function PanelGastos() {
 
   return (
     <div className="cfg-panel-body">
-      {notifHolder}
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       {/* ── Tipos de gasto ──────────────────────────── */}
       <div className="cfg-block">
@@ -1924,6 +1817,191 @@ function PanelGastos() {
   );
 }
 
+// ── Panel Datos de la empresa ────────────────────────────────────────────────
+
+function PanelEmpresa() {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
+  const [empresa, setEmpresa] = useState({ nombre_empresa: "", path: null });
+  const [loadingEmpresa, setLoadingEmpresa] = useState(true);
+  const [savingEmpresa, setSavingEmpresa] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [editandoEmpresa, setEditandoEmpresa] = useState(false);
+  const [empresaDraft, setEmpresaDraft] = useState({ nombre_empresa: "", path: null });
+
+  useEffect(() => {
+    fetchEmpresa();
+  }, []);
+
+  const fetchEmpresa = async () => {
+    setLoadingEmpresa(true);
+    try {
+      const res = await api.get("/general/empresa", { headers: authHeader() });
+      const data = res.data || {};
+      setEmpresa(data);
+      setEmpresaDraft(data);
+      setEditandoEmpresa(!data.nombre_empresa);
+    } catch {
+      toast("Error al cargar configuración de empresa");
+    } finally {
+      setLoadingEmpresa(false);
+    }
+  };
+
+  const handleEditarEmpresa = () => {
+    setEmpresaDraft({ ...empresa });
+    setLogoFile(null);
+    setLogoPreview(null);
+    setEditandoEmpresa(true);
+  };
+
+  const handleCancelarEmpresa = () => {
+    setEmpresaDraft({ ...empresa });
+    setLogoFile(null);
+    setLogoPreview(null);
+    setEditandoEmpresa(false);
+  };
+
+  const handleLogoChange = (file) => {
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    return false;
+  };
+
+  const logoSrc = (path) => path ? `${PATH}/${path}` : null;
+
+  const handleSaveEmpresa = async () => {
+    const nombre = (empresaDraft.nombre_empresa || "").trim();
+    if (!nombre) {
+      toast("El nombre de la empresa es requerido");
+      return;
+    }
+    setSavingEmpresa(true);
+    try {
+      const form = new FormData();
+      form.append("nombre_empresa", nombre);
+      if (logoFile) form.append("logo", logoFile);
+      const res = await api.post("/general/empresa", form, {
+        headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
+      });
+      const updated = { nombre_empresa: nombre, path: res.data.path || empresa.path };
+      setEmpresa(updated);
+      setEmpresaDraft(updated);
+      setLogoFile(null);
+      setLogoPreview(null);
+      setEditandoEmpresa(false);
+      clearEmpresaConfigCache();
+      toast("Configuración de empresa guardada");
+    } catch {
+      toast("Error al guardar configuración de empresa");
+    } finally {
+      setSavingEmpresa(false);
+    }
+  };
+
+  return (
+    <div className="cfg-panel-body">
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+
+      <div className="cfg-block">
+        <div className="cfg-block-header">
+          <ShopOutlined className="cfg-block-icon" />
+          <div>
+            <div className="cfg-block-title">Datos de la empresa</div>
+            <div className="cfg-block-desc">Nombre y logo usados en reportes PDF de todos los módulos</div>
+          </div>
+        </div>
+
+        {loadingEmpresa ? (
+          <div className="cfg-loading-row"><Spin size="small" /></div>
+        ) : !editandoEmpresa ? (
+          /* ── Modo vista ── */
+          <div className="cfg-empresa-card">
+            <div className={`cfg-empresa-logo-zone cfg-empresa-logo-zone--view${empresa.path ? " cfg-empresa-logo-zone--filled" : ""}`}>
+              {empresa.path ? (
+                <img src={logoSrc(empresa.path)} alt="Logo empresa" className="cfg-empresa-logo-img" />
+              ) : (
+                <div className="cfg-empresa-logo-empty">
+                  <ShopOutlined className="cfg-empresa-logo-empty-icon" />
+                  <span>Sin logo</span>
+                </div>
+              )}
+            </div>
+            <div className="cfg-empresa-fields">
+              <div className="cfg-empresa-view-nombre">
+                {empresa.nombre_empresa || <span className="cfg-empresa-view-vacio">Sin nombre configurado</span>}
+              </div>
+              <button type="button" className="cfg-empresa-edit-btn" onClick={handleEditarEmpresa}>
+                Editar
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Modo edición ── */
+          <div className="cfg-empresa-card">
+            <Upload accept="image/*" showUploadList={false} beforeUpload={handleLogoChange}>
+              <div className={`cfg-empresa-logo-zone${(logoPreview || empresa.path) ? " cfg-empresa-logo-zone--filled" : ""}`}>
+                {(logoPreview || empresa.path) ? (
+                  <img
+                    src={logoPreview || logoSrc(empresa.path)}
+                    alt="Logo empresa"
+                    className="cfg-empresa-logo-img"
+                  />
+                ) : (
+                  <div className="cfg-empresa-logo-empty">
+                    <UploadOutlined className="cfg-empresa-logo-empty-icon" />
+                    <span>Subir logo</span>
+                    <span className="cfg-empresa-logo-empty-hint">PNG · JPG · WEBP</span>
+                  </div>
+                )}
+                <div className="cfg-empresa-logo-overlay">
+                  <UploadOutlined />
+                  <span>{empresa.path ? "Cambiar" : "Subir"}</span>
+                </div>
+              </div>
+            </Upload>
+
+            <div className="cfg-empresa-fields">
+              <div className="cfg-empresa-field">
+                <label className="cfg-empresa-label">Nombre de la empresa</label>
+                <Input
+                  value={empresaDraft.nombre_empresa || ""}
+                  onChange={(e) => setEmpresaDraft((prev) => ({ ...prev, nombre_empresa: e.target.value }))}
+                  placeholder="Nombre de la empresa"
+                  className="cfg-empresa-input"
+                  maxLength={225}
+                  size="large"
+                />
+              </div>
+              {logoFile && (
+                <div className="cfg-empresa-file-badge">
+                  <UploadOutlined style={{ fontSize: 12 }} />
+                  {logoFile.name}
+                </div>
+              )}
+              <div className="cfg-empresa-actions">
+                <Button
+                  onClick={handleSaveEmpresa}
+                  loading={savingEmpresa}
+                  className="cfg-tipo-btn-add"
+                >
+                  Guardar cambios
+                </Button>
+                <button type="button" className="cfg-empresa-cancel-btn" onClick={handleCancelarEmpresa}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Módulos ────────────────────────────────────────────────────────────────
 
 const MODULES = [
@@ -1933,6 +2011,13 @@ const MODULES = [
     icon: <SettingOutlined />,
     color: "#374151",
     bg: "linear-gradient(140deg, #374151 0%, #9ca3af 100%)",
+  },
+  {
+    key: "empresa",
+    label: "Datos de la empresa",
+    icon: <ShopOutlined />,
+    color: "#92400e",
+    bg: "linear-gradient(140deg, #92400e 0%, #f59e0b 100%)",
   },
   {
     key: "eventos",
@@ -1948,6 +2033,13 @@ const MODULES = [
     icon: <UserOutlined />,
     color: "#c2410c",
     bg: "linear-gradient(140deg, #c2410c 0%, #f97316 100%)",
+  },
+  {
+    key: "trabajadores",
+    label: "Trabajadores",
+    icon: <TeamOutlined />,
+    color: "#6d28d9",
+    bg: "linear-gradient(140deg, #6d28d9 0%, #a78bfa 100%)",
   },
   {
     key: "agenda",
@@ -1967,6 +2059,7 @@ const MODULES = [
 
 const PANELS = {
   general: PanelGeneral,
+  empresa: PanelEmpresa,
   eventos: PanelEventos,
   inventario: PanelInventario,
   trabajadores: PanelTrabajadores,

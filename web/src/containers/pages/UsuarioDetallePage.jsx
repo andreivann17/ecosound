@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -12,12 +12,15 @@ import {
   Button,
   Modal,
   Switch,
-  notification,
+  Input,
+  Dropdown,
   Spin,
 } from "antd";
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import {
-  ArrowLeftOutlined,
   EditOutlined,
+  EllipsisOutlined,
   DeleteOutlined,
   UserOutlined,
   MailOutlined,
@@ -88,12 +91,22 @@ export default function UsuarioDetallePage() {
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Edición inline "Información del usuario"
+  const [editingInfoCard, setEditingInfoCard] = useState(false);
+  const [editingInfoForm, setEditingInfoForm] = useState({});
+  const [savingInfoCard, setSavingInfoCard] = useState(false);
+
   // Permisos state
   const [permisos, setPermisos] = useState(DEFAULT_PERMISOS);
   const [permisosOriginal, setPermisosOriginal] = useState(DEFAULT_PERMISOS);
   const [permisosLoading, setPermisosLoading] = useState(false);
   const [savingPermisos, setSavingPermisos] = useState(false);
   const [editingPermisos, setEditingPermisos] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = useCallback((msg) => { setToastMsg(msg); setShowToast(true); }, []);
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   const fetchUsuario = useCallback(async () => {
     setLoading(true);
@@ -103,14 +116,11 @@ export default function UsuarioDetallePage() {
       });
       setUsuario(res.data);
     } catch (err) {
-      notification.error({
-        message: "Error al cargar usuario",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al cargar usuario");
     } finally {
       setLoading(false);
     }
-  }, [code]);
+  }, [code, toast]);
 
   useEffect(() => { fetchUsuario(); }, [fetchUsuario]);
 
@@ -148,12 +158,9 @@ export default function UsuarioDetallePage() {
       setPermisosOriginal(permisos);
       setEditingPermisos(false);
       window.dispatchEvent(new Event("permisos-refresh"));
-      notification.success({ message: "Permisos guardados correctamente" });
+      toast("Permisos guardados correctamente");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar permisos",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar permisos");
     } finally {
       setSavingPermisos(false);
     }
@@ -179,16 +186,39 @@ export default function UsuarioDetallePage() {
         { active: 0 },
         { headers: authHeaderUsuarios() }
       );
-      notification.success({ message: "Usuario eliminado correctamente" });
-      navigate("/app/usuarios");
-    } catch (err) {
-      notification.error({
-        message: "Error al eliminar",
-        description: err?.response?.data?.detail || err.message,
+      setDeleteModal(false);
+      setSuccess({
+        show: true,
+        title: "¡Usuario eliminado!",
+        subtitle: `"${usuario?.name || ""}" se eliminó correctamente del sistema.`,
       });
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al eliminar");
+      setDeleteModal(false);
     } finally {
       setDeleting(false);
       setDeleteModal(false);
+    }
+  };
+
+  const handleSaveInfoCard = async () => {
+    setSavingInfoCard(true);
+    try {
+      await apiUsuariosInstance.patch(
+        `/users/${code}`,
+        {
+          name: editingInfoForm.name,
+          email: editingInfoForm.email,
+        },
+        { headers: authHeaderUsuarios() }
+      );
+      await fetchUsuario();
+      setEditingInfoCard(false);
+      toast("Usuario actualizado");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingInfoCard(false);
     }
   };
 
@@ -211,14 +241,7 @@ export default function UsuarioDetallePage() {
     <div className="cd-main">
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/usuarios")}
-        >
-          Volver a Usuarios
-        </Button>
+
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -251,20 +274,12 @@ export default function UsuarioDetallePage() {
             </div>
 
             <div className="cd-header-actions">
-              {canEditar && (
-                <Button
-                  icon={<EditOutlined />}
-                  className="cd-btn-edit"
-                  onClick={() => navigate(`/app/usuarios/${code}/editar`, { state: { usuario } })}
-                >
-                  Editar
-                </Button>
-              )}
               {canEliminar && (
                 <Button
                   icon={<DeleteOutlined />}
                   className="cd-btn-delete"
                   loading={deleting}
+                  disabled={success.show}
                   onClick={() => setDeleteModal(true)}
                 >
                   Eliminar
@@ -297,17 +312,57 @@ export default function UsuarioDetallePage() {
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><UserOutlined /></div>
                 <h2 className="cd-card-title">Información del usuario</h2>
+                {canEditar && !editingInfoCard && (
+                  <Dropdown
+                    trigger={["click"]}
+                    menu={{
+                      items: [
+                        {
+                          key: "editar", icon: <EditOutlined />, label: "Editar",
+                          onClick: () => {
+                            setEditingInfoForm({
+                              name: usuario.name || "",
+                              email: usuario.email || "",
+                            });
+                            setEditingInfoCard(true);
+                          },
+                        },
+                      ],
+                    }}
+                  >
+                    <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                  </Dropdown>
+                )}
               </div>
-              <div className="cd-client-fields">
-                <div>
-                  <span className="cd-field-label">Nombre completo</span>
-                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{usuario.name || "—"}</span>
+              {editingInfoCard ? (
+                <div className="cd-edit-form">
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Nombre completo</span>
+                    <Input value={editingInfoForm.name}
+                      onChange={(e) => setEditingInfoForm((f) => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Correo electrónico</span>
+                    <Input value={editingInfoForm.email}
+                      onChange={(e) => setEditingInfoForm((f) => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-form-actions">
+                    <Button onClick={() => setEditingInfoCard(false)}>Cancelar</Button>
+                    <Button type="primary" loading={savingInfoCard} onClick={handleSaveInfoCard} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                  </div>
                 </div>
-                <div>
-                  <span className="cd-field-label">Correo electrónico</span>
-                  <span className="cd-field-value">{usuario.email || "—"}</span>
+              ) : (
+                <div className="cd-client-fields">
+                  <div>
+                    <span className="cd-field-label">Nombre completo</span>
+                    <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{usuario.name || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="cd-field-label">Correo electrónico</span>
+                    <span className="cd-field-value">{usuario.email || "—"}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="cd-card">
@@ -336,14 +391,14 @@ export default function UsuarioDetallePage() {
                 <Button
                   icon={<EditOutlined />}
                   onClick={() => setEditingPermisos(true)}
-                  style={{ background: "#01369e", borderColor: "#01369e", color: "#fff", fontWeight: 600 }}
+                  style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)", color: "#fff", fontWeight: 600 }}
                 >
                   Editar permisos
                 </Button>
               )}
             </div>
 
-            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 20, marginTop: 4 }}>
+            <p className="usr-perm-subtitle">
               {editingPermisos
                 ? "Activa o desactiva los permisos y guarda los cambios."
                 : "Define qué acciones puede realizar este usuario en cada módulo del sistema."}
@@ -356,14 +411,14 @@ export default function UsuarioDetallePage() {
             ) : (
               <>
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <table className="usr-perm-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ borderBottom: "2px solid #f1f5f9" }}>
-                        <th style={{ textAlign: "left", padding: "10px 16px", fontWeight: 700, fontSize: 11, letterSpacing: "0.07em", color: "#475569", textTransform: "uppercase", width: "30%" }}>
+                      <tr className="usr-perm-thead-row">
+                        <th className="usr-perm-th" style={{ textAlign: "left", width: "30%" }}>
                           Módulo
                         </th>
                         {ACTIONS.map((a) => (
-                          <th key={a.key} style={{ textAlign: "center", padding: "10px 16px", fontWeight: 700, fontSize: 11, letterSpacing: "0.07em", color: "#475569", textTransform: "uppercase" }}>
+                          <th key={a.key} className="usr-perm-th" style={{ textAlign: "center" }}>
                             {a.label}
                           </th>
                         ))}
@@ -373,14 +428,11 @@ export default function UsuarioDetallePage() {
                       {MODULES.map((m, idx) => (
                         <tr
                           key={m.key}
-                          style={{
-                            borderBottom: "1px solid #f1f5f9",
-                            background: idx % 2 === 0 ? "#fff" : "#fafbfc",
-                          }}
+                          className={`usr-perm-row ${idx % 2 === 0 ? "usr-perm-row-even" : "usr-perm-row-odd"}`}
                         >
                           <td style={{ padding: "14px 16px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "#0f172a" }}>
-                              <span style={{ color: "#64748b", fontSize: 15 }}>{m.icon}</span>
+                            <div className="usr-perm-module-cell">
+                              <span className="usr-perm-module-icon">{m.icon}</span>
                               {m.label}
                             </div>
                           </td>
@@ -419,7 +471,7 @@ export default function UsuarioDetallePage() {
                       icon={<SaveOutlined />}
                       loading={savingPermisos}
                       onClick={handleSavePermisos}
-                      style={{ background: "#01369e", borderColor: "#01369e", color: "#fff", fontWeight: 600 }}
+                      style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)", color: "#fff", fontWeight: 600 }}
                     >
                       Guardar permisos
                     </Button>
@@ -447,6 +499,14 @@ export default function UsuarioDetallePage() {
           <strong>{usuario.name}</strong>? Esta acción lo desactivará del sistema.
         </p>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/usuarios")}
+      />
     </div>
   );
 }

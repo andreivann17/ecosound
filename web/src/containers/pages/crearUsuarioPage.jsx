@@ -1,4 +1,4 @@
-﻿// src/containers/pages/crearUsuarioPage.jsx
+// src/containers/pages/crearUsuarioPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -12,10 +12,11 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
 } from "antd";
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import {
   ArrowLeftOutlined,
   CameraOutlined,
@@ -51,6 +52,11 @@ export default function CrearUsuarioPage() {
   );
   const [dragging, setDragging] = useState(false);
   const fotoInputRef = useRef(null);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   useEffect(() => {
     if (usuarioEditar) {
@@ -90,10 +96,7 @@ export default function CrearUsuarioPage() {
     }
 
     if (!isEditing && values.password !== values.confirm_password) {
-      notification.error({
-        message: "Las contraseñas no coinciden",
-        description: "Asegúrate de que ambas contraseñas sean iguales.",
-      });
+      toast("Las contraseñas no coinciden. Asegúrate de que ambas sean iguales.");
       return;
     }
 
@@ -105,7 +108,7 @@ export default function CrearUsuarioPage() {
         const payload = { name: values.name.trim(), email: values.email.trim() };
         if (values.password) {
           if (values.password !== values.confirm_password) {
-            notification.error({ message: "Las contraseñas no coinciden" });
+            toast("Las contraseñas no coinciden");
             setSaving(false);
             return;
           }
@@ -117,7 +120,6 @@ export default function CrearUsuarioPage() {
           { headers: authHeaderUsuarios() }
         );
         savedCode = usuarioEditar.code;
-        notification.success({ message: "Usuario actualizado correctamente" });
       } else {
         const payload = {
           name: values.name.trim(),
@@ -128,7 +130,6 @@ export default function CrearUsuarioPage() {
           headers: authHeaderUsuarios(),
         });
         savedCode = res.data?.code;
-        notification.success({ message: "Usuario creado exitosamente" });
       }
 
       if (fotoFile && savedCode) {
@@ -142,12 +143,16 @@ export default function CrearUsuarioPage() {
         });
       }
 
-      navigate(`/app/usuarios/${savedCode}`);
-    } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Usuario creado!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `"${values.name?.trim() || ""}" ya tiene acceso al sistema.`,
+        to: `/app/usuarios/${savedCode}`,
       });
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -157,15 +162,6 @@ export default function CrearUsuarioPage() {
     <main className="contratos-main">
       <div className="contratos-content">
 
-        {/* Back button */}
-        <Button
-          type="link"
-          className="cc-back-btn"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/app/usuarios")}
-        >
-          Volver a Usuarios
-        </Button>
 
         {/* Page header card */}
         <div className="cc-page-header-card">
@@ -180,15 +176,16 @@ export default function CrearUsuarioPage() {
             </Text>
           </div>
           <Space>
-            <Button className="eventos-btn-clean" onClick={() => navigate("/app/usuarios")} disabled={saving}>
+            <Button className="eventos-btn-clean" onClick={() => navigate("/app/usuarios")} disabled={saving || success.show}>
               Cancelar
             </Button>
             <Button
               type="primary"
               icon={isEditing ? <SaveOutlined /> : <PlusOutlined />}
               loading={saving}
+              disabled={success.show}
               onClick={handleSave}
-              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+              style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
             >
               {isEditing ? "Guardar cambios" : "Crear usuario"}
             </Button>
@@ -319,6 +316,14 @@ export default function CrearUsuarioPage() {
         </div>
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate(success.to || "/app/usuarios")}
+      />
     </main>
   );
 }

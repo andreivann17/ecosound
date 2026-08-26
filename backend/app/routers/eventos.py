@@ -85,6 +85,7 @@ async def _notify_evento(action: int, descripcion: str, id_evento: int, user_id:
         "source": "eventos",
         "id_evento": id_evento,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 
@@ -161,7 +162,7 @@ class EventoCreate(BaseModel):
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
-    hora_misa: Any = None
+    fecha_misa: Any = None
     id_paquete_sonido: Optional[int] = None
     id_paquete_fotografia: Optional[int] = None
     id_ciudad_fotografia: Optional[int] = None
@@ -188,7 +189,7 @@ class EventoUpdate(BaseModel):
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
-    hora_misa: Any = None
+    fecha_misa: Any = None
     id_paquete_sonido: Optional[int] = None
     id_paquete_fotografia: Optional[int] = None
     id_ciudad_fotografia: Optional[int] = None
@@ -345,9 +346,89 @@ def _cap_end_same_day(start_dt: dt.datetime) -> dt.datetime:
     return end_dt
 
 
-_SERVICIO_NOMBRES = {1: "Sonido", 2: "Fotografía", 3: "Decoraciones", 4: "Barra"}
-# Servicios que no tienen flujo propio de agenda (sonido=1 y foto=2 lo tienen)
-_SERVICIOS_EXTRA = {3, 4}
+_servicio_nombres_cache: Optional[Dict[int, str]] = None
+
+
+def _get_servicio_nombres(conn) -> Dict[int, str]:
+    """Nombres reales de la tabla `servicios` (id_servicio -> nombre).
+
+    Se cachea en memoria porque es un catálogo pequeño que casi no cambia;
+    evita hardcodear nombres que se desincronizan de la tabla real.
+    """
+    global _servicio_nombres_cache
+    if _servicio_nombres_cache is not None:
+        return _servicio_nombres_cache
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT id_servicio, nombre FROM servicios WHERE active = 1")
+        rows = cur.fetchall() or []
+    _servicio_nombres_cache = {r["id_servicio"]: r["nombre"] for r in rows}
+    return _servicio_nombres_cache
+
+
+def _sync_agenda_misa(
+    conn,
+    *,
+    id_user: int,
+    id_evento: int,
+    id_cliente: Optional[int],
+    cliente: str,
+    code: str,
+    fecha_misa: Optional[dt.datetime],
+    direccion_misa: Optional[str],
+    id_ciudad: Optional[int],
+    id_tipo_evento: Optional[int],
+) -> None:
+    """Full-replace de la entrada de agenda de la Misa: desactiva la previa
+    (si existe) y crea una nueva si hay fecha_misa capturada. Evita tener que
+    diffear campo por campo, igual que _replace_eventos_servicios.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE agenda SET active = 0
+            WHERE source_table = 'eventos_misa' AND source_id = %s AND active = 1
+            """,
+            (id_evento,),
+        )
+
+    if not fecha_misa or not id_ciudad:
+        return
+
+    end_misa = fecha_misa + dt.timedelta(hours=1)
+    if end_misa.date() != fecha_misa.date():
+        end_misa = fecha_misa.replace(hour=23, minute=59, second=0, microsecond=0)
+
+    lugar = (direccion_misa or "").strip()
+    title_misa = f"Misa - {cliente}".strip() if cliente else "Misa"
+    desc_misa = (
+        f"Servicio: Misa. "
+        f"Evento {code} para {cliente}. "
+        f"Misa el {fecha_misa.strftime('%Y-%m-%d')} a las {fecha_misa.strftime('%H:%M')}. "
+        f"Lugar: {lugar}."
+    )
+
+    agenda_model.create_agenda_conn(
+        conn,
+        id_user,
+        id_tipo_evento or 1,
+        {
+            "start_at": fecha_misa,
+            "end_at": end_misa,
+            "title": title_misa,
+            "source_table": "eventos_misa",
+            "all_day": 0,
+            "status": "active",
+            "location": lugar,
+            "description": desc_misa,
+            "source_id": id_evento,
+            "ciudad_id": id_ciudad,
+            "reminder": "15m",
+            "url": f"/eventos/{id_evento}",
+            "in_person": 1,
+            "recurrence": None,
+        },
+        id_cliente=id_cliente,
+    )
 
 
 def _sync_agendas_servicios_extra(
@@ -360,22 +441,33 @@ def _sync_agendas_servicios_extra(
     id_tipo_evento: Optional[int],
     servicios: list,
 ) -> None:
-    """Desactiva agendas previas de servicios extra y crea nuevas desde el array servicios."""
-    # Desactivar agendas existentes de Banquete y Barra para este evento
+    """Desactiva agendas previas de servicios "extra" y crea nuevas desde el array servicios.
+
+    La primera instancia de Sonido y la primera de Fotografía ya se agendan vía
+    el flujo principal del evento (campos fecha_evento/datetime_fotografia), así
+    que aquí se saltan. Cualquier otra instancia (2do Sonido, 2da Fotografía,
+    Decoraciones, Barra, etc.) obtiene su propia entrada de agenda.
+    """
+    # Desactivar agendas "extra" existentes para este evento
     with conn.cursor() as cur:
         cur.execute(
             """
             UPDATE agenda SET active = 0
-            WHERE source_table = 'eventos' AND source_id = %s AND active = 1
-              AND (description LIKE 'Servicio: Decoraciones.%%' OR description LIKE 'Servicio: Barra.%%')
+            WHERE source_table = 'eventos_servicios' AND source_id = %s AND active = 1
             """,
             (id_evento,),
         )
 
+    servicio_nombres = _get_servicio_nombres(conn)
+    primero_agendado = {1: False, 2: False}
     for sv in servicios:
         id_srv = sv.get("id_servicio") if isinstance(sv, dict) else None
-        if id_srv not in _SERVICIOS_EXTRA:
+        if id_srv not in servicio_nombres:
             continue
+        if id_srv in primero_agendado:
+            if not primero_agendado[id_srv]:
+                primero_agendado[id_srv] = True
+                continue
         fecha = sv.get("fecha")
         hora_ini = sv.get("hora_inicio")
         hora_fin = sv.get("hora_final")
@@ -392,7 +484,7 @@ def _sync_agendas_servicios_extra(
         if end_sv <= start_sv:
             end_sv += dt.timedelta(days=1)
 
-        nombre_srv = _SERVICIO_NOMBRES.get(id_srv, f"Servicio {id_srv}")
+        nombre_srv = servicio_nombres.get(id_srv, f"Servicio {id_srv}")
         title_sv = f"{nombre_srv} - {cliente}".strip() if cliente else nombre_srv
         desc_sv = (
             f"Servicio: {nombre_srv}. "
@@ -408,7 +500,7 @@ def _sync_agendas_servicios_extra(
                 "start_at": start_sv,
                 "end_at": end_sv,
                 "title": title_sv,
-                "source_table": "eventos",
+                "source_table": "eventos_servicios",
                 "all_day": 0,
                 "status": "active",
                 "location": lugar_sv,
@@ -422,6 +514,61 @@ def _sync_agendas_servicios_extra(
             },
             id_cliente=id_cliente,
         )
+
+
+def _handle_servicio_eliminado_agenda(
+    conn,
+    id_evento: int,
+    servicio_eliminado: Optional[Dict[str, Any]],
+    eliminar_agenda: bool,
+) -> None:
+    """Cuando el usuario elimina un servicio del evento, decide qué pasa con
+    su entrada de agenda asociada (si la tiene):
+
+    - eliminar_agenda=True: desactiva la entrada de agenda encontrada.
+    - eliminar_agenda=False: la "desvincula" (cambia su source_table) para que
+      sobreviva a futuros sync de `_sync_agendas_servicios_extra`, que sólo
+      toca filas con source_table='eventos_servicios'.
+    """
+    if not isinstance(servicio_eliminado, dict):
+        return
+
+    id_srv = servicio_eliminado.get("id_servicio")
+    nombre_srv = _get_servicio_nombres(conn).get(id_srv)
+    fecha = servicio_eliminado.get("fecha")
+    if not nombre_srv or not fecha:
+        return
+
+    start_sv = _combine_fecha_hora(fecha, servicio_eliminado.get("hora_inicio"))
+    if not start_sv:
+        return
+
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute(
+            """
+            SELECT id_agenda FROM agenda
+            WHERE source_id = %s AND active = 1
+              AND start_at = %s
+              AND description LIKE %s
+            ORDER BY id_agenda DESC
+            LIMIT 1
+            """,
+            (id_evento, start_sv, f"Servicio: {nombre_srv}.%"),
+        )
+        found = cur.fetchone()
+
+    if not found:
+        return
+
+    id_agenda = found["id_agenda"]
+    with conn.cursor() as cur:
+        if eliminar_agenda:
+            cur.execute("UPDATE agenda SET active = 0 WHERE id_agenda = %s", (id_agenda,))
+        else:
+            cur.execute(
+                "UPDATE agenda SET source_table = 'agenda_manual' WHERE id_agenda = %s",
+                (id_agenda,),
+            )
 
 
 def _replace_eventos_servicios(
@@ -581,9 +728,8 @@ async def crear_evento(
         payload_dict["hora_inicio"] = None
         payload_dict["hora_final"] = None
 
-    if payload_dict.get("hora_misa"):
-        fecha_ref = fecha_base or (dt_foto.isoformat() if dt_foto else None)
-        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_ref, payload_dict["hora_misa"])
+    if payload_dict.get("fecha_misa"):
+        payload_dict["fecha_misa"] = _parse_dt(payload_dict["fecha_misa"])
 
     id_agenda: Optional[int] = None
     id_agenda_foto: Optional[int] = None
@@ -700,7 +846,7 @@ async def crear_evento(
                     id_cliente=id_cliente,
                     servicios=servicios_payload,
                 )
-                # Crear agendas para Banquete y Barra.
+                # Crear agendas para servicios adicionales (2do Sonido/Foto, Decoraciones, Barra, etc.).
                 _sync_agendas_servicios_extra(
                     conn=conn,
                     id_evento=new_id,
@@ -711,6 +857,19 @@ async def crear_evento(
                     id_tipo_evento=payload.id_tipo_evento,
                     servicios=servicios_payload,
                 )
+
+            _sync_agenda_misa(
+                conn=conn,
+                id_user=user_id,
+                id_evento=new_id,
+                id_cliente=id_cliente,
+                cliente=cliente,
+                code=code,
+                fecha_misa=payload_dict.get("fecha_misa"),
+                direccion_misa=payload_dict.get("direccion_misa"),
+                id_ciudad=id_ciudad or id_ciudad_foto,
+                id_tipo_evento=payload.id_tipo_evento,
+            )
 
             conn.commit()
 
@@ -1269,6 +1428,8 @@ async def actualizar_evento(
 
     # Extraer servicios ANTES de update_evento (no es columna de la tabla `eventos`).
     servicios_payload = payload_dict.pop("servicios", None)
+    servicio_eliminado = payload_dict.pop("servicio_eliminado", None)
+    eliminar_agenda_servicio = bool(payload_dict.pop("eliminar_agenda_servicio", False))
 
     # Parse datetime_fotografia if present
     if payload_dict.get("datetime_fotografia"):
@@ -1312,8 +1473,8 @@ async def actualizar_evento(
                     start_dt = None
                     end_dt = None
 
-            if payload_dict.get("hora_misa"):
-                payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
+            if payload_dict.get("fecha_misa"):
+                payload_dict["fecha_misa"] = _parse_dt(payload_dict["fecha_misa"])
 
             affected, code = evento_model.update_evento(
                 id_evento=id_evento,
@@ -1377,6 +1538,14 @@ async def actualizar_evento(
 
             # Reemplazar servicios si el payload los trae.
             if servicios_payload is not None:
+                if servicio_eliminado:
+                    _handle_servicio_eliminado_agenda(
+                        conn=conn,
+                        id_evento=id_evento,
+                        servicio_eliminado=servicio_eliminado,
+                        eliminar_agenda=eliminar_agenda_servicio,
+                    )
+
                 _replace_eventos_servicios(
                     conn=conn,
                     id_evento=id_evento,
@@ -1384,7 +1553,7 @@ async def actualizar_evento(
                     id_cliente=row.get("id_cliente"),
                     servicios=servicios_payload,
                 )
-                # Actualizar agendas de Banquete y Barra.
+                # Actualizar agendas de servicios adicionales (2do Sonido/Foto, Decoraciones, Barra, etc.).
                 cliente_upd = (payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip()
                 _sync_agendas_servicios_extra(
                     conn=conn,
@@ -1395,6 +1564,26 @@ async def actualizar_evento(
                     code=code,
                     id_tipo_evento=payload_dict.get("id_tipo_evento") or row.get("id_tipo_evento"),
                     servicios=servicios_payload,
+                )
+
+            _MISA_RELEVANT = {"fecha_misa", "direccion_misa", "id_ciudad"}
+            if _MISA_RELEVANT & set(payload_dict.keys()):
+                fecha_misa_val = payload_dict["fecha_misa"] if "fecha_misa" in payload_dict else row.get("fecha_misa")
+                fecha_misa_dt = (
+                    fecha_misa_val if isinstance(fecha_misa_val, dt.datetime)
+                    else (_parse_dt(fecha_misa_val) if fecha_misa_val else None)
+                )
+                _sync_agenda_misa(
+                    conn=conn,
+                    id_user=int(user_id),
+                    id_evento=id_evento,
+                    id_cliente=row.get("id_cliente"),
+                    cliente=(payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip(),
+                    code=code,
+                    fecha_misa=fecha_misa_dt,
+                    direccion_misa=payload_dict.get("direccion_misa") if "direccion_misa" in payload_dict else row.get("direccion_misa"),
+                    id_ciudad=payload_dict.get("id_ciudad") if "id_ciudad" in payload_dict else row.get("id_ciudad"),
+                    id_tipo_evento=payload_dict.get("id_tipo_evento") or row.get("id_tipo_evento"),
                 )
 
             conn.commit()
@@ -1612,6 +1801,19 @@ def remove_equipo_evento(
 class EventoTrabajadorCreate(BaseModel):
     id_trabajador: int
     id_puesto: Optional[int] = None
+    hora_inicio: Optional[str] = None
+    hora_final: Optional[str] = None
+    fecha_inicio: Optional[str] = None
+    fecha_final: Optional[str] = None
+    id_evento_servicio: Optional[int] = None
+    model_config = ConfigDict(extra="ignore")
+
+
+class EventoTrabajadorHorario(BaseModel):
+    hora_inicio: Optional[str] = None
+    hora_final: Optional[str] = None
+    fecha_inicio: Optional[str] = None
+    fecha_final: Optional[str] = None
     model_config = ConfigDict(extra="ignore")
 
 
@@ -1629,30 +1831,79 @@ def add_trabajador_evento(
     payload: EventoTrabajadorCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ):
-    if trab_model.is_trabajador_en_contrato(id_evento, payload.id_trabajador):
-        raise HTTPException(
-            status_code=409,
-            detail="Este trabajador ya está asignado a este evento",
-        )
     user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
     evento_row = evento_model.get_evento_by_id(id_evento)
     id_cliente = evento_row.get("id_cliente") if evento_row else None
+    cliente_nombre = evento_row.get("cliente_nombre") if evento_row else None
     result = trab_model.add_contrato_trabajador(
-        id_evento, payload.id_trabajador, payload.id_puesto, user_id, id_cliente
+        id_evento, payload.id_trabajador, payload.id_puesto, user_id, id_cliente,
+        hora_inicio=payload.hora_inicio, hora_final=payload.hora_final,
+        id_evento_servicio=payload.id_evento_servicio,
+        fecha_inicio=payload.fecha_inicio, fecha_final=payload.fecha_final,
     )
     items = trab_model.list_contrato_trabajadores(id_evento)
+
+    ct_row = trab_model.get_contrato_trabajador_by_id(result["id_contrato_trabajador"])
+    if ct_row:
+        puesto_txt = f" como {ct_row['nombre_puesto']}" if ct_row.get("nombre_puesto") else ""
+        evento_txt = f" en el evento de '{cliente_nombre}'" if cliente_nombre else f" en el evento #{id_evento}"
+        trab_model.log_actividad_trabajador(
+            "CREATE", f"Asignado{puesto_txt}{evento_txt}", ct_row["id_trabajador"], user_id,
+        )
+
     return {"id_contrato_trabajador": result["id_contrato_trabajador"], "items": items}
+
+
+@router.patch("/{id_evento}/trabajadores/{id_contrato_trabajador}", status_code=200)
+def update_trabajador_horario(
+    id_evento: int,
+    id_contrato_trabajador: int,
+    payload: EventoTrabajadorHorario,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    affected = trab_model.update_contrato_trabajador_horario(
+        id_evento, id_contrato_trabajador, payload.hora_inicio, payload.hora_final,
+        fecha_inicio=payload.fecha_inicio, fecha_final=payload.fecha_final,
+    )
+    if not affected:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+
+    ct_row = trab_model.get_contrato_trabajador_by_id(id_contrato_trabajador)
+    if ct_row:
+        evento_row = evento_model.get_evento_by_id(id_evento)
+        cliente_nombre = evento_row.get("cliente_nombre") if evento_row else None
+        evento_txt = f" en el evento de '{cliente_nombre}'" if cliente_nombre else f" en el evento #{id_evento}"
+        trab_model.log_actividad_trabajador(
+            "UPDATE", f"Horario actualizado{evento_txt}", ct_row["id_trabajador"], user_id,
+            changes=payload.model_dump(exclude_none=True),
+        )
+
+    return {"updated": 1, "id_contrato_trabajador": id_contrato_trabajador}
 
 
 @router.delete("/{id_evento}/trabajadores/{id_contrato_trabajador}", status_code=200)
 def remove_trabajador_evento(
     id_evento: int,
     id_contrato_trabajador: int,
-    _cu: Dict[str, Any] = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
+    user_id = int(current_user.get("id") or current_user.get("id_user") or 0)
+    ct_row = trab_model.get_contrato_trabajador_by_id(id_contrato_trabajador)
+
     affected = trab_model.delete_contrato_trabajador(id_evento, id_contrato_trabajador)
     if not affected:
         raise HTTPException(status_code=404, detail="Asignación no encontrada")
+
+    if ct_row:
+        evento_row = evento_model.get_evento_by_id(id_evento)
+        cliente_nombre = evento_row.get("cliente_nombre") if evento_row else None
+        puesto_txt = f" como {ct_row['nombre_puesto']}" if ct_row.get("nombre_puesto") else ""
+        evento_txt = f" del evento de '{cliente_nombre}'" if cliente_nombre else f" del evento #{id_evento}"
+        trab_model.log_actividad_trabajador(
+            "DELETE", f"Quitado{puesto_txt}{evento_txt}", ct_row["id_trabajador"], user_id,
+        )
+
     return {"deleted": 1, "id_contrato_trabajador": id_contrato_trabajador}
 
 

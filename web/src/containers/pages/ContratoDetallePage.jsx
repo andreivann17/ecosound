@@ -14,7 +14,6 @@ import {
   Form,
   Input,
   DatePicker,
-  notification,
   Spin,
   Timeline,
   Empty,
@@ -47,6 +46,9 @@ import {
   FileUnknownOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
+
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 import "./ContratoDetallePage.css";
 import { PATH as API_BASE } from "../../redux/utils";
@@ -173,6 +175,11 @@ export default function ContratoDetallePage() {
   const pdfInputRef = useRef(null);
   const docInputRef = useRef(null);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
+
   // ── Fetch contrato ────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
@@ -180,7 +187,7 @@ export default function ContratoDetallePage() {
     apiContratosInstance
       .get(`/contratos/${idContrato}`, { headers: authHeaderContratos() })
       .then(({ data }) => { if (mounted) setContrato(data); })
-      .catch(() => notification.error({ message: "No se pudo cargar el contrato" }))
+      .catch(() => toast("No se pudo cargar el contrato"))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idContrato]);
@@ -256,13 +263,13 @@ export default function ContratoDetallePage() {
           await apiContratosInstance.delete(`/contratos/${idContrato}`, {
             headers: authHeaderContratos(),
           });
-          notification.success({ message: "Contrato eliminado" });
-          navigate("/app/contratos");
-        } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
+          setSuccess({
+            show: true,
+            title: "¡Contrato eliminado!",
+            subtitle: `El contrato de "${contrato?.cliente_nombre || ""}" se eliminó correctamente.`,
           });
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         } finally {
           setDeleting(false);
         }
@@ -285,15 +292,12 @@ export default function ContratoDetallePage() {
         },
         { headers: authHeaderContratos() }
       );
-      notification.success({ message: "Abono registrado exitosamente" });
+      toast("Abono registrado exitosamente");
       pagoForm.resetFields();
       setPagoModalOpen(false);
       fetchPagos();
     } catch (err) {
-      notification.error({
-        message: "Error al guardar abono",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar abono");
     } finally {
       setSavingPago(false);
     }
@@ -303,7 +307,7 @@ export default function ContratoDetallePage() {
   const handleUploadPdf = async (file) => {
     if (!file) return;
     if (getFileType(file.name) !== "pdf") {
-      notification.error({ message: "Solo se permiten archivos PDF para el contrato" });
+      toast("Solo se permiten archivos PDF para el contrato");
       return;
     }
     setUploadingPdf(true);
@@ -315,13 +319,10 @@ export default function ContratoDetallePage() {
         fd,
         { headers: { ...authHeaderContratos(), "Content-Type": "multipart/form-data" } }
       );
-      notification.success({ message: "Contrato PDF subido correctamente" });
+      toast("Contrato PDF subido correctamente");
       fetchDocumentos();
     } catch (err) {
-      notification.error({
-        message: "Error al subir el PDF",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al subir el PDF");
     } finally {
       setUploadingPdf(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -340,13 +341,10 @@ export default function ContratoDetallePage() {
         fd,
         { headers: { ...authHeaderContratos(), "Content-Type": "multipart/form-data" } }
       );
-      notification.success({ message: "Documento subido correctamente" });
+      toast("Documento subido correctamente");
       fetchDocumentos();
     } catch (err) {
-      notification.error({
-        message: "Error al subir el documento",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al subir el documento");
     } finally {
       setUploadingDoc(false);
       if (docInputRef.current) docInputRef.current.value = "";
@@ -368,13 +366,10 @@ export default function ContratoDetallePage() {
             `/contratos/${idContrato}/documentos/${doc.id}`,
             { headers: authHeaderContratos() }
           );
-          notification.success({ message: "Documento eliminado" });
+          toast("Documento eliminado");
           fetchDocumentos();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         }
       },
     });
@@ -465,15 +460,6 @@ export default function ContratoDetallePage() {
     <div className="cd-main">
       <div className="cd-content">
 
-        {/* Botón volver */}
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/contratos")}
-        >
-          Volver a Contratos
-        </Button>
 
         {/* ── Header card ── */}
         <div className="cd-header-card">
@@ -520,6 +506,7 @@ export default function ContratoDetallePage() {
                 icon={<DeleteOutlined />}
                 className="cd-btn-delete"
                 loading={deleting}
+                disabled={success.show}
                 onClick={handleDelete}
               >
                 Eliminar
@@ -669,7 +656,7 @@ export default function ContratoDetallePage() {
                   <EnvironmentOutlined style={{ fontSize: 13, color: "#6b7280" }} />
                   Información de Misa
                 </div>
-                {contrato.direccion_misa || contrato.hora_misa ? (
+                {contrato.direccion_misa || contrato.fecha_misa ? (
                   <div className="cd-misa-fields">
                     {contrato.direccion_misa && (
                       <div>
@@ -677,12 +664,21 @@ export default function ContratoDetallePage() {
                         <span className="cd-field-value">{contrato.direccion_misa}</span>
                       </div>
                     )}
-                    {contrato.hora_misa && (
+                    {contrato.fecha_misa && (
+                      <div>
+                        <span className="cd-field-label">Fecha de la Misa</span>
+                        <div className="cd-field-icon-row">
+                          <CalendarOutlined className="cd-field-row-icon" />
+                          <span className="cd-field-value">{fmtFechaCorta(contrato.fecha_misa)}</span>
+                        </div>
+                      </div>
+                    )}
+                    {contrato.fecha_misa && (
                       <div>
                         <span className="cd-field-label">Hora de la Misa</span>
                         <div className="cd-field-icon-row">
                           <ClockCircleOutlined className="cd-field-row-icon" />
-                          <span className="cd-field-value">{fmtHora(contrato.hora_misa)}</span>
+                          <span className="cd-field-value">{fmtHora(contrato.fecha_misa)}</span>
                         </div>
                       </div>
                     )}
@@ -1191,6 +1187,14 @@ export default function ContratoDetallePage() {
           );
         })()}
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/contratos")}
+      />
     </div>
   );
 }

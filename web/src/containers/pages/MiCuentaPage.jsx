@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Input } from "antd";
-import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -24,10 +23,8 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { API_URL } from "../../api";
+import { requestStripe, STRIPE_PK } from "../../utils/stripeLoader";
 import "./MiCuentaPage.css";
-
-const STRIPE_PK = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
-const stripePromise = STRIPE_PK ? loadStripe(STRIPE_PK) : null;
 
 const VINCULAR_PLANS = [
   {
@@ -217,6 +214,9 @@ export default function MiCuentaPage() {
   const [vincularError, setVincularError] = useState("");
   const [vincularLoading, setVincularLoading] = useState(false);
 
+  const [stripePromise, setStripePromise] = useState(null);
+  const [stripeOffline, setStripeOffline] = useState(false);
+
   // ── Estado: borrar cuenta ────────────────────────────────────────────────
   const [deleteStep, setDeleteStep] = useState(null);
   const [deletePwd, setDeletePwd] = useState("");
@@ -253,6 +253,15 @@ export default function MiCuentaPage() {
     setVincularLoading(false);
   };
 
+  const tryLoadStripe = useCallback(() => {
+    if (!STRIPE_PK) return;
+    setStripeOffline(false);
+    requestStripe().then((inst) => {
+      if (inst) setStripePromise((prev) => prev || Promise.resolve(inst));
+      else setStripeOffline(true);
+    });
+  }, []);
+
   // ── Effects ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -287,6 +296,16 @@ export default function MiCuentaPage() {
       cancelled = true;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (vincularStep === "card" && !stripePromise) tryLoadStripe();
+  }, [vincularStep]); // eslint-disable-line
+
+  useEffect(() => {
+    const handler = () => { if (stripeOffline || !stripePromise) tryLoadStripe(); };
+    window.addEventListener("online", handler);
+    return () => window.removeEventListener("online", handler);
+  }, [stripeOffline, stripePromise, tryLoadStripe]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -651,12 +670,13 @@ export default function MiCuentaPage() {
                       stripe={stripePromise}
                       options={{
                         clientSecret: vincularClientSecret,
+                        fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" }],
                         appearance: {
                           theme: "night",
                           variables: {
                             colorPrimary: "#60a5fa",
                             borderRadius: "8px",
-                            fontFamily: "system-ui, -apple-system, sans-serif",
+                            fontFamily: '"Noto Sans", system-ui, -apple-system, sans-serif',
                           },
                         },
                       }}
@@ -667,11 +687,22 @@ export default function MiCuentaPage() {
                         onSuccess={() => setVincularStep("done")}
                       />
                     </Elements>
+                  ) : !STRIPE_PK ? (
+                    <p className="mcd-error">
+                      Falta configurar la clave pública de Stripe (REACT_APP_STRIPE_PUBLISHABLE_KEY).
+                    </p>
+                  ) : stripeOffline ? (
+                    <div style={{ textAlign: "center" }}>
+                      <p className="mcd-error" style={{ margin: "0 0 10px 0" }}>
+                        Sin conexión a internet. El formulario de pago no está disponible.
+                      </p>
+                      <button type="button" className="mcd-btn mcd-btn--ghost" style={{ fontSize: 13 }} onClick={tryLoadStripe}>
+                        Reintentar
+                      </button>
+                    </div>
                   ) : (
                     <p className="mcd-error">
-                      {!stripePromise
-                        ? "Falta configurar la clave pública de Stripe (REACT_APP_STRIPE_PUBLISHABLE_KEY)."
-                        : "No se pudo cargar el formulario de pago. Cierra e intenta de nuevo."}
+                      No se pudo cargar el formulario de pago. Cierra e intenta de nuevo.
                     </p>
                   )}
 

@@ -17,3 +17,14 @@ export function tokenExpiresInMs(token) {
     return 0;
   }
 }
+
+export function getCurrentUserId() {
+  const token = localStorage.getItem("tokenadmin") || localStorage.getItem("token");
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.id ?? null;
+  } catch {
+    return null;
+  }
+}

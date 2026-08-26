@@ -85,6 +85,7 @@ async def _notify_evento(action: int, descripcion: str, id_cotizacion: int, user
         "source": "cotizaciones",
         "id_cotizacion": id_cotizacion,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 

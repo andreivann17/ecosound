@@ -1,5 +1,4 @@
 /* electronHeader.css */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 /* ---- SCROLLBAR global estilo Spotify ---- */
 ::-webkit-scrollbar        { width: 12px; height: 12px; }
@@ -12,11 +11,24 @@
 ::-webkit-scrollbar-thumb:hover { background: #6b7585; }
 * { scrollbar-width: auto; scrollbar-color: #9aa3b2 #f1f3f5; }
 
+:root[data-eh-content-theme="dark"] ::-webkit-scrollbar-track { background: var(--eh-app-bg, #0b1220); }
+:root[data-eh-content-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 3px solid var(--eh-app-bg, #0b1220);
+}
+:root[data-eh-content-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+:root[data-eh-content-theme="dark"] * { scrollbar-color: #475569 var(--eh-app-bg, #0b1220); }
+
 :root{
   --eh-bg: #012770;
-  --eh-text: #ffffff;
-  --eh-muted: rgba(255,255,255,.70);
-  --eh-muted2: rgba(255,255,255,.45);
+  --eh-navbar-bg: var(--eh-bg);
+  --eh-header-bg: var(--eh-bg);
+  --eh-active-color: #ffffff;
+  --eh-primary-btn: #01369e;
+  --eh-primary-btn-2: #0a2a7a;
+  --eh-text: rgb(var(--eh-nav-fg-rgb));
+  --eh-muted: rgba(var(--eh-nav-fg-rgb),.70);
+  --eh-muted2: rgba(var(--eh-nav-fg-rgb),.45);
   --eh-accent: #d1d3f5;
   --eh-shadow: 0 2px 10px rgba(0,0,0,.20);
   --eh-pop-shadow: 0 18px 50px rgba(0,0,0,.25);
@@ -25,20 +37,308 @@
   --eh-blue: #3b82f6;
   --eh-red: #ef4444;
   --eh-amber: #f59e0b;
+
+  /* Color base (RGB) del texto/íconos sobre el navbar, sidebar y header de
+     marca (--eh-navbar-bg / --eh-header-bg). Se sobreescribe directo desde
+     JS (TemaContext.jsx) a partir del campo explícito text_color_navbar que
+     elige el admin — NO depende de dark_design. Por defecto blanco (look
+     de fábrica) hasta que el cliente configure su propio color. Todas las
+     reglas de abajo usan rgba(var(--eh-nav-fg-rgb), X) en vez de
+     rgba(255,255,255,X) para poder adaptarse automáticamente. */
+  --eh-nav-fg-rgb: 255,255,255;
+
+  /* Superficies del CONTENIDO de la app (fondo de página, tarjetas, texto).
+     Por defecto son los valores claros de hoy (sin cambios) — un cliente sin
+     dark_design configurado (null) NUNCA debe ver un cambio no solicitado.
+     Solo dark_design=1 explícito activa [data-eh-content-theme="dark"]. */
+  --eh-app-bg: #e7e7e7;
+  --eh-surface: #ffffff;
+  --eh-surface-2: #f8fafc;
+  --eh-surface-border: #e2e8f0;
+  --eh-ink: #0f172a;
+  --eh-ink-2: #475569;
+  --eh-ink-muted: #64748b;
+  --eh-ink-faint: #94a3b8;
+
+  /* Pares bg/texto para badges de estado (Informes y similares). Claro =
+     pastel sólido de siempre; oscuro = tinte translúcido + texto claro. */
+  --eh-badge-amber-bg: #ffddb5; --eh-badge-amber-text: #5c3600;
+  --eh-badge-teal-bg:  #93f2f2; --eh-badge-teal-text:  #003030;
+  --eh-badge-blue-bg:  #d8e2ff; --eh-badge-blue-text:  #071b3b;
+  --eh-badge-red-bg:   #ffdad6; --eh-badge-red-text:   #93000a;
+  --eh-badge-gray-bg:  #e8eaed; --eh-badge-gray-text:  #44474e;
+  --eh-badge-green-bg: #c8f5c8; --eh-badge-green-text: #004d00;
+  --eh-accent-soft: rgba(1,54,158,0.07);
+  --eh-accent-text: var(--eh-primary-btn);
+  --eh-btn-clean-bg: #ffffff;
+  --eh-btn-clean-border: #dde1e7;
+  --eh-btn-clean-text: #5a6072;
+}
+
+:root[data-eh-content-theme="dark"]{
+  --eh-app-bg: #0b1220;
+  --eh-surface: #111827;
+  --eh-surface-2: #1e293b;
+  /* Acento fijo (no depende del color de marca del cliente): un azul-gris
+     visible para que el contorno de tarjetas/paneles se note contra el
+     fondo oscuro, en vez de un gris casi invisible. */
+  --eh-surface-border: #3b4a6b;
+  --eh-ink: #f1f5f9;
+  --eh-ink-2: #cbd5e1;
+  --eh-ink-muted: #94a3b8;
+  --eh-ink-faint: #64748b;
+
+  --eh-badge-amber-bg: rgba(245, 158, 11, 0.2); --eh-badge-amber-text: #fbbf24;
+  --eh-badge-teal-bg:  rgba(20, 184, 166, 0.2); --eh-badge-teal-text:  #5eead4;
+  --eh-badge-blue-bg:  rgba(59, 130, 246, 0.2); --eh-badge-blue-text:  #93c5fd;
+  --eh-badge-red-bg:   rgba(239, 68, 68, 0.2);  --eh-badge-red-text:   #fca5a5;
+  --eh-badge-gray-bg:  rgba(148, 163, 184, 0.18); --eh-badge-gray-text: #cbd5e1;
+  --eh-badge-green-bg: rgba(34, 197, 94, 0.2);  --eh-badge-green-text: #86efac;
+  --eh-accent-soft: rgba(59, 130, 246, 0.18);
+  /* Texto de acento: en claro usa el color de marca del cliente (funciona
+     porque el fondo es blanco); en oscuro se fija a un azul legible, ya
+     que algunos clientes tienen su color de marca casi negro. */
+  --eh-accent-text: #60a5fa;
+  /* Igual que .eventos-btn-clean / .gas-btn-clean: tono pálido a propósito,
+     no obscuro, para que "Limpiar" destaque contra el resto del panel. */
+  --eh-btn-clean-bg: #dce3ee;
+  --eh-btn-clean-border: #aab8cf;
+  --eh-btn-clean-text: #1e293b;
+}
+
+:root[data-eh-content-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
+}
+
+/* Modal de antd (incluye los de "Previsualización — Reporte de X" con
+   iframe, y los Modal.confirm de eliminar/etc.) también se monta vía portal
+   en <body>. El chrome del modal (header/body/footer) se oscurece; el
+   <iframe> del preview de PDF NO se toca — es un documento aparte pensado
+   para imprimirse en blanco, así debe quedarse. */
+:root[data-eh-content-theme="dark"] .ant-modal-content {
+  background: var(--eh-surface, #111827) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-header {
+  background: var(--eh-surface, #111827) !important;
+  border-bottom-color: var(--eh-surface-border, #3b4a6b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-title {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-footer {
+  border-top-color: var(--eh-surface-border, #3b4a6b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-close {
+  color: var(--eh-ink-muted, #94a3b8) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-close:hover {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+
+/* Popover de antd (EventPeek del calendario, menús de usuario, etc.) —
+   también se monta vía portal en <body>. Fallback global; donde el propio
+   componente ya define su fondo (como EventPeek) esa regla más específica
+   gana igual. */
+:root[data-eh-content-theme="dark"] .ant-popover-inner {
+  background: var(--eh-surface, #111827) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-popover-arrow::before {
+  background: var(--eh-surface, #111827) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-popover-title {
+  color: var(--eh-ink, #f1f5f9) !important;
+  border-bottom-color: var(--eh-surface-border, #3b4a6b) !important;
+}
+
+/* Controles base de antd (Input, InputNumber, DatePicker/RangePicker cerrado,
+   Select cerrado, TextArea) en su estado normal — de fondo blanco por
+   defecto. Esto es un fallback GLOBAL: donde un módulo ya tiene su propia
+   regla scoped (".gas-filters-panel .ant-input", etc.) esa gana por
+   especificidad; esto solo cubre los formularios/modales que nunca se
+   tocaron uno por uno (ej. modales de "Registrar abono", etc.). */
+:root[data-eh-content-theme="dark"] .ant-input,
+:root[data-eh-content-theme="dark"] .ant-input-affix-wrapper,
+:root[data-eh-content-theme="dark"] .ant-input-number,
+:root[data-eh-content-theme="dark"] .ant-input-number-affix-wrapper,
+:root[data-eh-content-theme="dark"] .ant-picker,
+:root[data-eh-content-theme="dark"] .ant-select-selector {
+  background: var(--eh-surface-2, #1e293b) !important;
+  border-color: var(--eh-surface-border, #3b4a6b) !important;
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-input-number-input,
+:root[data-eh-content-theme="dark"] .ant-picker-input > input,
+:root[data-eh-content-theme="dark"] .ant-select-selection-item,
+:root[data-eh-content-theme="dark"] .ant-input-number-affix-wrapper .ant-input-number,
+:root[data-eh-content-theme="dark"] .ant-input-affix-wrapper .ant-input {
+  color: var(--eh-ink, #f1f5f9) !important;
+  background: transparent !important;
+}
+:root[data-eh-content-theme="dark"] .ant-input-number-prefix,
+:root[data-eh-content-theme="dark"] .ant-input-number-suffix {
+  color: var(--eh-ink-muted, #94a3b8) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-input::placeholder,
+:root[data-eh-content-theme="dark"] .ant-input-number-input::placeholder,
+:root[data-eh-content-theme="dark"] .ant-picker-input > input::placeholder,
+:root[data-eh-content-theme="dark"] .ant-select-selection-placeholder {
+  color: var(--eh-ink-faint, #64748b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-suffix,
+:root[data-eh-content-theme="dark"] .ant-input-number-handler-wrap,
+:root[data-eh-content-theme="dark"] .ant-select-arrow {
+  color: var(--eh-ink-muted, #94a3b8) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-input-affix-wrapper .ant-input-prefix,
+:root[data-eh-content-theme="dark"] .ant-input-affix-wrapper .ant-input-suffix {
+  color: var(--eh-ink-muted, #94a3b8) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-form-item-label,
+:root[data-eh-content-theme="dark"] .ant-form-item-label > label {
+  background: transparent !important;
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-body {
+  background: var(--eh-surface, #111827) !important;
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+/* Botones "Cancelar"/"Cerrar" que antd genera solo (Modal, Modal.confirm)
+   sin className propio: scoped al footer del modal para no pisar los
+   botones ya personalizados (.laboral-btn-import, .cd-btn-export, etc.)
+   en el resto de la app. */
+/* Mismo tono pálido intencional que "Cancelar"/"Limpiar filtros" en el
+   header de cada módulo (.eventos-btn-clean, .gas-btn-clean, etc.), para
+   que TODOS los botones "Cancelar" de la app se vean iguales. */
+:root[data-eh-content-theme="dark"] .ant-modal-footer .ant-btn-default {
+  background: var(--eh-btn-clean-bg, #dce3ee) !important;
+  border-color: var(--eh-btn-clean-border, #aab8cf) !important;
+  color: var(--eh-btn-clean-text, #1e293b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-footer .ant-btn-default:hover {
+  background: #c7d2e0 !important;
+  border-color: #94a7c4 !important;
+  color: #1e293b !important;
+}
+
+/* Modal.confirm (Eliminar/Reactivar/Descontinuar en toda la app) NO usa
+   .ant-modal-footer — antd lo arma aparte con .ant-modal-confirm-btns, así
+   que necesita su propio fix. También el texto del cuerpo y el título. */
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-title {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-content {
+  color: var(--eh-ink-muted, #94a3b8) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-btns .ant-btn-default {
+  background: var(--eh-btn-clean-bg, #dce3ee) !important;
+  border-color: var(--eh-btn-clean-border, #aab8cf) !important;
+  color: var(--eh-btn-clean-text, #1e293b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-btns .ant-btn-default:hover {
+  background: #c7d2e0 !important;
+  border-color: #94a7c4 !important;
+  color: #1e293b !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-btns .ant-btn-dangerous:not(.ant-btn-primary) {
+  background: transparent !important;
+  border-color: #ef4444 !important;
+  color: #f87171 !important;
+}
+:root[data-eh-content-theme="dark"] .ant-modal-confirm-btns .ant-btn-dangerous:not(.ant-btn-primary):hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border-color: #f87171 !important;
+  color: #fca5a5 !important;
+}
+
+/* Popups de antd (Select, DatePicker, Cascader...) se montan vía portal en
+   <body>, fuera de cualquier contenedor con clase propia — por eso ninguna
+   regla ".modulo-panel .ant-select-selector" los alcanza. Se corrige una
+   sola vez, global, para toda la app. */
+:root[data-eh-content-theme="dark"] .ant-select-dropdown,
+:root[data-eh-content-theme="dark"] .ant-picker-dropdown,
+:root[data-eh-content-theme="dark"] .ant-cascader-dropdown,
+:root[data-eh-content-theme="dark"] .ant-dropdown-menu {
+  background: var(--eh-surface, #111827) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+}
+
+:root[data-eh-content-theme="dark"] .ant-select-item,
+:root[data-eh-content-theme="dark"] .ant-dropdown-menu-item {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+
+:root[data-eh-content-theme="dark"] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: var(--eh-surface-2, #1e293b) !important;
+}
+
+:root[data-eh-content-theme="dark"] .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: rgba(59, 130, 246, 0.16) !important;
+}
+
+/* Botón "..." (editar/opciones) de solo ícono en encabezados de card — en
+   todos los módulos (Eventos, Cotizaciones, Paquetes, Trabajadores, Gastos,
+   Usuarios). type="text" hereda color casi negro de antd, invisible sobre
+   fondo oscuro. */
+:root[data-eh-content-theme="dark"] .ant-btn-text.ant-btn-icon-only {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+
+:root[data-eh-content-theme="dark"] .ant-picker-panel-container {
+  background: var(--eh-surface, #111827) !important;
+}
+
+:root[data-eh-content-theme="dark"] .ant-picker-header,
+:root[data-eh-content-theme="dark"] .ant-picker-header button,
+:root[data-eh-content-theme="dark"] .ant-picker-content th,
+:root[data-eh-content-theme="dark"] .ant-picker-cell {
+  color: var(--eh-ink, #f1f5f9);
+}
+
+:root[data-eh-content-theme="dark"] .ant-picker-cell-in-view {
+  color: var(--eh-ink, #f1f5f9);
+}
+
+:root[data-eh-content-theme="dark"] .ant-picker-cell:hover .ant-picker-cell-inner {
+  background: var(--eh-surface-2, #1e293b) !important;
+}
+
+/* Columna de horas/minutos del DatePicker (showTime) — usa clases propias,
+   no ".ant-picker-cell", por eso no quedaba cubierto por lo de arriba. */
+:root[data-eh-content-theme="dark"] .ant-picker-time-panel-column {
+  border-left-color: var(--eh-surface-border, #3b4a6b);
+}
+:root[data-eh-content-theme="dark"] .ant-picker-time-panel-cell .ant-picker-time-panel-cell-inner {
+  color: var(--eh-ink, #f1f5f9) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-time-panel-cell:hover .ant-picker-time-panel-cell-inner {
+  background: var(--eh-surface-2, #1e293b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-time-panel-cell-selected .ant-picker-time-panel-cell-inner {
+  background: var(--eh-accent-soft, rgba(59,130,246,0.25)) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-footer,
+:root[data-eh-content-theme="dark"] .ant-picker-datetime-panel {
+  border-color: var(--eh-surface-border, #3b4a6b) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-footer .ant-picker-now-btn {
+  color: var(--eh-accent-text, #60a5fa) !important;
+}
+:root[data-eh-content-theme="dark"] .ant-picker-panel {
+  border-color: var(--eh-surface-border, #3b4a6b) !important;
 }
 
 .eh-root{
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 2000;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: "Noto Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   -webkit-app-region: drag;
   box-shadow: var(--eh-shadow);
 }
 
 .eh-bar{
   height: 56px;
-  background: var(--eh-bg);
+  background: var(--eh-navbar-bg, var(--eh-bg));
   color: var(--eh-text);
   display: flex;
   align-items: center;
@@ -75,13 +375,228 @@
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .18em;
-  color: rgba(255,255,255,.82);
+  color: rgba(var(--eh-nav-fg-rgb),.82);
 }
 .eh-brand-sub{
   font-size: 9px;
   font-weight: 500;
-  color: rgba(255,255,255,.55);
+  color: rgba(var(--eh-nav-fg-rgb),.55);
   letter-spacing: .12em;
+}
+
+/* ══════════════════════════════════════════════
+   VERTICAL SIDEBAR  (is_vertical = 1)
+   ══════════════════════════════════════════════ */
+
+.vs-root {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 2001;
+  background: var(--eh-navbar-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(.4,0,.2,1);
+  box-shadow: 2px 0 12px rgba(0,0,0,.28);
+  font-family: "Noto Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  -webkit-app-region: no-drag;
+}
+
+.vs-logo {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.vs-logo-img {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.vs-logo-text {
+  color: rgba(var(--eh-nav-fg-rgb),.85);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.vs-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  overflow: hidden;
+}
+
+.vs-nav--all {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.vs-nav--all::-webkit-scrollbar { display: none; }
+
+.vs-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 15px;
+  border: none;
+  background: transparent;
+  color: rgba(var(--eh-nav-fg-rgb),.60);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.vs-item:hover {
+  background: rgba(var(--eh-nav-fg-rgb),.07);
+  color: rgb(var(--eh-nav-fg-rgb));
+}
+
+.vs-item--active {
+  color: var(--eh-active-color);
+  background: rgba(var(--eh-nav-fg-rgb),.12);
+}
+
+.vs-item--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px; bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: rgba(var(--eh-nav-fg-rgb),.6);
+}
+
+.vs-item-icon {
+  font-size: 17px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+}
+
+.vs-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vs-bottom {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+  padding: 8px 0;
+}
+
+.vs-avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 13px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: rgba(var(--eh-nav-fg-rgb),.70);
+  font-size: 12px;
+  font-family: inherit;
+  transition: background .15s ease, color .15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.vs-avatar-btn:hover {
+  background: rgba(var(--eh-nav-fg-rgb),.07);
+  color: rgb(var(--eh-nav-fg-rgb));
+}
+
+.vs-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--eh-accent);
+  color: #111827;
+  font-weight: 800;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vs-avatar-email {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+/* User popover inside the vertical sidebar */
+.vs-user-popover .ant-popover-inner {
+  background: #0a1628 !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 16px !important;
+  padding: 20px 16px 16px !important;
+}
+.vs-user-popover .ant-popover-arrow { display: none !important; }
+
+/* Compact header shown alongside the vertical sidebar */
+.eh-root--compact {
+  left: 56px !important;
+}
+
+.eh-bar--compact {
+  height: 44px;
+  padding: 0 12px;
+  background: var(--eh-header-bg);
+}
+
+.eh-nav-history {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.eh-nav-history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(var(--eh-nav-fg-rgb),.75);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.eh-nav-history-btn:hover:not(.disabled) {
+  background: rgba(var(--eh-nav-fg-rgb),.12);
+  color: rgb(var(--eh-nav-fg-rgb));
+}
+
+.eh-nav-history-btn.disabled {
+  color: rgba(var(--eh-nav-fg-rgb),.25);
+  cursor: default;
 }
 
 .eh-nav{
@@ -103,10 +618,10 @@
   transition: color .15s ease;
 }
 
-.eh-link:hover{ color: #fff; }
+.eh-link:hover{ color: rgb(var(--eh-nav-fg-rgb)); }
 
 .eh-link.active{
-  color: #fff;
+  color: rgb(var(--eh-nav-fg-rgb));
 }
 
 .eh-link.active::after{
@@ -131,7 +646,7 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,.80);
+  color: rgba(var(--eh-nav-fg-rgb),.80);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -141,8 +656,8 @@
 }
 
 .eh-ico-btn:hover{
-  background: rgba(255,255,255,.10);
-  color: #fff;
+  background: rgba(var(--eh-nav-fg-rgb),.10);
+  color: rgb(var(--eh-nav-fg-rgb));
 }
 
 .eh-bell{
@@ -163,8 +678,8 @@
   transition: color 0.15s, background 0.15s;
 }
 .eh-bell-btn:hover {
-  color: #fff;
-  background: rgba(255,255,255,0.08);
+  color: rgb(var(--eh-nav-fg-rgb));
+  background: rgba(var(--eh-nav-fg-rgb),0.08);
 }
 
 .eh-bell-badge {
@@ -238,7 +753,7 @@
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: rgba(255,255,255,.55);
+  color: rgba(var(--eh-nav-fg-rgb),.55);
   cursor: pointer;
   transition: background .15s ease, color .15s ease;
   display: inline-flex;
@@ -249,8 +764,8 @@
 }
 
 .eh-win-btn:hover{
-  background: rgba(255,255,255,.10);
-  color: rgba(255,255,255,.90);
+  background: rgba(var(--eh-nav-fg-rgb),.10);
+  color: rgba(var(--eh-nav-fg-rgb),.90);
 }
 
 .eh-win-btn.close:hover{
@@ -566,10 +1081,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
 
 /* -------- Transiciones opcionales -------- */
-.page-enter { opacity: 0; transform: translateY(20px); }
-.page-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms ease-out, transform 300ms ease-out; }
-.page-exit { opacity: 1; transform: translateY(0); }
-.page-exit-active { opacity: 0; transform: translateY(-20px); transition: opacity 300ms ease-out, transform 300ms ease-out; }
+.page-enter { opacity: 0; }
+.page-enter-active { opacity: 1; transition: opacity 280ms ease-in-out; }
+.page-exit { opacity: 1; }
+.page-exit-active { opacity: 0; transition: opacity 280ms ease-in-out; }
 
 /* -------- Global -------- */
 html, body, #root { height: 100%; margin: 0; overflow: hidden; }
@@ -630,7 +1145,7 @@ body { background: #f0f2f5; }
 
 .electron-title{
   color:#fff; font-weight:600; font-size:16px; letter-spacing:.2px;
-  font-family:'Poppins', sans-serif; margin-left: 6px;
+  font-family:'Noto Sans', sans-serif; margin-left: 6px;
 }
 
 /* Menú (fila 2 derecha) */
@@ -644,7 +1159,7 @@ body { background: #f0f2f5; }
   margin-top: 73px;
   height: calc(100vh - 73px);
   overflow:auto;
-  background-color: #e7e7e7;
+  background-color: var(--eh-app-bg);
 }
 
 /* ── App Quick-Access Dropdown ─────────────────────────── */
@@ -662,9 +1177,9 @@ body { background: #f0f2f5; }
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  border: 1.5px solid rgba(255,255,255,.18);
+  border: 1.5px solid rgba(var(--eh-nav-fg-rgb),.18);
   background: transparent;
-  color: rgba(255,255,255,.55);
+  color: rgba(var(--eh-nav-fg-rgb),.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -673,15 +1188,15 @@ body { background: #f0f2f5; }
 }
 
 .eh-app-icon-btn:hover{
-  background: rgba(255,255,255,.08) !important;
-  border-color: rgba(255,255,255,.30) !important;
-  color: rgba(255,255,255,.90) !important;
+  background: rgba(var(--eh-nav-fg-rgb),.08) !important;
+  border-color: rgba(var(--eh-nav-fg-rgb),.30) !important;
+  color: rgba(var(--eh-nav-fg-rgb),.90) !important;
 }
 
 .eh-app-trigger.open{
-  background: rgba(255,255,255,.12) !important;
-  color: rgba(255,255,255,.90) !important;
-  border-color: rgba(255,255,255,.30) !important;
+  background: rgba(var(--eh-nav-fg-rgb),.12) !important;
+  color: rgba(var(--eh-nav-fg-rgb),.90) !important;
+  border-color: rgba(var(--eh-nav-fg-rgb),.30) !important;
   transform: rotate(90deg) scale(1.08);
 }
 
@@ -694,8 +1209,8 @@ body { background: #f0f2f5; }
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255,255,255,.70);
-  box-shadow: 0 0 6px rgba(255,255,255,.40);
+  background: rgba(var(--eh-nav-fg-rgb),.70);
+  box-shadow: 0 0 6px rgba(var(--eh-nav-fg-rgb),.40);
 }
 
 .eh-app-dropdown{

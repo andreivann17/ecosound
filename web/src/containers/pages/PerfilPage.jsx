@@ -7,7 +7,6 @@ import {
   Input,
   DatePicker,
   Spin,
-  notification,
 } from "antd";
 import {
   UserOutlined,
@@ -22,8 +21,15 @@ import {
   ClockCircleOutlined,
   SafetyCertificateOutlined,
   CloseOutlined,
+  BgColorsOutlined,
+  SunOutlined,
+  MoonOutlined,
+  DesktopOutlined,
+  CheckCircleFilled,
 } from "@ant-design/icons";
 import { PATH } from "../../redux/utils";
+import Toast from "../../components/toasts/toast";
+import { useTema } from "../../context/TemaContext";
 import "./PerfilPage.css";
 
 dayjs.locale("es");
@@ -46,8 +52,31 @@ const fmtFechaHora = (v) => {
   return d.isValid() ? d.format("D MMM YYYY, HH:mm") : "—";
 };
 
+const ESTILO_OPTIONS = [
+  {
+    value: "claro",
+    label: "Claro",
+    desc: "Fondo claro y texto oscuro, siempre.",
+    icon: <SunOutlined />,
+  },
+  {
+    value: "oscuro",
+    label: "Oscuro",
+    desc: "Fondo oscuro y texto claro, siempre.",
+    icon: <MoonOutlined />,
+  },
+  {
+    value: "auto",
+    label: "Automático",
+    desc: "Sigue el modo de tu sistema o navegador.",
+    icon: <DesktopOutlined />,
+  },
+];
+
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = useState("info");
+  const { preferencia, setTemaPreferencia } = useTema() || {};
+  const [savingTema, setSavingTema] = useState(null);
 
   // ── Datos del perfil ──────────────────────────────────
   const [perfil, setPerfil] = useState(null);
@@ -74,6 +103,10 @@ export default function PerfilPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   const fetchPerfil = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,10 +120,7 @@ export default function PerfilPage() {
       localStorage.setItem("userAvatar", avatarUrl);
       window.dispatchEvent(new CustomEvent("avatar-updated", { detail: avatarUrl }));
     } catch (err) {
-      notification.error({
-        message: "Error al cargar el perfil",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al cargar el perfil");
     } finally {
       setLoading(false);
     }
@@ -111,14 +141,11 @@ export default function PerfilPage() {
         },
         { headers: authHeader() }
       );
-      notification.success({ message: "Perfil actualizado correctamente" });
+      toast("Perfil actualizado correctamente");
       setEditing(false);
       fetchPerfil();
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -143,9 +170,9 @@ export default function PerfilPage() {
         headers: { ...authHeader(), "Content-Type": "multipart/form-data" },
       });
       fetchPerfil();
-      notification.success({ message: "Foto de perfil actualizada" });
+      toast("Foto de perfil actualizada");
     } catch (err) {
-      notification.error({ message: "Error al subir foto", description: err?.response?.data?.detail || err.message });
+      toast(err?.response?.data?.detail || err.message || "Error al subir foto");
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -154,15 +181,15 @@ export default function PerfilPage() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      notification.warning({ message: "Completa todos los campos de contraseña" });
+      toast("Completa todos los campos de contraseña");
       return;
     }
     if (newPassword !== confirmPassword) {
-      notification.warning({ message: "La nueva contraseña y la confirmación no coinciden" });
+      toast("La nueva contraseña y la confirmación no coinciden");
       return;
     }
     if (newPassword.length < 6) {
-      notification.warning({ message: "La nueva contraseña debe tener al menos 6 caracteres" });
+      toast("La nueva contraseña debe tener al menos 6 caracteres");
       return;
     }
     setSavingPassword(true);
@@ -172,17 +199,26 @@ export default function PerfilPage() {
         { current_password: currentPassword, new_password: newPassword },
         { headers: authHeader() }
       );
-      notification.success({ message: "Contraseña cambiada correctamente" });
+      toast("Contraseña cambiada correctamente");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      notification.error({
-        message: "Error al cambiar contraseña",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al cambiar contraseña");
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const handleSelectEstilo = async (value) => {
+    if (value === preferencia || savingTema) return;
+    setSavingTema(value);
+    try {
+      await setTemaPreferencia(value);
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar el estilo");
+    } finally {
+      setSavingTema(null);
     }
   };
 
@@ -264,6 +300,12 @@ export default function PerfilPage() {
               onClick={() => setActiveTab("seguridad")}
             >
               <SafetyCertificateOutlined /> Seguridad
+            </button>
+            <button
+              className={`perf-tab-btn${activeTab === "apariencia" ? " active" : ""}`}
+              onClick={() => setActiveTab("apariencia")}
+            >
+              <BgColorsOutlined /> Apariencia
             </button>
           </div>
         </div>
@@ -510,7 +552,52 @@ export default function PerfilPage() {
           </div>
         )}
 
+        {/* ── Tab: Apariencia ──────────────────────────────── */}
+        {activeTab === "apariencia" && (
+          <div className="perf-tab-body">
+            <div className="perf-card">
+              <div className="perf-card-header">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="perf-card-icon"><BgColorsOutlined /></div>
+                  <h2 className="perf-card-title">Estilo de la aplicación</h2>
+                </div>
+              </div>
+              <p className="perf-card-desc">
+                Elige cómo quieres ver la aplicación. Esta preferencia es tuya: se guarda en tu
+                cuenta y se aplica solo cuando tú tienes la sesión iniciada.
+              </p>
+
+              <div className="perf-theme-grid">
+                {ESTILO_OPTIONS.map((opt) => {
+                  const isActive = preferencia === opt.value;
+                  const isSaving = savingTema === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`perf-theme-option${isActive ? " active" : ""}`}
+                      onClick={() => handleSelectEstilo(opt.value)}
+                      disabled={!!savingTema}
+                    >
+                      {isActive && (
+                        <CheckCircleFilled className="perf-theme-check" />
+                      )}
+                      <span className="perf-theme-icon">
+                        {isSaving ? <Spin size="small" /> : opt.icon}
+                      </span>
+                      <span className="perf-theme-label">{opt.label}</span>
+                      <span className="perf-theme-desc">{opt.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </div>
   );
 }

@@ -6,19 +6,22 @@ import {
   Button,
   Space,
   Typography,
-  notification,
 } from "antd";
 import { MailOutlined, LockOutlined, WarningOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { PATH } from "../../redux/utils";
 import { sessionManager } from "../../redux/sessionManager";
 import { performLogout } from "../../utils/logout";
+import Toast from "../toasts/toast";
 
 const { Title, Text } = Typography;
 
 export default function ModalReautenticar({ open, onClose }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   useEffect(() => {
     if (open) {
@@ -46,7 +49,8 @@ export default function ModalReautenticar({ open, onClose }) {
       if (!token) throw new Error("Respuesta inválida del servidor");
 
       localStorage.setItem("token", token);
-      localStorage.setItem("tokenadmin", token);
+      // Reautenticación normal, no es sesión de panel admin: no pisar/crear tokenadmin.
+      localStorage.removeItem("tokenadmin");
       localStorage.setItem("email", values.email);
       localStorage.setItem("usuario_cliente", data?.usuario_cliente === 1 ? "1" : "0");
       if (data?.role) {
@@ -64,11 +68,7 @@ export default function ModalReautenticar({ open, onClose }) {
         err?.response?.data?.detail ||
         err?.message ||
         "Correo o contraseña incorrectos";
-      notification.error({
-        message: "Error al autenticar",
-        description: msg,
-        placement: "top",
-      });
+      toast(msg);
     } finally {
       setLoading(false);
     }
@@ -208,6 +208,8 @@ export default function ModalReautenticar({ open, onClose }) {
           </Space>
         </Form>
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </Modal>
   );
 }

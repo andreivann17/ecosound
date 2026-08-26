@@ -7,7 +7,7 @@ import {
   authHeaderInventario,
 } from "../../redux/actions/inventario/inventario";
 
-import { Button, Spin, notification, Typography, Space, Modal, Card } from "antd";
+import { Button, Spin, Typography, Space, Modal, Card } from "antd";
 import {
   ArrowLeftOutlined,
   AppstoreOutlined,
@@ -20,6 +20,7 @@ import {
 } from "@ant-design/icons";
 
 import { previewConteoDetallePdf, printConteoDetallePdf } from "../../components/utils/printConteoDetallePdf";
+import Toast from "../../components/toasts/toast";
 import "./InventarioPage.css";
 
 dayjs.locale("es");
@@ -54,6 +55,10 @@ export default function ConteoDetallePage() {
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
   const [exportPreviewHtml, setExportPreviewHtml] = useState("");
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   const fetchConteo = useCallback(async () => {
     setLoading(true);
     try {
@@ -63,7 +68,7 @@ export default function ConteoDetallePage() {
       );
       setConteo(data);
     } catch {
-      notification.error({ message: "No se pudo cargar el conteo" });
+      toast("No se pudo cargar el conteo");
     } finally {
       setLoading(false);
     }
@@ -115,14 +120,7 @@ export default function ConteoDetallePage() {
         {/* Header */}
         <section className="inv-header-section">
           <Space direction="vertical" size={2}>
-            <Button
-              type="link"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/app/inventario/conteos")}
-              style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-            >
-              Volver a Conteos
-            </Button>
+
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span className={`conteo-tipo-badge conteo-tipo-${conteo.tipo}`} style={{ fontSize: 12 }}>
                 {tipoLabel}
@@ -285,6 +283,8 @@ export default function ConteoDetallePage() {
           />
         </div>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </main>
   );
 }

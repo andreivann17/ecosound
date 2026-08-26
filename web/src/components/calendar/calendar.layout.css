@@ -8,7 +8,7 @@ html, body, #root {
 
 * {
   box-sizing: border-box;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  font-family: "Noto Sans", -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 }
 
 /* =========================================================
@@ -16,7 +16,7 @@ html, body, #root {
 ========================================================= */
 .ol-root {
   height: 100vh;
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
   overflow: hidden;
 }
 
@@ -31,7 +31,7 @@ html, body, #root {
 ========================================================= */
 .ol-sider {
   width: 280px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-right: 1px solid #e5e9f2;
   padding: 12px;
   overflow-y: auto;
@@ -51,7 +51,7 @@ html, body, #root {
    TOOLBAR
 ========================================================= */
 .ol-datebarWrap {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-bottom: 1px solid #e5e9f2;
   padding: 8px 12px;
 }
@@ -74,7 +74,7 @@ html, body, #root {
   height: 100%;
   display: grid;
   grid-template-columns: 64px 1fr;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #e5e9f2;
@@ -88,7 +88,7 @@ html, body, #root {
 }
 
 .ol-daysHeader {
-  background: #f9fbff;
+  background: var(--eh-surface-2, #f9fbff);
   border-bottom: 1px solid #e5e9f2;
   
 }
@@ -101,7 +101,7 @@ html, body, #root {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
 }
 
 /* COLUMNA DÍA */
@@ -131,7 +131,7 @@ html, body, #root {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 10px;
   border: 1px solid #e5e9f2;
   overflow: hidden;
@@ -139,7 +139,7 @@ html, body, #root {
 
 .ol-monthHeader {
   height: 44px;
-  background: #f9fbff;
+  background: var(--eh-surface-2, #f9fbff);
   border-bottom: 1px solid #e5e9f2;
 }
 
@@ -148,7 +148,7 @@ html, body, #root {
   flex: 1;
   display: grid;
   grid-template-rows: repeat(6, 1fr);
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
 }
 
 /* FILAS */
@@ -170,7 +170,7 @@ html, body, #root {
 .ol-monthDayNumber {
   font-size: 12px;
   font-weight: 600;
-  color: #374151;
+  color: var(--eh-ink-2, #374151);
   margin-bottom: 4px;
 }
 

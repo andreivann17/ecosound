@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -14,7 +14,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
   Input,
@@ -24,11 +23,14 @@ import {
   TeamOutlined,
   CameraOutlined,
   DeleteOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 
 import "./TrabajadoresPage.css";
 import dayjs from "dayjs";
 import { PATH as API_BASE } from "../../redux/utils";
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 const { Title, Text } = Typography;
 
@@ -45,6 +47,11 @@ export default function CrearTrabajadorPage() {
 
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   const [fotoFile, setFotoFile] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
@@ -74,7 +81,7 @@ export default function CrearTrabajadorPage() {
   const handleFotoSelect = (file) => {
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      notification.error({ message: "Solo se permiten imágenes (JPG, PNG, WEBP)" });
+      toast("Solo se permiten imágenes (JPG, PNG, WEBP)");
       return;
     }
     setFotoFile(file);
@@ -133,15 +140,15 @@ const handleSave = async () => {
         );
       }
 
-      notification.success({
-        message: isEditing ? "Trabajador actualizado correctamente" : "Trabajador creado exitosamente",
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Trabajador creado!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `"${values.nombre?.trim() || ""} ${values.apellido?.trim() || ""}" ya está registrado.`,
       });
-      navigate("/app/trabajadores");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -149,49 +156,48 @@ const handleSave = async () => {
 
   return (
     <main className="trab-main">
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/trabajadores")}
+      />
       <div className="trab-content">
 
-        <section className="trab-header-section">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
-            <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/trabajadores")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Trabajadores
-              </Button>
-              <Title level={2} className="trab-title" style={{ marginBottom: 0 }}>
-                {isEditing
-                  ? `Editando: ${trabajadorEditar.nombre} ${trabajadorEditar.apellido}`
-                  : "Nuevo trabajador"}
-              </Title>
-              <Text className="trab-subtitle">
-                {isEditing
-                  ? "Modifica los datos del trabajador y guarda los cambios."
-                  : "Completa los datos del trabajador para registrarlo."}
-              </Text>
-            </Space>
+        <section className="tc-page-header-card">
+          <Space direction="vertical" size={2}>
+            <Title level={2} className="trab-title" style={{ marginBottom: 0 }}>
+              {isEditing
+                ? `Editando: ${trabajadorEditar.nombre} ${trabajadorEditar.apellido}`
+                : "Nuevo trabajador"}
+            </Title>
+            <Text className="trab-subtitle">
+              {isEditing
+                ? "Modifica los datos del trabajador y guarda los cambios."
+                : "Completa los datos del trabajador para registrarlo."}
+            </Text>
+          </Space>
 
-            <Space style={{ marginTop: 4 }}>
-              <Button
-                className="trab-btn-clean"
-                onClick={() => navigate("/app/trabajadores")}
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={handleSave}
-                style={{ backgroundColor: "#111", borderColor: "#111" }}
-              >
-                {isEditing ? "Guardar cambios" : "Crear trabajador"}
-              </Button>
-            </Space>
-          </div>
+          <Space>
+            <Button
+              className="trab-btn-clean"
+              onClick={() => navigate("/app/trabajadores")}
+              disabled={saving || success.show}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="primary"
+              loading={saving}
+              disabled={success.show}
+              icon={!isEditing ? <PlusOutlined /> : null}
+              onClick={handleSave}
+              style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
+            >
+              {isEditing ? "Guardar cambios" : "Crear trabajador"}
+            </Button>
+          </Space>
         </section>
 
         <Form form={form} layout="vertical">
@@ -292,8 +298,12 @@ const handleSave = async () => {
                   ) : (
                     <div className="trab-dragger-placeholder">
                       <CameraOutlined className="trab-dragger-icon" />
-                      <div className="trab-dragger-text">Arrastra una imagen aquí</div>
-                      <div className="trab-dragger-hint">o haz clic para seleccionar · JPG, PNG, WEBP</div>
+                      <div className="trab-dragger-text">Foto del trabajador</div>
+                      <div className="trab-dragger-hint">Arrastra una imagen o haz clic para seleccionar</div>
+                      <div className="trab-dragger-hint" style={{ marginTop: 2 }}>JPG, PNG, WEBP</div>
+                      <Button size="small" style={{ marginTop: 10, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em" }}>
+                        SELECCIONAR IMAGEN
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -305,16 +315,6 @@ const handleSave = async () => {
                   style={{ display: "none" }}
                   onChange={(e) => handleFotoSelect(e.target.files[0])}
                 />
-
-                {!fotoPreview && (
-                  <Button
-                    icon={<CameraOutlined />}
-                    onClick={() => fotoInputRef.current?.click()}
-                    style={{ marginTop: 10, width: "100%" }}
-                  >
-                    Seleccionar imagen
-                  </Button>
-                )}
               </div>
 
             </div>

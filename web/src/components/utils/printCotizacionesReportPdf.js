@@ -92,7 +92,7 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false, 
 
   const css = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #fff; color: #111; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10pt; }
+    html, body { background: #fff; color: #111; font-family: "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10pt; }
 
     .page { width: 277mm; min-height: 190mm; margin: 0 auto; padding: 16mm 20mm 20mm 20mm; background: #fff; }
 
@@ -169,6 +169,9 @@ function buildHtml({ items, periodFrom, periodTo, tipoLabel, autoPrint = false, 
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 <title>Reporte de Cotizaciones — HerrSoft Events</title>
 <style>${css}</style>
 </head>

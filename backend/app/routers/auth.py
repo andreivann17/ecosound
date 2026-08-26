@@ -187,6 +187,7 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
 
     # Verificar si el usuario es un cliente con prueba vencida o cuenta desactivada
     es_cliente = False
+    user_info = None
     try:
         user_info = users_model.get_user_by_email(payload.email)
         if user_info and user_info.get("usuario_cliente") == 1:
@@ -254,6 +255,7 @@ def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
         "role": role,
         "usuario_cliente": 1 if es_cliente else 0,
         "id_cliente": int(tenant.get("id_cliente") or 0),
+        "mensaje_show": int((user_info or {}).get("mensaje_show") or 0),
     }
 
 

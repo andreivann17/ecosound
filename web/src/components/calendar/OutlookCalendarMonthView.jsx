@@ -13,47 +13,21 @@ import {
   fmtTime,
   groupEventsByDay,
 } from "./boardUtils";
+import { getServiceBadge, getServiceKey, SERVICE_BADGE_ORDER } from "./serviceBadges";
 
 dayjs.extend(utc);
 dayjs.extend(isoWeek);
 
-// ─── Tipo contrato badge config ───────────────────────────────────────────────
-const TIPO_CFG = {
-  1:  { label: "Bodas",        bg: "#fce7f3", color: "#be123c", dot: "#be123c", tipoKey: 1  },
-  2:  { label: "XV",           bg: "#ede9fe", color: "#7c3aed", dot: "#7c3aed", tipoKey: 2  },
-  3:  { label: "Graduación",   bg: "#dbeafe", color: "#1d4ed8", dot: "#1d4ed8", tipoKey: 3  },
-  4:  { label: "Corporativo",  bg: "#d1fae5", color: "#0f766e", dot: "#0f766e", tipoKey: 4  },
-  5:  { label: "Cumpleaños",   bg: "#ffedd5", color: "#ea580c", dot: "#ea580c", tipoKey: 5  },
-  6:  { label: "Citas",        bg: "#e0f2fe", color: "#0891b2", dot: "#0891b2", tipoKey: 6  },
-  7:  { label: "Reunion Zoom", bg: "#eef2ff", color: "#4f46e5", dot: "#4f46e5", tipoKey: 7  },
-  8:  { label: "Pendiente",    bg: "#fef3c7", color: "#d97706", dot: "#d97706", tipoKey: 8  },
-  10: { label: "Fotografía",   bg: "#fdf4ff", color: "#c026d3", dot: "#c026d3", tipoKey: 10 },
-};
-const SESION_BADGE = { label: "Sesión Fotos", bg: "#fdf2f8", color: "#be185d", dot: "#e91e8c", tipoKey: "sesion" };
-const OTHER_BADGE  = { label: "Otro",         bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af", tipoKey: "otro"  };
-
-const BADGE_ORDER = [
-  { tipoKey: 1,        label: "Bodas",        bg: "#fce7f3", color: "#be123c", dot: "#be123c" },
-  { tipoKey: 2,        label: "XV",           bg: "#ede9fe", color: "#7c3aed", dot: "#7c3aed" },
-  { tipoKey: 3,        label: "Graduación",   bg: "#dbeafe", color: "#1d4ed8", dot: "#1d4ed8" },
-  { tipoKey: 4,        label: "Corporativo",  bg: "#d1fae5", color: "#0f766e", dot: "#0f766e" },
-  { tipoKey: 5,        label: "Cumpleaños",   bg: "#ffedd5", color: "#ea580c", dot: "#ea580c" },
-  { tipoKey: 6,        label: "Citas",        bg: "#e0f2fe", color: "#0891b2", dot: "#0891b2" },
-  { tipoKey: 7,        label: "Reunion Zoom", bg: "#eef2ff", color: "#4f46e5", dot: "#4f46e5" },
-  { tipoKey: 8,        label: "Pendiente",    bg: "#fef3c7", color: "#d97706", dot: "#d97706" },
-  { tipoKey: 10,       label: "Fotografía",   bg: "#fdf4ff", color: "#c026d3", dot: "#c026d3" },
-  { tipoKey: "sesion", label: "Sesión Fotos", bg: "#fdf2f8", color: "#be185d", dot: "#e91e8c" },
-  { tipoKey: "otro",   label: "Otro",         bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
-];
+// ─── Badge por servicio agendado (Sonido, Fotografía, Banquete, Barra,
+// Sesión Fotos) en vez de por tipo de contrato ─────────────────────────────
+const BADGE_ORDER = SERVICE_BADGE_ORDER.map((b) => ({ ...b, tipoKey: b.key }));
 
 function getEventBadge(ev) {
-  if (ev?.source === "sesiones_fotos" || ev?.color_hex === "#e91e8c") return SESION_BADGE;
-  return TIPO_CFG[Number(ev?.contrato_tipo_id)] || OTHER_BADGE;
+  return getServiceBadge(ev);
 }
 
 function getBadgeTipoKey(ev) {
-  if (ev?.source === "sesiones_fotos" || ev?.color_hex === "#e91e8c") return "sesion";
-  return Number(ev?.contrato_tipo_id) || "otro";
+  return getServiceKey(ev);
 }
 
 const capFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -65,11 +39,11 @@ function NavArrow({ onClick, path }) {
       onClick={onClick}
       style={{
         padding: "7px 10px",
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--eh-surface-border, #e5e7eb)",
         borderRadius: 6,
-        background: "#fff",
+        background: "var(--eh-surface, #fff)",
         cursor: "pointer",
-        color: "#9ca3af",
+        color: "var(--eh-ink-faint, #9ca3af)",
         display: "flex",
         alignItems: "center",
       }}
@@ -171,24 +145,17 @@ export default function OutlookCalendarMonthView({
   }, [allEvs]);
 
   const isActive = (tipoKey) => {
-    if (tipoKey === "sesion") return filters?.showSesiones !== false;
-    if (tipoKey === "otro") return true;
-    const ids = filters?.tipoContratoIds;
-    if (!Array.isArray(ids)) return true;
-    return ids.includes(tipoKey);
+    const hidden = filters?.hiddenServicios;
+    if (!Array.isArray(hidden)) return true;
+    return !hidden.includes(tipoKey);
   };
 
   const toggleBadge = (tipoKey) => {
     if (!setFilters) return;
-    if (tipoKey === "sesion") {
-      setFilters((p) => ({ ...(p || {}), showSesiones: !p?.showSesiones }));
-      return;
-    }
-    if (tipoKey === "otro") return;
     setFilters((p) => {
-      const cur = new Set(Array.isArray(p?.tipoContratoIds) ? p.tipoContratoIds : []);
+      const cur = new Set(Array.isArray(p?.hiddenServicios) ? p.hiddenServicios : []);
       cur.has(tipoKey) ? cur.delete(tipoKey) : cur.add(tipoKey);
-      return { ...(p || {}), tipoContratoIds: Array.from(cur) };
+      return { ...(p || {}), hiddenServicios: Array.from(cur) };
     });
   };
 
@@ -203,17 +170,17 @@ export default function OutlookCalendarMonthView({
   const closeMore = () => setMoreModal({ open: false, dayKey: null });
   const moreEvents = useMemo(() => {
     if (!moreModal.dayKey) return [];
-    return byDay.get(moreModal.dayKey) ?? [];
-  }, [moreModal.dayKey, byDay]);
+    return (byDay.get(moreModal.dayKey) ?? []).filter((ev) => isActive(getBadgeTipoKey(ev)));
+  }, [moreModal.dayKey, byDay, filters?.showSesiones, filters?.hiddenServicios]);
 
   return (
     <div style={{ height: "100%", overflowY: "auto" }}>
       <div
         style={{
-          background: "#fff",
+          background: "var(--eh-surface, #fff)",
           borderRadius: 12,
           boxShadow: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-          border: "1px solid #f1f3f5",
+          border: "1px solid var(--eh-surface-border, #f1f3f5)",
           overflow: "hidden",
           minHeight: "100%",
           display: "flex",
@@ -224,7 +191,7 @@ export default function OutlookCalendarMonthView({
         <div
           style={{
             padding: "14px 20px",
-            borderBottom: "1px solid #f3f4f6",
+            borderBottom: "1px solid var(--eh-surface-border, #f3f4f6)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -237,7 +204,7 @@ export default function OutlookCalendarMonthView({
           <div>
            
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-              {BADGE_ORDER.filter((b) => (tipoCounts[b.tipoKey] || 0) > 0).map((b) => {
+              {BADGE_ORDER.map((b) => {
                 const active = isActive(b.tipoKey);
                 return (
                   <button
@@ -285,9 +252,9 @@ export default function OutlookCalendarMonthView({
                     borderRadius: 9999,
                     fontSize: 11,
                     fontWeight: 700,
-                    background: "#f9fafb",
-                    color: "#6b7280",
-                    border: "1px solid #e5e7eb",
+                    background: "var(--eh-surface-2, #f9fafb)",
+                    color: "var(--eh-ink-muted, #6b7280)",
+                    border: "1px solid var(--eh-surface-border, #e5e7eb)",
                   }}
                 >
                   TOTAL: {allEvs.length}
@@ -314,7 +281,7 @@ export default function OutlookCalendarMonthView({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--eh-surface-border, #e5e7eb)",
                   borderRadius: 8,
                   overflow: "hidden",
                   cursor: "pointer",
@@ -322,7 +289,7 @@ export default function OutlookCalendarMonthView({
               >
                 <div
                   style={{
-                    background: "#01369e",
+                    background: "var(--eh-primary-btn)",
                     padding: "11px 14px",
                     color: "#fff",
                     display: "flex",
@@ -338,7 +305,7 @@ export default function OutlookCalendarMonthView({
                     padding: "8px 24px",
                     fontSize: 14,
                     fontWeight: 500,
-                    color: "#4b5563",
+                    color: "var(--eh-ink-2, #4b5563)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -355,7 +322,7 @@ export default function OutlookCalendarMonthView({
             <div
               style={{
                 textAlign: "right",
-                borderLeft: "1px solid #e5e7eb",
+                borderLeft: "1px solid var(--eh-surface-border, #e5e7eb)",
                 paddingLeft: 20,
                 minWidth: 60,
               }}
@@ -364,7 +331,7 @@ export default function OutlookCalendarMonthView({
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: "#9ca3af",
+                  color: "var(--eh-ink-faint, #9ca3af)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   marginBottom: 2,
@@ -376,7 +343,7 @@ export default function OutlookCalendarMonthView({
                 style={{
                   fontSize: 42,
                   fontWeight: 900,
-                  color: "#1e293b",
+                  color: "var(--eh-ink, #1e293b)",
                   lineHeight: 1,
                 }}
               >
@@ -391,8 +358,8 @@ export default function OutlookCalendarMonthView({
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(7, 1fr)",
-            background: "#f9fafb",
-            borderBottom: "1px solid #e5e7eb",
+            background: "var(--eh-surface-2, #f9fafb)",
+            borderBottom: "1px solid var(--eh-surface-border, #e5e7eb)",
             flexShrink: 0,
           }}
         >
@@ -404,7 +371,7 @@ export default function OutlookCalendarMonthView({
                 textAlign: "center",
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#9ca3af",
+                color: "var(--eh-ink-faint, #9ca3af)",
                 letterSpacing: "0.08em",
               }}
             >
@@ -425,7 +392,7 @@ export default function OutlookCalendarMonthView({
         >
           {month.rows.flat().map((day) => {
             const key = day.format("YYYY-MM-DD");
-            const dayEvs = byDay.get(key) ?? [];
+            const dayEvs = (byDay.get(key) ?? []).filter((ev) => isActive(getBadgeTipoKey(ev)));
             const inMonth = day.month() === anchor.month();
             const isWeekend = day.day() === 0 || day.day() === 6;
             const isCursor = day.isSame(cursor, "day");
@@ -435,17 +402,17 @@ export default function OutlookCalendarMonthView({
             const visibleCount = hasOverflow ? Math.max(0, cellCap - 1) : cellCap;
             const hiddenCount = dayEvs.length - visibleCount;
 
-            let cellBg = "#fff";
-            if (!inMonth) cellBg = "#f9fafb";
-            else if (isWeekend) cellBg = "rgba(243,244,246,0.8)";
+            let cellBg = "var(--eh-surface, #fff)";
+            if (!inMonth) cellBg = "var(--eh-surface-2, #f9fafb)";
+            else if (isWeekend) cellBg = "var(--eh-surface-2, rgba(243,244,246,0.8))";
 
             return (
               <div
                 key={key}
                 data-month-cell="1"
                 style={{
-                  borderRight: "1px solid #e5e7eb",
-                  borderBottom: "1px solid #e5e7eb",
+                  borderRight: "1px solid var(--eh-surface-border, #e5e7eb)",
+                  borderBottom: "1px solid var(--eh-surface-border, #e5e7eb)",
                   background: cellBg,
                   borderLeft: "4px solid transparent",
                   padding: "6px 4px",
@@ -458,7 +425,7 @@ export default function OutlookCalendarMonthView({
                   style={{
                     fontSize: 13,
                     fontWeight: isToday ? 700 : 400,
-                    color: isToday ? "#01369e" : inMonth ? "#374151" : "#d1d5db",
+                    color: isToday ? "var(--eh-primary-btn)" : inMonth ? "var(--eh-ink-2, #374151)" : "var(--eh-ink-faint, #d1d5db)",
                     marginBottom: 4,
                     paddingLeft: 2,
                   }}
@@ -524,7 +491,7 @@ export default function OutlookCalendarMonthView({
                               flexShrink: 0,
                             }}
                           />
-                          <span style={{ fontSize: 10, color: "#6b7280", flexShrink: 0, whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 10, color: "var(--eh-ink-muted, #6b7280)", flexShrink: 0, whiteSpace: "nowrap" }}>
                             {fmtTime(ev._start)}
                           </span>
                           <span
@@ -550,7 +517,7 @@ export default function OutlookCalendarMonthView({
                       style={{
                         fontSize: 10,
                         fontWeight: 600,
-                        color: "#6b7280",
+                        color: "var(--eh-ink-muted, #6b7280)",
                         padding: "2px 5px",
                         cursor: "pointer",
                         borderRadius: 4,
@@ -587,7 +554,7 @@ export default function OutlookCalendarMonthView({
       >
         <div style={{ display: "grid", gap: 8 }}>
           {moreEvents.length === 0 ? (
-            <div style={{ padding: 8, color: "#667085" }}>No hay eventos.</div>
+            <div style={{ padding: 8, color: "var(--eh-ink-muted, #667085)" }}>No hay eventos.</div>
           ) : (
             moreEvents.map((ev) => {
               const badge = getEventBadge(ev);
@@ -640,8 +607,8 @@ export default function OutlookCalendarMonthView({
                       style={{
                         padding: "2px 8px",
                         borderRadius: 8,
-                        border: "1px solid #cfd6e1",
-                        background: "#fff",
+                        border: "1px solid var(--eh-surface-border, #cfd6e1)",
+                        background: "var(--eh-surface, #fff)",
                       }}
                     >
                       ⋯

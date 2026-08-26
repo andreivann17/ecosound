@@ -5,7 +5,6 @@ import {
   Form,
   Typography,
   Space,
-  notification,
   Input,
 } from "antd";
 import {
@@ -41,20 +40,14 @@ function Home({ show, setShow, correo, code }) {
       const { newPassword, confirmPassword } = await form.validateFields();
 
       if (newPassword !== confirmPassword) {
-        notification.error({
-          message: "Las contraseñas no coinciden",
-          description: "Verifica que ambas contraseñas sean iguales.",
-          placement: "top",
-        });
+        setMsg("Las contraseñas no coinciden. Verifica que ambas contraseñas sean iguales.");
+        setShowToast(true);
         return;
       }
 
       if (!correo || !code) {
-        notification.error({
-          message: "Información incompleta",
-          description: "Falta el correo o el código de verificación.",
-          placement: "top",
-        });
+        setMsg("Falta el correo o el código de verificación.");
+        setShowToast(true);
         return;
       }
 
@@ -76,14 +69,12 @@ function Home({ show, setShow, correo, code }) {
           },
           (err) => {
             setLoading(false);
-            notification.error({
-              message: "No se pudo actualizar",
-              description:
-                typeof err === "string"
-                  ? err
-                  : "Ocurrió un error al actualizar la contraseña.",
-              placement: "top",
-            });
+            setMsg(
+              typeof err === "string"
+                ? err
+                : "Ocurrió un error al actualizar la contraseña."
+            );
+            setShowToast(true);
           }
         )
       );

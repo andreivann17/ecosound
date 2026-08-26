@@ -6,13 +6,13 @@ import {
   Input,
   Typography,
   Space,
-  notification,
 } from "antd";
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 
 import Modalenter from "./modalEnterCode";
 import { actionCorreo } from "../../redux/actions/login/login";
+import Toast from "../toasts/toast";
 
 const { Title, Text } = Typography;
 
@@ -21,6 +21,10 @@ function Home({ show, setShow }) {
   const [showenter, setShowenter] = useState(false);
   const [clave, setClave] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const [form] = Form.useForm();
   const dispatch = useDispatch();
@@ -58,15 +62,13 @@ function Home({ show, setShow }) {
   };
 
   const callbackError = () => {
-    notification.error({
-      message: "No se pudo continuar",
-      description: "El correo no existe o no está registrado.",
-      placement: "top",
-    });
+    toast("No se pudo continuar. El correo no existe o no está registrado.");
   };
 
   return (
     <>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+
       <Modalenter
         show={showenter}
         setShow={setShowenter}

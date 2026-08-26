@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from pydantic import BaseModel, ConfigDict, EmailStr
 from pathlib import Path as FsPath
 import datetime as dt
+import secrets
 import shutil
 import re
 from ..deps import get_current_user
@@ -98,6 +99,46 @@ class PagoCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class VerificacionEmailRequest(BaseModel):
+    email: EmailStr
+
+
+class VerificacionCodeRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+def _send_verificacion_tema_email(email: str, code: str) -> None:
+    import smtplib
+    from email.message import EmailMessage
+    from .users import SMTP_USER, SMTP_PASS, SMTP_HOST, SMTP_PORT
+
+    msg = EmailMessage()
+    msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
+    msg["To"] = email
+    msg["Subject"] = "Código de verificación - Editar apariencia del cliente"
+    msg.set_content(
+        f"""
+Hola,
+
+Se solicitó editar la apariencia (colores, logos) de un cliente en el panel de administración.
+
+Tu código de verificación es:
+{code}
+
+Este código expira en 1 hora y solo puede usarse una vez. Si no fuiste tú, ignora este mensaje.
+
+Atentamente,
+HerrSoft Events
+"""
+    )
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+
+
 # ================== ENDPOINTS ==================
 
 @router.get("")
@@ -136,6 +177,23 @@ def crear_cliente(
     _log("CREATE", f"Cliente '{nombre}' registrado", new_id, user_id)
     item = clientes_model.get_cliente_by_id(id_app=id_app, id_cliente=new_id)
     return {"id_cliente": new_id, "item": item}
+
+
+@router.get("/tema/me")
+def get_tema_cliente(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    id_cliente = current_user.get("id_cliente")
+    row = clientes_model.get_cliente_tema(int(id_cliente)) if id_cliente else None
+    return row or {"plan_deluxe": 0}
+
+
+@router.get("/tema/publico/{clave}")
+def get_tema_publico_por_clave(clave: str):
+    """Endpoint público (sin auth) usado por la ruta /:clave/login para pintar
+    el login con la marca del cliente (colores, logo, imagen de fondo)."""
+    row = clientes_model.get_cliente_tema_por_clave(clave)
+    return row or {"plan_deluxe": 0}
 
 
 @router.get("/{id_cliente}")
@@ -186,6 +244,106 @@ def actualizar_cliente(
     user_id = _uid(current_user)
     nombre = f"{row.get('nombre_cliente','')} {row.get('apellido_cliente','')}".strip()
     _log("UPDATE", f"Cliente '{nombre}' actualizado", id_cliente, user_id, changes=data)
+    item = clientes_model.get_cliente_by_id(id_app=id_app, id_cliente=id_cliente)
+    return {"updated": 1, "item": item}
+
+
+@router.post("/tema/verificacion/enviar")
+def enviar_codigo_verificacion_tema(
+    payload: VerificacionEmailRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Envía un código de 6 dígitos al correo indicado (el del usuario que tiene
+    la sesión iniciada) para confirmar su identidad antes de editar la apariencia
+    de un cliente."""
+    from ..models import users as users_model
+
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    users_model.save_reset_token(email=payload.email, code=code, use_admin=True)
+    try:
+        _send_verificacion_tema_email(payload.email, code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": True}
+
+
+@router.post("/tema/verificacion/validar")
+def validar_codigo_verificacion_tema(
+    payload: VerificacionCodeRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    from ..models import users as users_model
+
+    ok = users_model.validate_reset_code(payload.email, payload.code, use_admin=True)
+    return {"status": ok}
+
+
+@router.post("/{id_cliente}/tema")
+async def actualizar_tema_cliente(
+    id_cliente: int,
+    id_app: int = Query(...),
+    plan_deluxe: Optional[int] = Form(None),
+    dark_design: Optional[int] = Form(None),
+    nombre_app: Optional[str] = Form(None),
+    primary_color: Optional[str] = Form(None),
+    navbar_color: Optional[str] = Form(None),
+    header_color: Optional[str] = Form(None),
+    primary_button_color: Optional[str] = Form(None),
+    text_color_navbar: Optional[str] = Form(None),
+    color_primary_active_nabvar: Optional[str] = Form(None),
+    logo: Optional[UploadFile] = File(None),
+    background: Optional[UploadFile] = File(None),
+    logo_login: Optional[UploadFile] = File(None),
+    logo_container: Optional[UploadFile] = File(None),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    row = clientes_model.get_cliente_by_id(id_app=id_app, id_cliente=id_cliente)
+    if not row:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    from ..utils.comprimir import compress_file_best_effort
+
+    data: Dict[str, Any] = {}
+    for field, value in (
+        ("plan_deluxe", plan_deluxe),
+        ("dark_design", dark_design),
+        ("nombre_app", nombre_app),
+        ("primary_color", primary_color),
+        ("navbar_color", navbar_color),
+        ("header_color", header_color),
+        ("primary_button_color", primary_button_color),
+        ("text_color_navbar", text_color_navbar),
+        ("color_primary_active_nabvar", color_primary_active_nabvar),
+    ):
+        if value is not None and str(value).strip() != "":
+            data[field] = value
+
+    dest_dir = UPLOADS_CLIENTES / "clientes_app" / str(id_cliente)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for upload, column in (
+        (logo, "logo_path"),
+        (background, "background_image"),
+        (logo_login, "logo_login"),
+        (logo_container, "logo_container"),
+    ):
+        if upload and upload.filename:
+            safe_name = re.sub(r"[^\w.\-]", "_", upload.filename)
+            timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+            stored_name = f"{timestamp}_{safe_name}"
+            dest_path = dest_dir / stored_name
+            with dest_path.open("wb") as fh:
+                shutil.copyfileobj(upload.file, fh)
+            dest_path = compress_file_best_effort(dest_path)
+            data[column] = str(dest_path).replace("\\", "/")
+
+    if not data:
+        raise HTTPException(status_code=400, detail="Nada que actualizar")
+
+    clientes_model.update_cliente_tema(id_cliente, data)
+    user_id = _uid(current_user)
+    nombre = f"{row.get('nombre_cliente','')} {row.get('apellido_cliente','')}".strip()
+    _log("UPDATE", f"Apariencia de '{nombre}' actualizada", id_cliente, user_id, changes=data)
     item = clientes_model.get_cliente_by_id(id_app=id_app, id_cliente=id_cliente)
     return {"updated": 1, "item": item}
 

@@ -4,7 +4,7 @@ import { PATH } from "../redux/utils";
 
 const PermisosContext = createContext(null);
 
-const MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones"];
+const MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones", "informes"];
 const ACTIONS = ["modulo", "consultar", "insertar", "editar", "eliminar"];
 
 const buildDefault = () =>

@@ -1,0 +1,9 @@
+/* InformesPage.css */
+
+/* Mismo gradiente azulado difuso que usan las cards de Eventos/Cotizaciones/
+   Paquetes/Trabajadores/Usuarios en modo oscuro. Con !important porque estas
+   cards fijan su background vía style inline (C.surface). */
+:root[data-eh-content-theme="dark"] .informes-kpi-tile,
+:root[data-eh-content-theme="dark"] .informes-chart-card {
+  background: linear-gradient(135deg, #16213f 0%, #0c1220 100%) !important;
+}

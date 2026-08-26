@@ -62,6 +62,7 @@ async def _notify_sesion(tipo: int, descripcion: str, id_sesion: int, user_id: i
         "source": "sesiones_fotos",
         "id_sesion": id_sesion,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 

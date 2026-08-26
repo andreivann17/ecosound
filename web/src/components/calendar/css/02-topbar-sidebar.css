@@ -58,7 +58,7 @@
 
 /* ===== Sidebar ===== */
 .ol-sider {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-right: 1px solid #e8eaed;
 }
 
@@ -115,7 +115,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 12px;
-  color: #111827;
+  color: var(--eh-ink, #111827);
 }
 
 .ol-miniCell.out {
@@ -123,7 +123,7 @@
 }
 
 .ol-miniCell.today {
-  border-color: #05060a;
+  border-color: var(--eh-ink, #05060a);
 }
 
 .ol-miniCell.sel {
@@ -138,7 +138,7 @@
 .ol-addCalendarBtn {
   width: 100%;
   text-align: left;
-  color: #05060a;
+  color: var(--eh-ink, #05060a);
   font-weight: 600;
 }
 

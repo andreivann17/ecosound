@@ -52,6 +52,7 @@ async def _notify_paquete(tipo: int, descripcion: str, id_paquete: int, user_id:
         "source": "paquetes",
         "id_paquete": id_paquete,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 

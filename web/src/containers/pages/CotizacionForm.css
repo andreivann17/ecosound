@@ -16,13 +16,18 @@
 
 .cot-form-page .cc-section-card:hover {
   box-shadow: 0 10px 28px rgba(15, 34, 58, 0.08);
-  border-color: #d6deea;
+  border-color: var(--eh-primary-btn, #d6deea);
 }
 
 /* Ícono del encabezado de tarjeta con el azul de la marca */
 .cot-form-page .cc-section-icon {
   background: #eef2ff;
-  color: #01369e;
+  color: var(--eh-primary-btn);
+}
+
+:root[data-eh-content-theme="dark"] .cot-form-page .cc-section-icon {
+  background: var(--eh-accent-soft, rgba(59, 130, 246, 0.16));
+  color: var(--eh-accent-text, var(--eh-primary-btn));
 }
 
 /* Encabezado de la página (Nueva cotización) con barra de acento */
@@ -38,7 +43,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, #01369e, #2f6bff);
+  background: linear-gradient(180deg, var(--eh-primary-btn), #2f6bff);
 }
 
 /* ── Tarjeta lateral combinada (Importe + Resumen) ────────────── */
@@ -49,14 +54,17 @@
 .cot-form-page .cot-help {
   margin: 0;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
 }
 
 /* Botón "Generar" del campo de folio (dentro del addon del input) */
 .cot-form-page .ant-input-group-addon {
   padding: 0;
   background: #eef2ff;
-  border-color: #e2e8f0;
+  border-color: var(--eh-surface-border, #e2e8f0);
+}
+:root[data-eh-content-theme="dark"] .cot-form-page .ant-input-group-addon {
+  background: var(--eh-accent-soft, rgba(59, 130, 246, 0.16));
 }
 .cot-form-page .cot-folio-gen {
   display: inline-flex;
@@ -65,7 +73,7 @@
   padding: 0 12px;
   font-size: 12px;
   font-weight: 700;
-  color: #01369e;
+  color: var(--eh-primary-btn);
   cursor: pointer;
   user-select: none;
   transition: color 0.15s ease;
@@ -73,10 +81,16 @@
 .cot-form-page .cot-folio-gen:hover {
   color: #0a2a7a;
 }
+:root[data-eh-content-theme="dark"] .cot-form-page .cot-folio-gen {
+  color: var(--eh-accent-text, var(--eh-primary-btn));
+}
+:root[data-eh-content-theme="dark"] .cot-form-page .cot-folio-gen:hover {
+  color: var(--eh-ink, #f1f5f9);
+}
 
 .cot-form-page .cot-divider {
   height: 1px;
-  background: #eef0f4;
+  background: var(--eh-surface-border, #eef0f4);
   margin: 16px 0 18px;
 }
 
@@ -96,14 +110,14 @@
 .cot-form-page .cot-summary-key {
   font-size: 12.5px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--eh-ink-muted, #6b7280);
   white-space: nowrap;
 }
 
 .cot-form-page .cot-summary-val {
   font-size: 13px;
   font-weight: 650;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -118,7 +132,7 @@
 .cot-form-page .cot-summary-empty {
   font-size: 12px;
   font-style: italic;
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
 }
 
 .cot-form-page .cot-summary-chips {
@@ -130,12 +144,18 @@
 .cot-form-page .cot-chip {
   font-size: 12px;
   font-weight: 600;
-  color: #01369e;
+  color: var(--eh-primary-btn);
   background: #eef2ff;
   border: 1px solid #dbe3ff;
   border-radius: 999px;
   padding: 3px 12px;
   line-height: 1.5;
+}
+
+:root[data-eh-content-theme="dark"] .cot-form-page .cot-chip {
+  color: var(--eh-accent-text, var(--eh-primary-btn));
+  background: var(--eh-accent-soft, rgba(59, 130, 246, 0.16));
+  border-color: var(--eh-surface-border, #3b4a6b);
 }
 
 /* Bloque del Total — con realce de marca */
@@ -147,7 +167,7 @@
   gap: 10px;
   padding: 16px 18px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #01369e 0%, #1e57d6 100%);
+  background: linear-gradient(135deg, var(--eh-primary-btn) 0%, #1e57d6 100%);
   box-shadow: 0 8px 20px rgba(1, 54, 158, 0.26);
 }
 
@@ -175,11 +195,11 @@
 
 .cot-form-page .cc-service-card {
   position: relative;
-  border: 2px solid #e8ecf2;
+  border: 2px solid var(--eh-surface-border, #e8ecf2);
   border-radius: 16px;
   padding: 18px 12px;
   gap: 10px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
@@ -190,9 +210,13 @@
 }
 
 .cot-form-page .cc-service-card.is-active {
-  border-color: #01369e;
+  border-color: var(--eh-primary-btn);
   background: linear-gradient(180deg, #f5f8ff 0%, #e9f0ff 100%);
   box-shadow: 0 8px 20px rgba(1, 54, 158, 0.16);
+}
+
+:root[data-eh-content-theme="dark"] .cot-form-page .cc-service-card.is-active {
+  background: var(--eh-accent-soft, rgba(59, 130, 246, 0.14));
 }
 
 /* Check de "seleccionado" */
@@ -204,7 +228,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   color: #ffffff;
   font-size: 12px;
   font-weight: 800;
@@ -219,8 +243,8 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #eef2f7;
-  color: #64748b;
+  background: var(--eh-surface-2, #eef2f7);
+  color: var(--eh-ink-muted, #64748b);
   transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
@@ -234,18 +258,18 @@
 }
 
 .cot-form-page .cc-service-card.is-active .cc-service-card-icon {
-  background: #01369e;
+  background: var(--eh-primary-btn);
   color: #ffffff;
 }
 
 .cot-form-page .cc-service-card-label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--eh-ink-2, #475569);
 }
 
 .cot-form-page .cc-service-card.is-active .cc-service-card-label {
-  color: #01369e;
+  color: var(--eh-primary-btn);
   font-weight: 700;
 }
 

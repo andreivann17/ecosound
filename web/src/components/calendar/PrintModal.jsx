@@ -39,10 +39,14 @@ function startOfWeekES(date) {
 
 // ─── HTML generators ────────────────────────────────────────────────────────
 
+const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
+
 const BASE_CSS = `
   * { box-sizing: border-box; }
   body {
-    font-family: 'Segoe UI', Arial, sans-serif;
+    font-family: 'Noto Sans', 'Segoe UI', Arial, sans-serif;
     padding: 16px 20px;
     margin: 0;
     color: #111827;
@@ -91,7 +95,7 @@ function generateMonthHtml(cursorDate, events) {
     return `<tr>${cells}</tr>`;
   }).join("");
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agenda - ${anchor.format("MMMM YYYY")}</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;table-layout:fixed;}@media print{@page{size:landscape;margin:8mm;}}</style></head>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${FONT_LINK}<title>Agenda - ${anchor.format("MMMM YYYY")}</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;table-layout:fixed;}@media print{@page{size:landscape;margin:8mm;}}</style></head>
 <body><h2>📅 ${anchor.format("MMMM YYYY")}</h2>
 <table><thead><tr>${headerRow}</tr></thead><tbody>${bodyRows}</tbody></table></body></html>`;
 }
@@ -132,7 +136,7 @@ function generateWeekHtml(cursorDate, events, printView, startH, endH) {
 
   const label = `${days[0].format("D [de] MMMM")} – ${days[days.length - 1].format("D [de] MMMM YYYY")}`;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agenda Semanal</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;table-layout:fixed;}@media print{@page{size:landscape;margin:8mm;}}</style></head>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${FONT_LINK}<title>Agenda Semanal</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;table-layout:fixed;}@media print{@page{size:landscape;margin:8mm;}}</style></head>
 <body><h2>📅 ${label}</h2>
 <table><thead><tr><th style="background:#f0f4ff;padding:6px;font-size:11px;border:1px solid #cfd6e1;width:${timeColW};"></th>${headerCells}</tr></thead><tbody>${timeRows}</tbody></table></body></html>`;
 }
@@ -152,7 +156,7 @@ function generateDayHtml(cursorDate, events, startH, endH) {
     return `<tr><td style="border-bottom:1px solid #eef0f2;padding:6px;text-align:right;font-size:11px;color:#6b7280;width:60px;white-space:nowrap;">${String(h).padStart(2, "0")}:00</td><td style="border-bottom:1px solid #eef0f2;padding:4px;">${evHtml || ""}</td></tr>`;
   }).join("");
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agenda - ${anchor.format("dddd D MMMM YYYY")}</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;}@media print{@page{size:portrait;margin:10mm;}}</style></head>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${FONT_LINK}<title>Agenda - ${anchor.format("dddd D MMMM YYYY")}</title><style>${BASE_CSS}table{width:100%;border-collapse:collapse;}@media print{@page{size:portrait;margin:10mm;}}</style></head>
 <body><h2>📅 ${anchor.format("dddd, D [de] MMMM YYYY")}</h2>
 <table><tbody>${rows}</tbody></table></body></html>`;
 }

@@ -15,7 +15,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
 } from "antd";
@@ -26,6 +25,8 @@ import {
   AlignLeftOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./EventosPage.css";
 
 const { Title, Text } = Typography;
@@ -47,6 +48,11 @@ export default function CrearSesionPage() {
 
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   useEffect(() => {
     if (sesionEditar) {
@@ -95,21 +101,23 @@ export default function CrearSesionPage() {
           payload,
           { headers: authHeaderSesiones() }
         );
-        notification.success({ message: "Sesión actualizada correctamente" });
       } else {
         const res = await apiSesionesInstance.post("/sesiones-fotos", payload, {
           headers: authHeaderSesiones(),
         });
         id_sesion = res.data?.id ?? res.data?.id_sesion;
-        notification.success({ message: "Sesión creada exitosamente" });
       }
 
-      navigate(`/sesiones/${id_sesion}`);
-    } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Sesión creada!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `La sesión de "${values.nombre_cliente?.trim() || ""}" ya está registrada.`,
+        to: `/sesiones/${id_sesion}`,
       });
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -122,14 +130,7 @@ export default function CrearSesionPage() {
         <section className="eventos-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/sesiones")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Sesiones
-              </Button>
+
               <Title level={2} className="eventos-title" style={{ marginBottom: 0 }}>
                 {isEditing
                   ? `Editando sesión de ${sesionEditar.nombre_cliente}`
@@ -146,13 +147,14 @@ export default function CrearSesionPage() {
               <Button
                 className="eventos-btn-clean"
                 onClick={() => navigate("/app/sesiones")}
-                disabled={saving}
+                disabled={saving || success.show}
               >
                 Cancelar
               </Button>
               <Button
                 type="primary"
                 loading={saving}
+                disabled={success.show}
                 onClick={handleSave}
                 style={{ backgroundColor: "#111", borderColor: "#111" }}
               >
@@ -247,6 +249,14 @@ export default function CrearSesionPage() {
         </Form>
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate(success.to || "/app/sesiones")}
+      />
     </main>
   );
 }

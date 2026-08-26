@@ -5,10 +5,11 @@ import {
 } from "../../../../redux/actions/clientes_events/clientes_events";
 import {
   Form, Input, Select, Button, Row, Col,
-  notification, Typography, Space, DatePicker,
+  Typography, Space, DatePicker,
 } from "antd";
 import { ArrowLeftOutlined, UserOutlined, CalendarOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import Toast from "../../../../components/toasts/toast";
 import "../../TrabajadoresPage.css";
 
 const { Title, Text } = Typography;
@@ -27,6 +28,10 @@ export default function CrearClienteEventPage({ cliente: clienteEditar, onBack }
   const [saving, setSaving] = useState(false);
   const tipoSuscripcion = Form.useWatch("tipo_suscripcion", form);
   const fechaFinPrueba  = Form.useWatch("fecha_fin_prueba", form);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   useEffect(() => {
     if (clienteEditar) {
@@ -71,15 +76,10 @@ export default function CrearClienteEventPage({ cliente: clienteEditar, onBack }
           params: { id_app: 1 },
         });
       }
-      notification.success({
-        message: isEditing ? "Cliente actualizado correctamente" : "Cliente creado exitosamente",
-      });
+      toast(isEditing ? "Cliente actualizado correctamente" : "Cliente creado exitosamente");
       onBack();
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -95,14 +95,7 @@ export default function CrearClienteEventPage({ cliente: clienteEditar, onBack }
         <section className="trab-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={onBack}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Clientes
-              </Button>
+
               <Title level={2} className="trab-title" style={{ marginBottom: 0 }}>
                 {isEditing
                   ? `Editando: ${clienteEditar.nombre_cliente} ${clienteEditar.apellido_cliente}`
@@ -206,6 +199,8 @@ export default function CrearClienteEventPage({ cliente: clienteEditar, onBack }
           </div>
         </Form>
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </main>
   );
 }

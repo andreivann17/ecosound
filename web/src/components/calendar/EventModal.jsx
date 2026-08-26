@@ -9,7 +9,6 @@ import {
   Switch,
   Button,
   Typography,
-  notification,
   Upload
 } from "antd";
 import { CalendarOutlined, CloseOutlined } from "@ant-design/icons";
@@ -19,6 +18,7 @@ import "react-quill/dist/quill.snow.css";
 
 import RecurrenceModal from "./RecurrenceModal";
 import { buildRecurrenceTextES, normalizeAllDayRange } from "./recurrenceUtils";
+import Toast from "../toasts/toast";
 
 const { Text } = Typography;
 
@@ -200,6 +200,10 @@ export default function EventModal({
   const [local, setLocal] = useState(null);
   const [rightEditDate, setRightEditDate] = useState(false);
   const [openRepeat, setOpenRepeat] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
 const onAttachChange = (info) => {
   const next = (info?.fileList || [])
@@ -410,17 +414,11 @@ const attachProps = {
 
     // ✅ Validaciones: título y ubicación obligatorios
     if (!titleTrim) {
-      notification.error({
-        message: "Es obligatorio capturar el título.",
-        placement: "bottomRight",
-      });
+      toast("Es obligatorio capturar el título.");
       return;
     }
     if (!ciudadOk) {
-      notification.error({
-        message: "Es obligatorio seleccionar la ciudad (ubicación).",
-        placement: "bottomRight",
-      });
+      toast("Es obligatorio seleccionar la ciudad (ubicación).");
       return;
     }
 
@@ -638,7 +636,7 @@ onSave(payload, files);
         okText="Guardar"
         cancelText="Cancelar"
         title="Nueva cita"
-        closeIcon={<CloseOutlined style={{ color: "#000" }} />} // ✅ X negro visible
+        closeIcon={<CloseOutlined style={{ color: "var(--eh-ink, #000)" }} />}
         footer={[
           <Button key="cancel" onClick={onCancel}>
             Cancelar
@@ -646,7 +644,7 @@ onSave(payload, files);
           <Button
             key="save"
             type="primary"
-            style={{ background: "#01369e", borderColor: "#01369e" }}
+            style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
             onClick={() => {
               handleOk();
             }}
@@ -711,7 +709,7 @@ onSave(payload, files);
               <div style={{ marginTop: 8 }}>
                 <Button
                   type="link"
-                  style={{ padding: 0, fontWeight: 700, color: "#01369e" }}
+                  style={{ padding: 0, fontWeight: 700, color: "var(--eh-accent-text, var(--eh-primary-btn))" }}
                   onClick={() => setOpenRepeat(true)}
                 >
                   {local.recurrence ? "Editar periódico" : "Hacer periódico"}
@@ -780,8 +778,8 @@ onSave(payload, files);
   <div className="ol-fieldLabel">Documento</div>
 
   <Dragger {...attachProps} style={{ padding: 10 }}>
-    <p style={{ margin: 0, fontWeight: 700 }}>Arrastra un archivo o haz clic</p>
-    <p style={{ margin: 0, opacity: 0.75 }}>
+    <p style={{ margin: 0, fontWeight: 700, color: "var(--eh-ink, inherit)" }}>Arrastra un archivo o haz clic</p>
+    <p style={{ margin: 0, opacity: 0.75, color: "var(--eh-ink-muted, inherit)" }}>
       PDF / imagen / Word / Excel (máx 1)
     </p>
   </Dragger>
@@ -910,6 +908,8 @@ onSave(payload, files);
           setOpenRepeat(false);
         }}
       />
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </>
   );
 }

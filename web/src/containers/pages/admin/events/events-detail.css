@@ -52,3 +52,131 @@
   background: #e8eefb !important;
   color: #01369e !important;
 }
+
+/* Apariencia tab */
+.cd-divider {
+  border-top: 1px solid #f1f5f9;
+}
+
+.ap-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.ap-color-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+}
+.ap-color-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ap-color-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.ap-color-desc {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.ap-images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.ap-dropzone.ant-upload-wrapper .ant-upload-drag {
+  border-radius: 12px;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.ap-dropzone-disabled.ant-upload-wrapper .ant-upload-drag {
+  cursor: default;
+  opacity: 0.75;
+}
+.ap-dropzone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 12px;
+  gap: 4px;
+  border-radius: 10px;
+}
+.ap-dropzone-icon {
+  font-size: 28px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.ap-dropzone-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+.ap-dropzone-hint {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.ap-dropzone-preview {
+  position: relative;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+}
+/* Fondo a cuadros (estilo "transparencia") para previews sin un color de marca
+   asociado — así un logo blanco o transparente sigue siendo visible. */
+.ap-dropzone-checker {
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #f8fafc;
+}
+.ap-dropzone-desc {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 6px 2px 0;
+}
+.ap-dropzone-preview img {
+  max-width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+}
+.ap-dropzone-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(1, 54, 158, 0.72);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.ap-dropzone-preview:hover .ap-dropzone-overlay {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .ap-color-grid,
+  .ap-images-grid {
+    grid-template-columns: 1fr;
+  }
+}

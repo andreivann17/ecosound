@@ -6,7 +6,6 @@ import {
   Form,
   Typography,
   Space,
-  notification,
 } from "antd";
 import { KeyOutlined, SafetyOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
@@ -14,6 +13,7 @@ import { useDispatch } from "react-redux";
 import Modalmensaje from "./modalMensaje";
 import Modalnewpass from "./modalNewPassword";
 import { actionCodigo } from "../../redux/actions/login/login";
+import Toast from "../toasts/toast";
 
 const { Title, Text } = Typography;
 
@@ -21,6 +21,10 @@ function Home({ show, setShow, clave, correo }) {
   const [code, setCode] = useState("");
   const [showpass, setShowpass] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const [form] = Form.useForm();
   const dispatch = useDispatch();
@@ -56,22 +60,15 @@ function Home({ show, setShow, clave, correo }) {
               return;
             }
 
-            notification.error({
-              message: "Código inválido",
-              description: "Verifica el código e inténtalo de nuevo.",
-              placement: "top",
-            });
+            toast("Código inválido. Verifica el código e inténtalo de nuevo.");
           },
           (err) => {
             setLoading(false);
-            notification.error({
-              message: "No se pudo validar",
-              description:
-                typeof err === "string"
-                  ? err
-                  : "Ocurrió un error al validar el código.",
-              placement: "top",
-            });
+            toast(
+              typeof err === "string"
+                ? err
+                : "Ocurrió un error al validar el código."
+            );
           }
         )
       );
@@ -82,6 +79,8 @@ function Home({ show, setShow, clave, correo }) {
 
   return (
     <>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+
       <Modalnewpass
   show={showpass}
   setShow={setShowpass}

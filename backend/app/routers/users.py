@@ -1,5 +1,5 @@
 # app/routers/users.py
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Literal
 import os
 import secrets
 import smtplib
@@ -511,6 +511,44 @@ def update_my_perfil(
         users_model.upsert_user_perfil(id_user, data)
         if "nombre" in data:
             users_model.update_user(id_user=id_user, data={"name": data["nombre"]})
+    return {"ok": True}
+
+
+@router.get("/me/tema")
+def get_my_tema(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
+    if not id_user:
+        raise HTTPException(status_code=401, detail="Usuario inválido")
+    perfil = users_model.get_user_perfil(id_user)
+    return {"tema_preferencia": perfil.get("tema_preferencia") or "auto"}
+
+
+class TemaPreferenciaUpdate(BaseModel):
+    tema_preferencia: Literal["claro", "oscuro", "auto"]
+
+
+@router.patch("/me/tema")
+def update_my_tema(
+    payload: TemaPreferenciaUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
+    if not id_user:
+        raise HTTPException(status_code=401, detail="Usuario inválido")
+    users_model.update_user_tema_preferencia(id_user, payload.tema_preferencia)
+    return {"ok": True, "tema_preferencia": payload.tema_preferencia}
+
+
+@router.post("/me/mensaje-show")
+def mark_my_mensaje_show(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    id_user = int(current_user.get("id") or current_user.get("id_user") or 0)
+    if not id_user:
+        raise HTTPException(status_code=401, detail="Usuario inválido")
+    users_model.mark_mensaje_show(id_user)
     return {"ok": True}
 
 

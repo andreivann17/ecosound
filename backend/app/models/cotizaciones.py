@@ -108,6 +108,7 @@ def get_evento_by_id(id_cotizacion) -> Optional[Dict[str, Any]]:
                 """
                 SELECT e.*, e.id_cotizacion AS id_cotizacion,
                        u.name AS created_by_nombre,
+                       u.code AS created_by_code,
                        c.nombre AS nombre_ciudad,
                        ps.nombre AS nombre_paquete_sonido,
                        pf.nombre AS nombre_paquete_fotografia

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -7,24 +7,19 @@ import {
   apiPaquetesInstance,
   authHeaderPaquetes,
 } from "../../redux/actions/paquetes/paquetes";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
-
 import {
   Button,
   Modal,
   Form,
   Input,
-  notification,
-  Select,
-  DatePicker,
   Spin,
   Empty,
   Divider,
+  Dropdown,
 } from "antd";
 import {
-  ArrowLeftOutlined,
   EditOutlined,
+  EllipsisOutlined,
   DeleteOutlined,
   AppstoreOutlined,
   FileTextOutlined,
@@ -36,62 +31,15 @@ import {
   CoffeeOutlined,
   CheckCircleOutlined,
   StopOutlined,
-  BarChartOutlined,
-  CalendarOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./EventoDetallePage.css";
 import "./EstadisticasPage.css";
 
 dayjs.locale("es");
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-const { RangePicker } = DatePicker;
-
-const PERIODO_OPTIONS = [
-  { value: "semana",   label: "Esta semana" },
-  { value: "quincena", label: "Esta quincena" },
-  { value: "mes",      label: "Este mes" },
-  { value: "custom",   label: "Personalizado" },
-];
-
-const DATE_FIELD_OPTIONS = [
-  { value: "fecha_evento",             label: "Fecha del evento" },
-  { value: "fecha_creacion_contrato",  label: "Fecha de contratación" },
-];
-
-const DONUT_COLORS = [
-  "#6366f1", "#10b981", "#f97316", "#f59e0b",
-  "#3b82f6", "#ef4444", "#8b5cf6", "#14b8a6",
-];
-
-const fmtFechaCorta = (v) => {
-  if (!v) return "—";
-  const d = dayjs(v);
-  return d.isValid() ? d.format("D MMM YYYY") : "—";
-};
-
-function getDateRange(periodo, customRange) {
-  const today = dayjs();
-  if (periodo === "semana") {
-    return [today.startOf("week").format("YYYY-MM-DD"), today.endOf("week").format("YYYY-MM-DD")];
-  }
-  if (periodo === "quincena") {
-    const day = today.date();
-    if (day <= 15) {
-      return [today.startOf("month").format("YYYY-MM-DD"), today.date(15).format("YYYY-MM-DD")];
-    }
-    return [today.date(16).format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-  }
-  if (periodo === "mes") {
-    return [today.startOf("month").format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-  }
-  if (periodo === "custom" && customRange) {
-    return [customRange[0].format("YYYY-MM-DD"), customRange[1].format("YYYY-MM-DD")];
-  }
-  return [today.startOf("month").format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-}
 
 export default function PaqueteDetallePage() {
   const { idPaquete } = useParams();
@@ -106,24 +54,26 @@ export default function PaqueteDetallePage() {
 
   const [paquete, setPaquete] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
   const [activeTab, setActiveTab] = useState("datos");
+
+  // Edición inline "Información del paquete"
+  const [editingInfoCard, setEditingInfoCard] = useState(false);
+  const [editingInfoForm, setEditingInfoForm] = useState({});
+  const [savingInfoCard, setSavingInfoCard] = useState(false);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [savingContenido, setSavingContenido] = useState(false);
   const [contenidoForm] = Form.useForm();
 
-  // Análisis state
-  const [analisisPeriodo, setAnalisisPeriodo] = useState("mes");
-  const [analisisCustomRange, setAnalisisCustomRange] = useState(null);
-  const [analisisDateField, setAnalisisDateField] = useState("fecha_evento");
-  const [analisisData, setAnalisisData] = useState(null);
-
   // Actividad state
   const [actividad, setActividad] = useState([]);
   const [loadingActividad, setLoadingActividad] = useState(false);
-  const [analisisLoading, setAnalisisLoading] = useState(false);
 
   const tipoRef = useRef(tipo);
   tipoRef.current = tipo;
@@ -136,7 +86,7 @@ export default function PaqueteDetallePage() {
       );
       setPaquete(data);
     } catch {
-      notification.error({ message: "No se pudo cargar el paquete" });
+      toast("No se pudo cargar el paquete");
     }
   }, [idPaquete]);
 
@@ -147,41 +97,10 @@ export default function PaqueteDetallePage() {
     apiPaquetesInstance
       .get(`/paquetes/${idPaquete}?tipo=${tipo}`, { headers: authHeaderPaquetes() })
       .then(({ data }) => { if (mounted) setPaquete(data); })
-      .catch(() => notification.error({ message: "No se pudo cargar el paquete" }))
+      .catch(() => toast("No se pudo cargar el paquete"))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idPaquete, tipoParam]);
-
-  const fetchAnalisis = useCallback(async (periodo, customRange, dateField) => {
-    if (periodo === "custom" && !customRange) return;
-    const [dateFrom, dateTo] = getDateRange(periodo, customRange);
-    setAnalisisLoading(true);
-    try {
-      const { data } = await apiPaquetesInstance.get(
-        `/paquetes/${idPaquete}/analisis`,
-        {
-          headers: authHeaderPaquetes(),
-          params: {
-            tipo: tipoRef.current,
-            date_from: dateFrom,
-            date_to: dateTo,
-            date_field: dateField || "fecha_evento",
-          },
-        }
-      );
-      setAnalisisData(data);
-    } catch {
-      setAnalisisData(null);
-    } finally {
-      setAnalisisLoading(false);
-    }
-  }, [idPaquete]);
-
-  useEffect(() => {
-    if (activeTab === "analisis") {
-      fetchAnalisis(analisisPeriodo, analisisCustomRange, analisisDateField);
-    }
-  }, [activeTab, analisisPeriodo, analisisCustomRange, analisisDateField, fetchAnalisis]);
 
   const fetchActividad = useCallback(async () => {
     setLoadingActividad(true);
@@ -202,19 +121,10 @@ export default function PaqueteDetallePage() {
     if (activeTab === "actividad") fetchActividad();
   }, [activeTab, fetchActividad]);
 
-  const handleAnalisisPeriodo = (val) => {
-    setAnalisisPeriodo(val);
-    if (val !== "custom") setAnalisisCustomRange(null);
-  };
-
-  const handleAnalisisRangeChange = (dates) => {
-    if (dates && dates[0] && dates[1]) setAnalisisCustomRange(dates);
-  };
-
   const handleDelete = () => {
     Modal.confirm({
       title: "Eliminar paquete",
-      content: "El paquete se eliminará del sistema permanentemente (borrado lógico).",
+      content: "El paquete se eliminará del sistema permanentemente.",
       okText: "Eliminar",
       okType: "danger",
       cancelText: "Cancelar",
@@ -226,13 +136,13 @@ export default function PaqueteDetallePage() {
             `/paquetes/${idPaquete}?tipo=${tipo}`,
             { headers: authHeaderPaquetes() }
           );
-          notification.success({ message: "Paquete eliminado" });
-          navigate("/app/paquetes");
-        } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
+          setSuccess({
+            show: true,
+            title: "¡Paquete eliminado!",
+            subtitle: `"${paquete?.nombre || ""}" se eliminó correctamente del catálogo.`,
           });
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         } finally {
           setDeleting(false);
         }
@@ -261,20 +171,33 @@ export default function PaqueteDetallePage() {
             { active: nuevoEstado },
             { headers: authHeaderPaquetes() }
           );
-          notification.success({
-            message: nuevoEstado ? "Paquete reactivado" : "Paquete descontinuado",
-          });
+          toast(nuevoEstado ? "Paquete reactivado" : "Paquete descontinuado");
           fetchPaquete();
         } catch (err) {
-          notification.error({
-            message: `Error al ${accion}`,
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || `Error al ${accion}`);
         } finally {
           setToggling(false);
         }
       },
     });
+  };
+
+  const handleSaveInfoCard = async () => {
+    setSavingInfoCard(true);
+    try {
+      await apiPaquetesInstance.patch(
+        `/paquetes/${idPaquete}?tipo=${tipo}`,
+        { nombre: editingInfoForm.nombre },
+        { headers: authHeaderPaquetes() }
+      );
+      await fetchPaquete();
+      setEditingInfoCard(false);
+      toast("Paquete actualizado");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingInfoCard(false);
+    }
   };
 
   const handleDeleteContenido = (contenido) => {
@@ -291,13 +214,10 @@ export default function PaqueteDetallePage() {
             `/paquetes/contenidos/${contenido.id_paquete_contenido}`,
             { headers: authHeaderPaquetes() }
           );
-          notification.success({ message: "Elemento eliminado" });
+          toast("Elemento eliminado");
           fetchPaquete();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         }
       },
     });
@@ -313,15 +233,12 @@ export default function PaqueteDetallePage() {
         { descripcion: values.descripcion.trim() },
         { headers: authHeaderPaquetes() }
       );
-      notification.success({ message: "Elemento agregado" });
+      toast("Elemento agregado");
       contenidoForm.resetFields();
       setAddModalOpen(false);
       fetchPaquete();
     } catch (err) {
-      notification.error({
-        message: "Error al agregar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al agregar");
     } finally {
       setSavingContenido(false);
     }
@@ -350,42 +267,11 @@ export default function PaqueteDetallePage() {
   const TipoIcon = _TIPO_DETAIL[tipo]?.Icon ?? CameraOutlined;
   const vigente = Boolean(paquete.active);
 
-  // Análisis derived data
-  const stats = analisisData?.stats || {};
-  const eventos = analisisData?.eventos || [];
-  const comparacion = analisisData?.comparacion_tipo || [];
-  const totalHorasEvt = eventos.reduce((s, e) => s + (parseFloat(e.duracion_horas) || 0), 0);
-
-  const donutData = comparacion.length > 0 ? {
-    labels: comparacion.map((c) => c.nombre),
-    datasets: [{
-      data: comparacion.map((c) => c.eventos_count || 0),
-      backgroundColor: DONUT_COLORS.slice(0, comparacion.length),
-      borderWidth: 0,
-    }],
-  } : null;
-
-  const donutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "bottom", labels: { font: { size: 12 }, padding: 12, usePointStyle: true } },
-      tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} eventos` } },
-    },
-  };
-
   return (
     <div className="cd-main">
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/paquetes")}
-        >
-          Volver a Paquetes
-        </Button>
+
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -415,6 +301,7 @@ export default function PaqueteDetallePage() {
                   icon={vigente ? <StopOutlined /> : <CheckCircleOutlined />}
                   className="cd-btn-edit"
                   loading={toggling}
+                  disabled={success.show}
                   onClick={handleToggleActive}
                   style={vigente
                     ? { borderColor: "#f59e0b", color: "#b45309" }
@@ -424,24 +311,12 @@ export default function PaqueteDetallePage() {
                   {vigente ? "Descontinuar" : "Reactivar"}
                 </Button>
               )}
-              {canEditar && (
-                <Button
-                  icon={<EditOutlined />}
-                  className="cd-btn-edit"
-                  onClick={() =>
-                    navigate(`/app/paquetes/${paquete.id_paquete}/editar?tipo=${tipoParam}`, {
-                      state: { paquete },
-                    })
-                  }
-                >
-                  Editar
-                </Button>
-              )}
               {canEliminar && (
                 <Button
                   icon={<DeleteOutlined />}
                   className="cd-btn-delete"
                   loading={deleting}
+                  disabled={success.show}
                   onClick={handleDelete}
                 >
                   Eliminar
@@ -457,20 +332,6 @@ export default function PaqueteDetallePage() {
             >
               <FileTextOutlined />
               Información
-            </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "contenidos" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("contenidos")}
-            >
-              <UnorderedListOutlined />
-              Contenido ({contenidos.length})
-            </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "analisis" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("analisis")}
-            >
-              <BarChartOutlined />
-              Análisis
             </button>
             <button
               className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
@@ -491,248 +352,103 @@ export default function PaqueteDetallePage() {
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><AppstoreOutlined /></div>
                 <h2 className="cd-card-title">Información del paquete</h2>
-              </div>
-              <div className="cd-client-fields">
-                <div>
-                  <span className="cd-field-label">Nombre</span>
-                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>
-                    {paquete.nombre || "—"}
-                  </span>
-                </div>
-                <div>
-                  <span className="cd-field-label">Tipo</span>
-                  <span className="cd-field-value">{tipoLabel}</span>
-                </div>
-                <div>
-                  <span className="cd-field-label">Estado</span>
-                  <span
-                    className="cd-field-value"
-                    style={{ color: vigente ? "#15803d" : "#b45309", fontWeight: 600 }}
+                {canEditar && !editingInfoCard && (
+                  <Dropdown
+                    trigger={["click"]}
+                    menu={{
+                      items: [
+                        {
+                          key: "editar", icon: <EditOutlined />, label: "Editar",
+                          onClick: () => {
+                            setEditingInfoForm({ nombre: paquete.nombre || "" });
+                            setEditingInfoCard(true);
+                          },
+                        },
+                      ],
+                    }}
                   >
-                    {vigente ? "Vigente" : "Descontinuado"}
-                  </span>
-                </div>
+                    <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                  </Dropdown>
+                )}
               </div>
-            </div>
-
-            <div className="cd-card cd-card-event">
-              <div className="cd-card-header">
-                <div className="cd-card-icon-wrap"><UnorderedListOutlined /></div>
-                <h2 className="cd-card-title">Resumen de contenido</h2>
-              </div>
-              <div className="cd-financial-grid">
-                <div className="cd-financial-item">
-                  <span className="cd-field-label">Total elementos</span>
-                  <p className="cd-financial-value" style={{ color: "#1d4ed8" }}>
-                    {contenidos.length}
-                  </p>
-                  <span className="cd-financial-note">Servicios o ítems incluidos</span>
-                </div>
-                <div className="cd-financial-item cd-financial-bordered">
-                  <span className="cd-field-label">Disponibilidad</span>
-                  <p
-                    className="cd-financial-value"
-                    style={{ color: vigente ? "#15803d" : "#b45309", fontSize: 18 }}
-                  >
-                    {vigente
-                      ? <><CheckCircleOutlined style={{ marginRight: 6 }} />Vigente</>
-                      : <><StopOutlined style={{ marginRight: 6 }} />Descontinuado</>}
-                  </p>
-                  <span className="cd-financial-note">
-                    {vigente ? "Disponible para asignar" : "No disponible"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "contenidos" && (
-          <div className="cd-card">
-            <div className="cd-pagos-header">
-              <div className="cd-pagos-header-left">
-                <div className="cd-card-icon-wrap"><UnorderedListOutlined /></div>
-                <h2 className="cd-card-title">Contenido del paquete</h2>
-              </div>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="cd-btn-add-pago"
-                onClick={() => setAddModalOpen(true)}
-              >
-                Agregar elemento
-              </Button>
-            </div>
-
-            <Divider style={{ margin: "4px 0 16px" }} />
-
-            {contenidos.length === 0 ? (
-              <Empty description="Sin elementos registrados" style={{ margin: "32px 0" }} />
-            ) : (
-              <div className="cd-pagos-list">
-                <div className="cd-pagos-list-header" style={{ gridTemplateColumns: "1fr 36px" }}>
-                  <span>Descripción</span>
-                  <span />
-                </div>
-                {contenidos.map((c) => (
-                  <div
-                    key={c.id_paquete_contenido}
-                    className="cd-pagos-row"
-                    style={{ gridTemplateColumns: "1fr 36px" }}
-                  >
-                    <span style={{ fontWeight: 500, color: "#1b1b1d" }}>{c.descripcion}</span>
-                    <button
-                      className="cd-doc-delete-btn"
-                      onClick={() => handleDeleteContenido(c)}
-                      title="Eliminar elemento"
-                    >
-                      <DeleteOutlined />
-                    </button>
+              {editingInfoCard ? (
+                <div className="cd-edit-form">
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Nombre</span>
+                    <Input value={editingInfoForm.nombre}
+                      onChange={(e) => setEditingInfoForm((f) => ({ ...f, nombre: e.target.value }))} />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "analisis" && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, justifyContent: "flex-end" }}>
-              <Select
-                value={analisisDateField}
-                onChange={setAnalisisDateField}
-                options={DATE_FIELD_OPTIONS}
-                style={{ width: 200 }}
-                size="middle"
-                className="est-select"
-              />
-              <Select
-                value={analisisPeriodo}
-                onChange={handleAnalisisPeriodo}
-                options={PERIODO_OPTIONS}
-                style={{ width: 160 }}
-                size="middle"
-                className="est-select"
-              />
-              {analisisPeriodo === "custom" && (
-                <RangePicker
-                  onChange={handleAnalisisRangeChange}
-                  format="DD/MM/YYYY"
-                  placeholder={["Desde", "Hasta"]}
-                />
+                  <div className="cd-edit-form-actions">
+                    <Button onClick={() => setEditingInfoCard(false)}>Cancelar</Button>
+                    <Button type="primary" loading={savingInfoCard} onClick={handleSaveInfoCard} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="cd-client-fields">
+                  <div>
+                    <span className="cd-field-label">Nombre</span>
+                    <span className="cd-field-value" style={{ textTransform: "capitalize" }}>
+                      {paquete.nombre || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="cd-field-label">Tipo</span>
+                    <span className="cd-field-value">{tipoLabel}</span>
+                  </div>
+                  <div>
+                    <span className="cd-field-label">Estado</span>
+                    <span
+                      className="cd-field-value"
+                      style={{ color: vigente ? "#15803d" : "#b45309", fontWeight: 600 }}
+                    >
+                      {vigente ? "Vigente" : "Descontinuado"}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
 
-            {analisisLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-                <Spin size="large" />
+            <div className="cd-card cd-card-event">
+              <div className="cd-pagos-header">
+                <div className="cd-pagos-header-left">
+                  <div className="cd-card-icon-wrap"><UnorderedListOutlined /></div>
+                  <h2 className="cd-card-title">Resumen de contenido</h2>
+                </div>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="cd-btn-add-pago"
+                  onClick={() => setAddModalOpen(true)}
+                >
+                  Agregar elemento
+                </Button>
               </div>
-            ) : (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Horas en eventos</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: "#05060a" }}>
-                      {stats.total_horas ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 4 }}>hrs</span>
-                    </p>
-                    <span className="cd-financial-note">Realizadas o programadas en el período</span>
-                  </div>
 
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Eventos contratados</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: "#05060a" }}>
-                      {stats.eventos_count ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 4 }}>
-                        de {stats.total_eventos_negocio ?? 0}
-                      </span>
-                    </p>
-                    <span className="cd-financial-note">
-                      {analisisDateField === "fecha_creacion_contrato"
-                        ? "Del total de contratos celebrados en el período"
-                        : "Del total de eventos del negocio en el período"}
-                    </span>
-                  </div>
+              <Divider style={{ margin: "4px 0 16px" }} />
 
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Tasa de uso</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: (stats.tasa_pct ?? 0) >= 50 ? "#15803d" : "#05060a" }}>
-                      {stats.tasa_pct ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 2 }}>%</span>
-                    </p>
-                    <span className="cd-financial-note">
-                      Este paquete está en el {stats.tasa_pct ?? 0}% de los eventos del período
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div className="cd-card">
-                    <div className="cd-card-header">
-                      <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
-                      <h2 className="cd-card-title">Eventos en el período</h2>
+              {contenidos.length === 0 ? (
+                <Empty description="Sin elementos registrados" style={{ margin: "24px 0" }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 260, overflowY: "auto" }}>
+                  {contenidos.map((c) => (
+                    <div
+                      key={c.id_paquete_contenido}
+                      className="cd-contenido-row"
+                    >
+                      <CheckCircleOutlined className="cd-contenido-check" />
+                      <span className="cd-contenido-text">{c.descripcion}</span>
+                      <button
+                        className="cd-doc-delete-btn"
+                        onClick={() => handleDeleteContenido(c)}
+                        title="Eliminar elemento"
+                      >
+                        <DeleteOutlined />
+                      </button>
                     </div>
-                    {eventos.length === 0 ? (
-                      <Empty description="Sin eventos en este período" style={{ margin: "32px 0" }} />
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                          <thead>
-                            <tr style={{ borderBottom: "2px solid #f1f5f9" }}>
-                              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>
-                                {analisisDateField === "fecha_creacion_contrato" ? "Contratado" : "Fecha evento"}
-                              </th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Cliente</th>
-                              <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Hrs estimadas</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {eventos.map((e) => (
-                              <tr key={e.id_contrato} style={{ borderBottom: "1px solid #f8fafc" }}>
-                                <td style={{ padding: "7px 8px" }}>
-                                  {analisisDateField === "fecha_creacion_contrato"
-                                    ? fmtFechaCorta(e.fecha_creacion_contrato)
-                                    : fmtFechaCorta(e.fecha_evento)}
-                                </td>
-                                <td style={{ padding: "7px 8px", color: "#374151" }}>{e.cliente_nombre || "—"}</td>
-                                <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 600 }}>
-                                  {parseFloat(e.duracion_horas || 0).toFixed(1)} hrs
-                                </td>
-                              </tr>
-                            ))}
-                            <tr style={{ borderTop: "2px solid #e2e8f0", background: "#f8fafc" }}>
-                              <td style={{ padding: "8px", fontWeight: 700 }} colSpan={2}>
-                                Total — {eventos.length} eventos
-                              </td>
-                              <td style={{ padding: "8px", textAlign: "right", fontWeight: 700 }}>
-                                {totalHorasEvt.toFixed(1)} hrs
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="cd-card">
-                    <div className="cd-card-header">
-                      <div className="cd-card-icon-wrap"><AppstoreOutlined /></div>
-                      <h2 className="cd-card-title">Comparación por tipo</h2>
-                    </div>
-                    <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                      Paquetes de {tipoLabel} — por número de eventos en el período
-                    </p>
-                    {!donutData || comparacion.every((c) => c.eventos_count === 0) ? (
-                      <Empty description="Sin datos de comparación" style={{ margin: "32px 0" }} />
-                    ) : (
-                      <div style={{ height: 260, display: "flex", justifyContent: "center" }}>
-                        <Doughnut data={donutData} options={donutOptions} />
-                      </div>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         )}
 
@@ -822,6 +538,14 @@ export default function PaqueteDetallePage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/paquetes")}
+      />
     </div>
   );
 }

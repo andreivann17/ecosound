@@ -1,6 +1,6 @@
 .ol-root {
   height: 100vh;
-  background: #f5f6f8;
+  background: var(--eh-app-bg, #f5f6f8);
 }
 
 .ol-header {
@@ -71,7 +71,7 @@
 
 /* ===== Sidebar ===== */
 .ol-sider {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-right: 1px solid #e8eaed;
 }
 
@@ -128,7 +128,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 12px;
-  color: #111827;
+  color: var(--eh-ink, #111827);
 }
 
 .ol-miniCell.out {
@@ -136,7 +136,7 @@
 }
 
 .ol-miniCell.today {
-  border-color: #05060a;
+  border-color: var(--eh-ink, #05060a);
 }
 
 .ol-miniCell.sel {
@@ -151,7 +151,7 @@
 .ol-addCalendarBtn {
   width: 100%;
   text-align: left;
-  color: #05060a;
+  color: var(--eh-ink, #05060a);
   font-weight: 600;
 }
 
@@ -183,12 +183,12 @@
 
 /* ===== Main ===== */
 .ol-main {
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-toolbarWrap {
   border-bottom: 1px solid #e8eaed;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-toolbar {
@@ -224,7 +224,7 @@
 
 .ol-timeCol {
   border-right: 1px solid #e8eaed;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-timeCell {
@@ -264,7 +264,7 @@
 .ol-dayHeaderTop {
   font-weight: 800;
   font-size: 18px;
-  color: #1f2937;
+  color: var(--eh-ink, #1f2937);
 }
 
 .ol-dayHeaderDow {
@@ -305,7 +305,7 @@
   position: absolute;
   left: 8px;
   right: 8px;
-  background: #f0f0f2;
+  background: var(--eh-surface-2, #f0f0f2);
   border-left: 4px solid #6b7280;
   border-radius: 10px;
   padding: 6px 8px;
@@ -315,9 +315,9 @@
 }
 
 .ol-ev.cancel {
-  background: #f3f4f6;
+  background: var(--eh-surface-2, #f3f4f6);
   border-left-color: #9ca3af;
-  color: #374151;
+  color: var(--eh-ink-2, #374151);
 }
 
 .ol-evTitle {
@@ -350,13 +350,13 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-bottom: 1px solid #e8eaed;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-monthHCell {
   padding: 10px 12px;
   font-weight: 700;
-  color: #374151;
+  color: var(--eh-ink-2, #374151);
   border-right: 1px solid #e8eaed;
 }
 
@@ -378,17 +378,17 @@
   border-right: 1px solid #e8eaed;
   border-bottom: 1px solid #e8eaed;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-monthCell.out {
-  background: #fafafa;
+  background: var(--eh-surface-2, #fafafa);
   color: #9ca3af;
 }
 
 .ol-monthDate {
   font-weight: 800;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   margin-bottom: 6px;
 }
 
@@ -400,7 +400,7 @@
 
 .ol-monthEv {
   font-size: 12px;
-  background: #f0f0f2;
+  background: var(--eh-surface-2, #f0f0f2);
   border-left: 3px solid #6b7280;
   border-radius: 8px;
   padding: 4px 6px;
@@ -411,13 +411,13 @@
 }
 
 .ol-monthEv.cancel {
-  background: #f3f4f6;
+  background: var(--eh-surface-2, #f3f4f6);
   border-left-color: #9ca3af;
 }
 
 .ol-monthMore {
   font-size: 12px;
-  color: #05060a;
+  color: var(--eh-ink, #05060a);
   font-weight: 700;
 }
 
@@ -511,7 +511,7 @@
 }
 
 .ol-previewLine {
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-previewEvent {
@@ -526,7 +526,7 @@
   align-items: center;
   padding: 0 10px;
   font-weight: 800;
-  color: #0b1b12;
+  color: var(--eh-ink, #0b1b12);
 }
 /* label clickeable mes/año */
 .ol-rangeWrap {
@@ -541,7 +541,7 @@
 }
 
 .ol-rangeClickable:hover {
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
 }
 
 .ol-monthPickerInline {
@@ -556,7 +556,7 @@
 }
 /* Tabs de vista (Día / Semana laboral / Semana / Mes) con activo azul */
 .ol-viewTabs.ant-segmented {
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
   border: 1px solid #e6ebf2;
   padding: 4px;
   border-radius: 12px;
@@ -596,12 +596,12 @@
 }
 /* CONTENEDOR del toolbar */
 .ol-toolbarWrap {
-  background: #f4f6fa;      /* gris suave tipo Outlook */
+  background: var(--eh-surface-2, #f4f6fa);      /* gris suave tipo Outlook */
   padding: 12px 16px;
   border-bottom: 1px solid #e6eaf0;
 }
 .ol-toolbarElevated {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 12px;
   padding: 12px 16px;
 
@@ -612,7 +612,7 @@
   border: 1px solid #e9edf3;
 }
 .ol-content {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   padding-top: 8px;
 }
 .ol-rangeLabel {
@@ -638,7 +638,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   padding-top: 8px;
 }
 /* espacio fijo para que el DatePicker no invada los tabs */
@@ -664,7 +664,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   border-bottom: 1px solid #e6eaf0;
 }
 
@@ -696,13 +696,13 @@
 
 /* ===== Date bar (solo sobre calendario principal) ===== */
 .ol-datebarWrap {
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   border-bottom: 1px solid #e6eaf0;
   padding: 10px 12px;
 }
 
 .ol-datebar {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border: 1px solid #e9edf3;
   border-radius: 12px;
   padding: 10px 12px;
@@ -733,7 +733,7 @@
 }
 
 .ol-rangeClickable:hover {
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
 }
 
 /* DatePicker ancho real para que no “invada” tabs */
@@ -1055,7 +1055,7 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 /* toolbar fijo arriba */
@@ -1108,7 +1108,7 @@
   overflow-y: auto;          /* <-- ESTE ERA EL FALLO */
   height: 520px;             /* <-- altura fija para que exista scroll */
   position: relative;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   scroll-behavior: smooth;
   overscroll-behavior: contain;
   cursor: grab;
@@ -1189,7 +1189,7 @@
 /* evento local (verde, draggable) */
 .ol-miniEvLocal {
   background: #2bb673;
-  color: #0b1b12;
+  color: var(--eh-ink, #0b1b12);
   box-shadow: 0 6px 18px rgba(0,0,0,0.10);
   cursor: grab;
   z-index: 3;
@@ -1201,8 +1201,8 @@
 
 /* eventos existentes (gris) */
 .ol-miniEvOther {
-  background: #eef2f7;
-  color: #111827;
+  background: var(--eh-surface-2, #eef2f7);
+  color: var(--eh-ink, #111827);
   border-left: 4px solid rgba(0,0,0,0.18);
   z-index: 2;
 }
@@ -1214,7 +1214,7 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-quillWrap .ql-toolbar {
@@ -1270,7 +1270,7 @@
   height: 34px;
   border-radius: 50%;
   border: 1px solid rgba(0,0,0,0.10);
-  background: #f3f4f6;
+  background: var(--eh-surface-2, #f3f4f6);
   cursor: pointer;
   font-weight: 800;
 }
@@ -1308,7 +1308,7 @@
    Layout: aire general
    ========================= */
 .ol-root {
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
 }
 
 .ol-shell {
@@ -1316,7 +1316,7 @@
 }
 
 .ol-sider {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-right: 1px solid #e9edf3;
 }
 
@@ -1337,7 +1337,7 @@
   border: 1px solid #e9edf3;
   border-radius: 14px;
   padding: 10px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
 }
 
@@ -1368,7 +1368,7 @@
   border: 1px solid #e9edf3;
   border-radius: 14px;
   padding: 12px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
 }
 
@@ -1383,7 +1383,7 @@
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.6px;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   text-transform: uppercase;
 }
 
@@ -1404,14 +1404,14 @@
   align-items: center;
   padding: 10px 10px;
   border-radius: 12px;
-  background: #f6f8fc;
+  background: var(--eh-surface-2, #f6f8fc);
   border: 1px solid rgba(16, 24, 40, 0.06);
   cursor: default;
   transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .ol-legendChip:hover {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.10);
   transform: translateY(-1px);
 }
@@ -1437,7 +1437,7 @@
 .ol-legendName {
   font-size: 13px;
   font-weight: 800;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   line-height: 1.1;
 }
 
@@ -1461,7 +1461,7 @@
   height: 58px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border: 1px solid #e9edf3;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 24px rgba(16, 24, 40, 0.08);
 }
@@ -1478,7 +1478,7 @@
    Calendario: padding general
    ========================= */
 .ol-content {
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   padding: 12px;          /* aire alrededor del board */
 }
 
@@ -1560,7 +1560,7 @@
 }
 /* ===== Outlook look: tipografía + botones + bordes ===== */
 .ol-root{
-  font-family: "Segoe UI Variable","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-family: "Noto Sans","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
 }
 
 /* Botones (AntD) */
@@ -1572,12 +1572,12 @@
 }
 
 .ol-root .ant-btn-default{
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-root .ant-btn-default:hover{
-  border-color: #05060a;
-  color: #05060a;
+  border-color: var(--eh-ink, #05060a);
+  color: var(--eh-ink, #05060a);
 }
 
 .ol-root .ant-btn-primary{
@@ -1593,7 +1593,7 @@
 
 /* Segmented (Día/Semana/Mes) */
 .ol-viewTabs.ant-segmented{
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
   border: 1px solid #dfe3ea;
   padding: 4px;
   border-radius: 12px;
@@ -1624,7 +1624,7 @@
   border: 1px solid #dfe3ea;
   border-radius: 14px;
   overflow: hidden;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-monthHeader,
@@ -1893,7 +1893,7 @@ html, body, #root {
   height: 22px;
   line-height: 22px;
   font-size: 12px;
-  color: #05060a;
+  color: var(--eh-ink, #05060a);
   font-weight: 700;
   cursor: pointer;
   user-select: none;

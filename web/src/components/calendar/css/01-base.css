@@ -17,8 +17,12 @@ body,
   display: flex;
   flex-direction: column;
   background: #f5f7fb;
-  font-family: "Segoe UI Variable","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-family: "Noto Sans","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
   overflow: hidden;
+}
+
+:root[data-eh-content-theme="dark"] .ol-root {
+  background: var(--eh-app-bg, #0b1220);
 }
 
 /* =========================
@@ -56,6 +60,11 @@ body,
   overflow: hidden;     /* sidebar no scrollea */
 }
 
+:root[data-eh-content-theme="dark"] .ol-sider {
+  background: var(--eh-surface, #111827);
+  border-right-color: var(--eh-surface-border, #3b4a6b);
+}
+
 /* =========================
    MAIN
    ========================= */
@@ -80,6 +89,11 @@ body,
   border-bottom: 1px solid #e6eaf0;
 }
 
+:root[data-eh-content-theme="dark"] .ol-ribbonWrap {
+  background: var(--eh-app-bg, #0b1220);
+  border-bottom-color: var(--eh-surface-border, #3b4a6b);
+}
+
 /* =========================
    DATE BAR
    ========================= */
@@ -88,6 +102,11 @@ body,
   flex: 0 0 auto;
   background: #f5f7fb;
   border-bottom: 1px solid #e6eaf0;
+}
+
+:root[data-eh-content-theme="dark"] .ol-datebarWrap {
+  background: var(--eh-app-bg, #0b1220);
+  border-bottom-color: var(--eh-surface-border, #3b4a6b);
 }
 
 /* =========================
@@ -101,6 +120,10 @@ body,
   padding: 12px;
   background: #f5f7fb;
   overflow: hidden;     /* scroll vive más adentro */
+}
+
+:root[data-eh-content-theme="dark"] .ol-content {
+  background: var(--eh-app-bg, #0b1220);
 }
 
 /* =========================

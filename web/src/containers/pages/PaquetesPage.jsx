@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   Input,
+  AutoComplete,
   Select,
   Space,
   Typography,
@@ -26,6 +27,7 @@ import {
   CheckCircleOutlined,
   UnorderedListOutlined,
   DownloadOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
 
 import { previewPaquetesReportPdf, printPaquetesReportPdf } from "../../components/utils/printPaquetesReportPdf";
@@ -48,6 +50,44 @@ const TIPO_FILTER_KEY = {
   barra:      3,
 };
 
+const shuffleArray = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+const buildSuggestionPool = (items) => {
+  const seen = new Set();
+  const pool = [];
+  items.forEach((p) => {
+    const nombre = (p.nombre || "").trim();
+    const key = nombre.toLowerCase();
+    if (nombre && !seen.has(key)) {
+      seen.add(key);
+      pool.push({ label: nombre, tipoNum: p.is_paquete_sonido });
+    }
+  });
+  return pool;
+};
+
+const toSuggestionOptions = (pool) =>
+  pool.slice(0, 5).map((item, idx) => {
+    const cfg = TIPO_CARD_CONFIG[item.tipoNum] ?? TIPO_CARD_CONFIG[0];
+    return {
+      value: item.label,
+      label: (
+        <div className="paq-suggest-option" style={{ "--i": idx }}>
+          <span className="paq-suggest-icon">{cfg.icon}</span>
+          <span className="paq-suggest-text">{item.label}</span>
+          <span className="paq-suggest-type">{cfg.label}</span>
+        </div>
+      ),
+    };
+  });
+
 export default function PaquetesPage() {
   const dispatch = useDispatch();
   const { items = [] } = useSelector((state) => state.paquetes);
@@ -58,10 +98,23 @@ export default function PaquetesPage() {
 
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
+  const [searchOptions, setSearchOptions] = useState([]);
   const [tipoFilter, setTipoFilter] = useState("todos");
 
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
   const [exportPreviewHtml, setExportPreviewHtml] = useState("");
+
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const scrollEl = document.querySelector(".content-electron") || window;
+    const onScroll = () => {
+      const top = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+      setShowBackToTop(top > 300);
+    };
+    scrollEl.addEventListener("scroll", onScroll);
+    return () => scrollEl.removeEventListener("scroll", onScroll);
+  }, []);
 
   const lastFetchKey = useRef("");
 
@@ -69,6 +122,28 @@ export default function PaquetesPage() {
     const t = setTimeout(() => setSearchDebounced(search), 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  const suggestionPool = useMemo(() => buildSuggestionPool(items), [items]);
+
+  const handleSearchInput = (value) => {
+    setSearch(value);
+    const q = (value || "").trim().toLowerCase();
+    const filtered = q
+      ? suggestionPool.filter((item) => item.label.toLowerCase().includes(q))
+      : shuffleArray(suggestionPool);
+    setSearchOptions(toSuggestionOptions(filtered));
+  };
+
+  const handleSearchFocus = () => {
+    if (!search) {
+      setSearchOptions(toSuggestionOptions(shuffleArray(suggestionPool)));
+    }
+  };
+
+  const handleSearchSelect = (value) => {
+    setSearch(value);
+    setSearchDebounced(value);
+  };
 
   const fetchParams = useMemo(
     () => ({ search: searchDebounced || undefined }),
@@ -144,28 +219,38 @@ export default function PaquetesPage() {
     <main className="paq-main">
       <div className="paq-content">
 
-        <section className="paq-section">
-
-          <div className="paq-filters-panel">
-            <Space direction="vertical" size={2} style={{ marginBottom: 16 }}>
+        <section className="paq-header-card">
+          <div className="paq-header-section">
+            <Space direction="vertical" size={2}>
               <Title level={2} className="paq-title">Paquetes</Title>
               <Text className="paq-subtitle">Catálogo de paquetes de fotografía, sonido, decoraciones y barra</Text>
             </Space>
+          </div>
 
-            <Row gutter={[16, 14]}>
+          <div className="paq-filters-panel">
+            <Row gutter={[16, 14]} align="bottom">
               <Col xs={24} lg={12}>
                 <div className="paq-field-label">Buscador</div>
-                <Input
+                <AutoComplete
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nombre de paquete..."
-                  suffix={<SearchOutlined className="paq-input-suffix" />}
+                  options={searchOptions}
+                  onSearch={handleSearchInput}
+                  onFocus={handleSearchFocus}
+                  onSelect={handleSearchSelect}
                   className="paq-control"
+                  popupClassName="paq-suggest-dropdown"
+                  filterOption={false}
                   allowClear
-                />
+                  onClear={() => setSearch("")}
+                >
+                  <Input
+                    placeholder="Buscar por nombre de paquete..."
+                    suffix={<SearchOutlined className="paq-input-suffix" />}
+                  />
+                </AutoComplete>
               </Col>
 
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={7}>
                 <div className="paq-field-label">Tipo</div>
                 <Select
                   value={tipoFilter}
@@ -180,10 +265,8 @@ export default function PaquetesPage() {
                   ]}
                 />
               </Col>
-            </Row>
 
-            <Row gutter={[16, 14]} style={{ marginTop: 14 }} align="bottom">
-              <Col xs={24} lg={6}>
+              <Col xs={24} lg={5}>
                 <div className="paq-actions">
                   <Button
                     className="paq-btn-clean"
@@ -198,8 +281,9 @@ export default function PaquetesPage() {
               </Col>
             </Row>
           </div>
+        </section>
 
-          <div className="paq-stats-row">
+        <div className="paq-stats-row">
             {STAT_CARDS.map(({ filterKey, tipoNum }) => {
               const cfg = TIPO_CARD_CONFIG[tipoNum];
               const isActive = tipoFilter === filterKey;
@@ -220,8 +304,9 @@ export default function PaquetesPage() {
                 </Card>
               );
             })}
-          </div>
+        </div>
 
+        <div className="paq-cards-container">
           <div className="paq-toolbar">
             <div className="paq-toolbar-left">
               <Title level={4} style={{ marginBottom: 0 }}>
@@ -321,8 +406,23 @@ export default function PaquetesPage() {
             </div>
           ))}
 
-        </section>
+        </div>{/* paq-cards-container */}
       </div>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="paq-back-to-top"
+          onClick={() => {
+            const scrollEl = document.querySelector(".content-electron");
+            if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: "smooth" });
+            else window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Volver arriba"
+        >
+          <ArrowUpOutlined />
+        </button>
+      )}
 
       <Modal
         open={exportPreviewOpen}
@@ -337,7 +437,7 @@ export default function PaquetesPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              style={{ background: "#01369e", borderColor: "#01369e" }}
+              style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               onClick={() => {
                 printPaquetesReportPdf({
                   items: filteredItems,

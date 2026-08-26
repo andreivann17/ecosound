@@ -12,7 +12,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
   Switch,
@@ -24,6 +23,9 @@ import {
   PlusOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 import "./EventosPage.css";
 import "./PaquetesPage.css";
@@ -41,6 +43,10 @@ export default function CrearPaquetePage() {
   const [saving, setSaving] = useState(false);
   const [contenidos, setContenidos] = useState([{ key: Date.now(), value: "" }]);
   const [originalIds, setOriginalIds] = useState([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   useEffect(() => {
     if (paqueteEditar) {
@@ -144,32 +150,25 @@ export default function CrearPaquetePage() {
         }
       }
 
-      notification.success({
-        message: isEditing ? "Paquete actualizado correctamente" : "Paquete creado exitosamente",
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Paquete creado!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `"${values.nombre?.trim()}" ya está disponible en tu catálogo.`,
       });
-      navigate("/app/paquetes");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <main className="paq-main">
+    <main className="paq-main paq-form-page">
       <div className="paq-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/app/paquetes")}
-          className="cc-back-btn"
-        >
-          Volver a Paquetes
-        </Button>
+
 
         <section className="cc-page-header-card">
           <Space direction="vertical" size={2}>
@@ -187,16 +186,17 @@ export default function CrearPaquetePage() {
             <Button
               className="eventos-btn-clean"
               onClick={() => navigate("/app/paquetes")}
-              disabled={saving}
+              disabled={saving || success.show}
             >
               Cancelar
             </Button>
             <Button
               type="primary"
               loading={saving}
+              disabled={success.show}
               icon={!isEditing ? <PlusOutlined /> : null}
               onClick={handleSave}
-              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+              style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
             >
               {isEditing ? "Guardar cambios" : "Crear paquete"}
             </Button>
@@ -264,7 +264,7 @@ export default function CrearPaquetePage() {
                   <span className="cc-section-icon"><UnorderedListOutlined /></span>
                   Contenido del paquete
                 </div>
-                <Text style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 14 }}>
+                <Text style={{ fontSize: 12, color: "var(--eh-ink-muted, #64748b)", display: "block", marginBottom: 14 }}>
                   Lista de elementos o servicios que incluye este paquete
                 </Text>
 
@@ -289,6 +289,7 @@ export default function CrearPaquetePage() {
                 <Button
                   icon={<PlusOutlined />}
                   onClick={addContenido}
+                  className="paq-btn-add-contenido"
                   style={{ width: "100%", marginTop: 4 }}
                 >
                   Agregar elemento
@@ -300,6 +301,13 @@ export default function CrearPaquetePage() {
         </Form>
 
       </div>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/paquetes")}
+      />
     </main>
   );
 }

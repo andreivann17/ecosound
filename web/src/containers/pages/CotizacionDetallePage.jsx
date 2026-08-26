@@ -16,16 +16,18 @@ import {
   Form,
   Input,
   DatePicker,
-  notification,
+  TimePicker,
+  Select,
   Spin,
   Timeline,
   Empty,
   Divider,
   Tooltip,
+  Dropdown,
 } from "antd";
 import {
-  ArrowLeftOutlined,
   EditOutlined,
+  EllipsisOutlined,
   DeleteOutlined,
   UserOutlined,
   CalendarOutlined,
@@ -55,6 +57,8 @@ import {
   CloseOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./EventoDetallePage.css";
 import "./CotizacionDetallePage.css";
 import { PATH as API_BASE } from "../../redux/utils";
@@ -123,6 +127,43 @@ const SERVICIO_LABEL = {
   3: "Banquete",
   4: "Barra",
 };
+
+// Misma paleta de colores distintos usada en el chip de "tipo de evento" (EventosPage.jsx),
+// aquí aplicada al pill de "Paquete" para que cada paquete se distinga de reojo por su tono.
+const CHIP_PALETTE = [
+  { bg: "#d8e2ff", text: "#0b3f9e", darkBg: "rgba(59, 130, 246, 0.22)",  darkText: "#93c5fd" }, // azul
+  { bg: "#ffdad6", text: "#93000a", darkBg: "rgba(239, 68, 68, 0.22)",   darkText: "#fca5a5" }, // rojo
+  { bg: "#c8f5c8", text: "#004d00", darkBg: "rgba(34, 197, 94, 0.22)",   darkText: "#86efac" }, // verde
+  { bg: "#ffddb5", text: "#5c3600", darkBg: "rgba(245, 158, 11, 0.22)",  darkText: "#fbbf24" }, // ámbar
+  { bg: "#ede9fe", text: "#5b21b6", darkBg: "rgba(139, 92, 246, 0.22)",  darkText: "#c4b5fd" }, // morado
+  { bg: "#93f2f2", text: "#003030", darkBg: "rgba(20, 184, 166, 0.22)",  darkText: "#5eead4" }, // teal
+  { bg: "#ffd6e8", text: "#9d174d", darkBg: "rgba(236, 72, 153, 0.22)",  darkText: "#f9a8d4" }, // rosa
+  { bg: "#ffe4c7", text: "#7c2d12", darkBg: "rgba(249, 115, 22, 0.22)",  darkText: "#fdba74" }, // naranja
+  { bg: "#e8eaed", text: "#44474e", darkBg: "rgba(148, 163, 184, 0.18)", darkText: "#cbd5e1" }, // gris
+  { bg: "#e0e7ff", text: "#3730a3", darkBg: "rgba(99, 102, 241, 0.22)",  darkText: "#a5b4fc" }, // índigo
+];
+
+const hashKey = (str) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+};
+
+const getChipColors = (key) => {
+  const n = CHIP_PALETTE.length;
+  const h = hashKey(String(key));
+  const idx = h % n;
+  const cycle = Math.floor(h / n) % 5;
+  const base = CHIP_PALETTE[idx];
+  if (cycle <= 0) return base;
+  const hueShift = (cycle * 37) % 360;
+  const satAdj = cycle % 2 === 0 ? 1.15 : 0.85;
+  return { ...base, filter: `hue-rotate(${hueShift}deg) saturate(${satAdj})` };
+};
+
+// Tipo numérico que usa el módulo de Paquetes (0=Fotografía,1=Sonido,2=Decoraciones,3=Barra),
+// distinto al id_servicio (1=Sonido,2=Fotografía,3=Banquete,4=Barra) de eventos/cotizaciones_servicios.
+const SERVICIO_TO_PAQUETE_TIPO = { 1: 1, 2: 0, 3: 2, 4: 3 };
 
 const fmtMoney = (val) => {
   if (!val && val !== 0) return "—";
@@ -206,9 +247,15 @@ export default function CotizacionDetallePage() {
   const { perm } = usePermisos() || { perm: () => true };
   const canEditar   = true;
   const canEliminar = true;
+  const canConsultarUsuarios = perm("usuarios", "consultar");
+  const canConsultarPaquetes = perm("paquetes", "consultar");
 
   const [evento, setEvento] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
   const [deleting, setDeleting] = useState(false);
   const [pagos, setPagos] = useState([]);
   const [pagoModalOpen, setPagoModalOpen] = useState(false);
@@ -253,6 +300,24 @@ export default function CotizacionDetallePage() {
   const [paquetesDecoracion, setPaquetesDecoracion] = useState([]);
   const [paquetesBarra, setPaquetesBarra] = useState([]);
 
+  // Edición inline por card
+  const [editingClientCard, setEditingClientCard] = useState(false);
+  const [editingClientForm, setEditingClientForm] = useState({});
+  const [savingClientCard, setSavingClientCard] = useState(false);
+
+  const [editingCotCard, setEditingCotCard] = useState(false);
+  const [editingCotForm, setEditingCotForm] = useState({});
+  const [savingCotCard, setSavingCotCard] = useState(false);
+
+  const [editingServiceKey, setEditingServiceKey] = useState(null);
+  const [editingServiceForm, setEditingServiceForm] = useState({});
+  const [savingService, setSavingService] = useState(false);
+
+  const [servicioModalOpen, setServicioModalOpen] = useState(false);
+  const [nuevoServicioTipo, setNuevoServicioTipo] = useState(null);
+  const [savingServicio, setSavingServicio] = useState(false);
+  const [servicioForm] = Form.useForm();
+
   const pdfInputRef = useRef(null);
   const docInputRef = useRef(null);
 
@@ -275,7 +340,7 @@ export default function CotizacionDetallePage() {
           setPaquetesBarra(Array.isArray(pbrRes.data)    ? pbrRes.data : []);
         }
       })
-      .catch(() => notification.error({ message: "No se pudo cargar la cotización" }))
+      .catch(() => toast("No se pudo cargar la cotización"))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idCotizacion]);
@@ -290,16 +355,185 @@ export default function CotizacionDetallePage() {
         { headers: authHeaderCotizaciones() }
       );
       setEvento((prev) => (prev ? { ...prev, estado: nuevoEstado } : prev));
-      notification.success({
-        message: nuevoEstado === "aceptada" ? "Cotización aceptada" : "Cotización rechazada",
-      });
+      toast(nuevoEstado === "aceptada" ? "Cotización aceptada" : "Cotización rechazada");
     } catch (err) {
-      notification.error({
-        message: "No se pudo actualizar el estado",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "No se pudo actualizar el estado");
     } finally {
       setEstadoSaving(false);
+    }
+  };
+
+  const refetchCotizacion = useCallback(async () => {
+    try {
+      const { data } = await apiCotizacionesInstance.get(
+        `/cotizaciones/${idCotizacion}`,
+        { headers: authHeaderCotizaciones() }
+      );
+      if (data) setEvento(data);
+    } catch { /* ignore */ }
+  }, [idCotizacion]);
+
+  const handleSaveClientCard = async () => {
+    setSavingClientCard(true);
+    try {
+      await apiCotizacionesInstance.patch(
+        `/cotizaciones/${idCotizacion}`,
+        {
+          cliente_nombre: editingClientForm.cliente_nombre,
+          celular: editingClientForm.celular,
+          domicilio: editingClientForm.domicilio,
+          comentarios: editingClientForm.comentarios,
+        },
+        { headers: authHeaderCotizaciones() }
+      );
+      await refetchCotizacion();
+      setEditingClientCard(false);
+      toast("Datos del cliente actualizados");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingClientCard(false);
+    }
+  };
+
+  const handleSaveCotCard = async () => {
+    setSavingCotCard(true);
+    try {
+      await apiCotizacionesInstance.patch(
+        `/cotizaciones/${idCotizacion}`,
+        {
+          id_tipo_evento: editingCotForm.id_tipo_evento,
+          importe: editingCotForm.importe,
+        },
+        { headers: authHeaderCotizaciones() }
+      );
+      await refetchCotizacion();
+      setEditingCotCard(false);
+      toast("Cotización actualizada");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingCotCard(false);
+    }
+  };
+
+  const startEditService = (sv, idx) => {
+    setEditingServiceKey(idx);
+    setEditingServiceForm({
+      fecha: sv.fecha ? dayjs(sv.fecha) : null,
+      hora_inicio: sv.hora_inicio || "",
+      hora_final: sv.hora_final || "",
+      id_ciudad: sv.id_ciudad || null,
+      lugar: sv.lugar || "",
+      id_paquete: sv.id_paquete || null,
+      comentarios: sv.comentarios || "",
+    });
+  };
+
+  const handleSaveService = async (sv) => {
+    const updatedServicios = (evento.servicios || []).map((s) => {
+      if (s.id_cotizacion_servicio !== sv.id_cotizacion_servicio) return s;
+      return {
+        ...s,
+        fecha: editingServiceForm.fecha
+          ? dayjs(editingServiceForm.fecha).format("YYYY-MM-DD")
+          : s.fecha,
+        hora_inicio: editingServiceForm.hora_inicio || s.hora_inicio,
+        hora_final: editingServiceForm.hora_final || s.hora_final,
+        id_ciudad: editingServiceForm.id_ciudad ?? s.id_ciudad,
+        lugar: editingServiceForm.lugar ?? s.lugar,
+        id_paquete: editingServiceForm.id_paquete ?? s.id_paquete,
+        comentarios: editingServiceForm.comentarios ?? s.comentarios,
+      };
+    });
+    setSavingService(true);
+    try {
+      await apiCotizacionesInstance.patch(
+        `/cotizaciones/${idCotizacion}`,
+        { servicios: updatedServicios },
+        { headers: authHeaderCotizaciones() }
+      );
+      await refetchCotizacion();
+      setEditingServiceKey(null);
+      toast("Servicio actualizado");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingService(false);
+    }
+  };
+
+  const handleDeleteService = (sv) => {
+    Modal.confirm({
+      title: "Eliminar servicio",
+      content: `¿Eliminar "${SERVICIO_LABEL[sv.id_servicio] || "este servicio"}" de la cotización?`,
+      okText: "Eliminar",
+      okType: "danger",
+      cancelText: "Cancelar",
+      centered: true,
+      onOk: async () => {
+        const updatedServicios = (evento.servicios || []).filter(
+          (s) => s.id_cotizacion_servicio !== sv.id_cotizacion_servicio
+        );
+        try {
+          await apiCotizacionesInstance.patch(
+            `/cotizaciones/${idCotizacion}`,
+            { servicios: updatedServicios },
+            { headers: authHeaderCotizaciones() }
+          );
+          await refetchCotizacion();
+          toast("Servicio eliminado");
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
+        }
+      },
+    });
+  };
+
+  const handleOpenAddServicio = () => {
+    setNuevoServicioTipo(null);
+    servicioForm.resetFields();
+    setServicioModalOpen(true);
+  };
+
+  const handleAddServicio = async () => {
+    if (!nuevoServicioTipo) {
+      toast("Selecciona un tipo de servicio");
+      return;
+    }
+    let values;
+    try {
+      values = await servicioForm.validateFields();
+    } catch {
+      return;
+    }
+    const nuevoServicio = {
+      id_servicio: nuevoServicioTipo,
+      fecha: values.fecha ? dayjs(values.fecha).format("YYYY-MM-DD") : null,
+      hora_inicio: values.hora_inicio ? dayjs(values.hora_inicio).format("HH:mm") : null,
+      hora_final: values.hora_final ? dayjs(values.hora_final).format("HH:mm") : null,
+      id_ciudad: values.id_ciudad || null,
+      lugar: values.lugar || null,
+      id_paquete: values.id_paquete || null,
+      comentarios: values.comentarios || null,
+    };
+    const updatedServicios = [...(evento.servicios || []), nuevoServicio];
+    setSavingServicio(true);
+    try {
+      await apiCotizacionesInstance.patch(
+        `/cotizaciones/${idCotizacion}`,
+        { servicios: updatedServicios },
+        { headers: authHeaderCotizaciones() }
+      );
+      await refetchCotizacion();
+      setServicioModalOpen(false);
+      servicioForm.resetFields();
+      setNuevoServicioTipo(null);
+      toast("Servicio agregado");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al agregar");
+    } finally {
+      setSavingServicio(false);
     }
   };
 
@@ -443,13 +677,13 @@ export default function CotizacionDetallePage() {
           await apiCotizacionesInstance.delete(`/cotizaciones/${idCotizacion}`, {
             headers: authHeaderCotizaciones(),
           });
-          notification.success({ message: "Cotización eliminada" });
-          navigate("/app/cotizaciones");
-        } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
+          setSuccess({
+            show: true,
+            title: "¡Cotización eliminada!",
+            subtitle: `La cotización de "${evento?.cliente_nombre || ""}" se eliminó correctamente.`,
           });
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         } finally {
           setDeleting(false);
         }
@@ -471,13 +705,10 @@ export default function CotizacionDetallePage() {
             `/cotizaciones/${idCotizacion}/pagos/${pago.id || pago.id_pago}`,
             { headers: authHeaderCotizaciones() }
           );
-          notification.success({ message: "Abono eliminado" });
+          toast("Abono eliminado");
           fetchPagos();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar abono",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar abono");
         }
       },
     });
@@ -497,15 +728,12 @@ export default function CotizacionDetallePage() {
         },
         { headers: authHeaderCotizaciones() }
       );
-      notification.success({ message: "Abono registrado exitosamente" });
+      toast("Abono registrado exitosamente");
       pagoForm.resetFields();
       setPagoModalOpen(false);
       fetchPagos();
     } catch (err) {
-      notification.error({
-        message: "Error al guardar abono",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar abono");
     } finally {
       setSavingPago(false);
     }
@@ -514,7 +742,7 @@ export default function CotizacionDetallePage() {
   const handleUploadPdf = async (file) => {
     if (!file) return;
     if (getFileType(file.name) !== "pdf") {
-      notification.error({ message: "Solo se permiten archivos PDF para el evento" });
+      toast("Solo se permiten archivos PDF para el evento");
       return;
     }
     setUploadingPdf(true);
@@ -526,13 +754,10 @@ export default function CotizacionDetallePage() {
         fd,
         { headers: { ...authHeaderCotizaciones(), "Content-Type": "multipart/form-data" } }
       );
-      notification.success({ message: "Evento PDF subido correctamente" });
+      toast("Evento PDF subido correctamente");
       fetchDocumentos();
     } catch (err) {
-      notification.error({
-        message: "Error al subir el PDF",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al subir el PDF");
     } finally {
       setUploadingPdf(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -550,13 +775,10 @@ export default function CotizacionDetallePage() {
         fd,
         { headers: { ...authHeaderCotizaciones(), "Content-Type": "multipart/form-data" } }
       );
-      notification.success({ message: "Documento subido correctamente" });
+      toast("Documento subido correctamente");
       fetchDocumentos();
     } catch (err) {
-      notification.error({
-        message: "Error al subir el documento",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al subir el documento");
     } finally {
       setUploadingDoc(false);
       if (docInputRef.current) docInputRef.current.value = "";
@@ -577,13 +799,10 @@ export default function CotizacionDetallePage() {
             `/cotizaciones/${idCotizacion}/documentos/${doc.id}`,
             { headers: authHeaderCotizaciones() }
           );
-          notification.success({ message: "Documento eliminado" });
+          toast("Documento eliminado");
           fetchDocumentos();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         }
       },
     });
@@ -741,14 +960,6 @@ export default function CotizacionDetallePage() {
     <div className="cd-main cd-cotizacion-detalle">
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/cotizaciones")}
-        >
-          Volver a Cotizaciones
-        </Button>
 
         <Modal
           open={reportOpen}
@@ -763,7 +974,7 @@ export default function CotizacionDetallePage() {
               <Button
                 type="primary"
                 icon={<FileTextOutlined />}
-                style={{ background: "#01369e", borderColor: "#01369e" }}
+                style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
                 onClick={() => printCotizacionPdf(buildReportData())}
               >
                 Descargar PDF
@@ -800,7 +1011,15 @@ export default function CotizacionDetallePage() {
                   </span>
                 )}
                 {evento.created_by_nombre && (
-                  <span className="cd-meta-item">
+                  <span
+                    className={`cd-meta-item${evento.created_by_code && canConsultarUsuarios ? " cd-meta-link" : ""}`}
+                    onClick={() => {
+                      if (evento.created_by_code && canConsultarUsuarios) {
+                        navigate(`/app/usuarios/${evento.created_by_code}`);
+                      }
+                    }}
+                    title={evento.created_by_code && !canConsultarUsuarios ? "Sin permiso de consulta" : undefined}
+                  >
                     <UserOutlined />
                     {evento.created_by_nombre}
                   </span>
@@ -816,24 +1035,12 @@ export default function CotizacionDetallePage() {
               >
                 Cotización PDF
               </Button>
-              {canEditar && (
-                <Button
-                  icon={<EditOutlined />}
-                  className="cd-btn-edit"
-                  onClick={() =>
-                    navigate(`/app/cotizaciones/${evento.id_cotizacion}/editar`, {
-                      state: { evento },
-                    })
-                  }
-                >
-                  Editar
-                </Button>
-              )}
               {canEliminar && (
                 <Button
                   icon={<DeleteOutlined />}
                   className="cd-btn-delete"
                   loading={deleting}
+                  disabled={success.show}
                   onClick={handleDelete}
                 >
                   Eliminar
@@ -919,42 +1126,115 @@ export default function CotizacionDetallePage() {
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><UserOutlined /></div>
                 <h2 className="cd-card-title">Datos del cliente</h2>
-              </div>
-              <div className="cd-client-fields">
-                <div>
-                  <span className="cd-field-label">Nombre Completo</span>
-                  <span className="cd-field-value">{evento.cliente_nombre || "—"}</span>
-                </div>
-                {evento.celular && (
-                  <div>
-                    <span className="cd-field-label">Teléfono Móvil</span>
-                    <div className="cd-field-phone">
-                      <PhoneOutlined className="cd-phone-icon" />
-                      <span className="cd-field-value cd-field-value-primary">
-                        {evento.celular}
-                      </span>
-                    </div>
-                  </div>
+                {canEditar && !editingClientCard && (
+                  <Dropdown
+                    trigger={["click"]}
+                    menu={{
+                      items: [
+                        {
+                          key: "editar", icon: <EditOutlined />, label: "Editar",
+                          onClick: () => {
+                            setEditingClientForm({
+                              cliente_nombre: evento.cliente_nombre || "",
+                              celular: evento.celular || "",
+                              domicilio: evento.domicilio || "",
+                              comentarios: evento.comentarios || "",
+                            });
+                            setEditingClientCard(true);
+                          },
+                        },
+                      ],
+                    }}
+                  >
+                    <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                  </Dropdown>
                 )}
-                <div>
-                  <span className="cd-field-label">Domicilio</span>
-                  <span className="cd-field-value cd-field-value-muted">
-                    {evento.domicilio || "—"}
-                  </span>
-                </div>
-                <div>
-                  <span className="cd-field-label">Comentarios</span>
-                  <span className="cd-field-value cd-field-value-muted">
-                    {evento.comentarios || "—"}
-                  </span>
-                </div>
               </div>
+              {editingClientCard ? (
+                <div className="cd-edit-form">
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Nombre Completo</span>
+                    <Input value={editingClientForm.cliente_nombre}
+                      onChange={(e) => setEditingClientForm((f) => ({ ...f, cliente_nombre: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Teléfono Móvil</span>
+                    <Input value={editingClientForm.celular}
+                      onChange={(e) => setEditingClientForm((f) => ({ ...f, celular: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Domicilio</span>
+                    <Input value={editingClientForm.domicilio}
+                      onChange={(e) => setEditingClientForm((f) => ({ ...f, domicilio: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Comentarios</span>
+                    <Input.TextArea rows={2} value={editingClientForm.comentarios}
+                      onChange={(e) => setEditingClientForm((f) => ({ ...f, comentarios: e.target.value }))} />
+                  </div>
+                  <div className="cd-edit-form-actions">
+                    <Button onClick={() => setEditingClientCard(false)}>Cancelar</Button>
+                    <Button type="primary" loading={savingClientCard} onClick={handleSaveClientCard} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="cd-client-fields">
+                  <div>
+                    <span className="cd-field-label">Nombre Completo</span>
+                    <span className="cd-field-value">{evento.cliente_nombre || "—"}</span>
+                  </div>
+                  {evento.celular && (
+                    <div>
+                      <span className="cd-field-label">Teléfono Móvil</span>
+                      <div className="cd-field-phone">
+                        <PhoneOutlined className="cd-phone-icon" />
+                        <span className="cd-field-value cd-field-value-primary">
+                          {evento.celular}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="cd-field-label">Domicilio</span>
+                    <span className="cd-field-value cd-field-value-muted">
+                      {evento.domicilio || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="cd-field-label">Comentarios</span>
+                    <span className="cd-field-value cd-field-value-muted">
+                      {evento.comentarios || "—"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="cd-card cd-card-event">
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
                 <h2 className="cd-card-title">Datos de la cotización</h2>
+                {canEditar && !editingCotCard && (
+                  <Dropdown
+                    trigger={["click"]}
+                    menu={{
+                      items: [
+                        {
+                          key: "editar", icon: <EditOutlined />, label: "Editar",
+                          onClick: () => {
+                            setEditingCotForm({
+                              id_tipo_evento: evento.id_tipo_evento || null,
+                              importe: evento.importe || "",
+                            });
+                            setEditingCotCard(true);
+                          },
+                        },
+                      ],
+                    }}
+                  >
+                    <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                  </Dropdown>
+                )}
               </div>
 
               <div className="cd-estado-folio">
@@ -968,25 +1248,52 @@ export default function CotizacionDetallePage() {
                 </div>
               </div>
 
-              <div className="cd-cot-resumen">
-                <div className="cd-cot-tile">
-                  <span className="cd-field-label">Tipo de evento</span>
-                  <span className="cd-pill">{tipoLabel || "—"}</span>
+              {editingCotCard ? (
+                <div className="cd-edit-form">
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Tipo de evento</span>
+                    <Select
+                      value={editingCotForm.id_tipo_evento}
+                      onChange={(v) => setEditingCotForm((f) => ({ ...f, id_tipo_evento: v }))}
+                      options={Object.entries(TIPO_EVENTO_MAP).map(([value, label]) => ({ value: Number(value), label }))}
+                      allowClear
+                      placeholder="Seleccionar tipo"
+                    />
+                  </div>
+                  <div className="cd-edit-field">
+                    <span className="cd-field-label">Importe total</span>
+                    <Input
+                      value={editingCotForm.importe}
+                      onChange={(e) => setEditingCotForm((f) => ({ ...f, importe: e.target.value }))}
+                      prefix="$"
+                    />
+                  </div>
+                  <div className="cd-edit-form-actions">
+                    <Button onClick={() => setEditingCotCard(false)}>Cancelar</Button>
+                    <Button type="primary" loading={savingCotCard} onClick={handleSaveCotCard} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                  </div>
                 </div>
-                <div className="cd-cot-tile cd-cot-tile-importe">
-                  <span className="cd-field-label">Importe total</span>
-                  <span className="cd-cot-importe-val">
-                    <DollarOutlined className="cd-cot-importe-icon" />
-                    {fmtMoney(evento.importe)}
-                  </span>
+              ) : (
+                <div className="cd-cot-resumen">
+                  <div className="cd-cot-tile">
+                    <span className="cd-field-label">Tipo de evento</span>
+                    <span className="cd-pill">{tipoLabel || "—"}</span>
+                  </div>
+                  <div className="cd-cot-tile cd-cot-tile-importe">
+                    <span className="cd-field-label">Importe total</span>
+                    <span className="cd-cot-importe-val">
+                      <DollarOutlined className="cd-cot-importe-icon" />
+                      {fmtMoney(evento.importe)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="cd-estado-actions">
                 <button
                   type="button"
                   className={`cd-btn-aceptar ${estadoCot === "aceptada" ? "is-active" : ""}`}
-                  disabled={estadoSaving || estadoCot === "aceptada"}
+                  disabled={estadoSaving || editingCotCard || estadoCot === "aceptada"}
                   onClick={() => handleSetEstado("aceptada")}
                 >
                   <CheckOutlined /> Aceptar cotización
@@ -994,7 +1301,7 @@ export default function CotizacionDetallePage() {
                 <button
                   type="button"
                   className={`cd-btn-rechazar ${estadoCot === "rechazada" ? "is-active" : ""}`}
-                  disabled={estadoSaving || estadoCot === "rechazada"}
+                  disabled={estadoSaving || editingCotCard || estadoCot === "rechazada"}
                   onClick={() => handleSetEstado("rechazada")}
                 >
                   <CloseOutlined /> Rechazar
@@ -1003,29 +1310,46 @@ export default function CotizacionDetallePage() {
             </div>
 
             {/* Encabezado amigable que introduce los servicios */}
-            {serviciosShown.length > 0 && (
-              <div className="cd-servicios-banner">
-                <div className="cd-servicios-banner-icon"><AppstoreOutlined /></div>
-                <div className="cd-servicios-banner-text">
-                  <h3 className="cd-servicios-banner-title">Servicios de la cotización</h3>
-                  <p className="cd-servicios-banner-sub">
-                    Esto es lo que incluye la cotización: fecha, lugar y horario de cada servicio.
-                  </p>
-                </div>
+            <div className="cd-servicios-banner">
+              <div className="cd-servicios-banner-icon"><AppstoreOutlined /></div>
+              <div className="cd-servicios-banner-text">
+                <h3 className="cd-servicios-banner-title">Servicios de la cotización</h3>
+                <p className="cd-servicios-banner-sub">
+                  Esto es lo que incluye la cotización: fecha, lugar y horario de cada servicio.
+                </p>
+              </div>
+              {serviciosShown.length > 0 && (
                 <span className="cd-servicios-banner-count">
                   {serviciosShown.length} {serviciosShown.length === 1 ? "servicio" : "servicios"}
                 </span>
-              </div>
-            )}
+              )}
+              <Button
+                icon={<PlusOutlined />}
+                onClick={handleOpenAddServicio}
+                className="cd-btn-add-servicio"
+              >
+                Agregar servicio
+              </Button>
+            </div>
 
             {/* Servicios contratados — un card por servicio */}
-            {serviciosShown.map((sv) => {
+            {serviciosShown.map((sv, idx) => {
                   const horaIni = sv.hora_inicio || null;
                   const horaFin = sv.hora_final  || null;
                   const horasLabel = horaIni && horaFin
                     ? `${horaIni} — ${horaFin}`
                     : (horaIni || horaFin || "—");
                   const pname = paqueteName(sv);
+                  const isEditing = editingServiceKey === idx;
+
+                  const paqueteOptions = (() => {
+                    if (sv.id_servicio === 1) return paquetesSonido.map((p) => ({ value: p.id_paquete_sonido, label: p.nombre }));
+                    if (sv.id_servicio === 2) return paquetesFoto.map((p) => ({ value: p.id_paquete_fotografia, label: p.nombre }));
+                    if (sv.id_servicio === 3) return paquetesDecoracion.map((p) => ({ value: p.id_paquete_decoracion, label: p.nombre }));
+                    if (sv.id_servicio === 4) return paquetesBarra.map((p) => ({ value: p.id_paquete_barra, label: p.nombre }));
+                    return [];
+                  })();
+
                   return (
                     <div key={`${sv.id_servicio}-${sv.id_cotizacion_servicio || ""}`} className="cd-card cd-card-servicio">
                       <div className="cd-card-header">
@@ -1033,50 +1357,162 @@ export default function CotizacionDetallePage() {
                           {SERVICE_ICONS[sv.id_servicio]}
                         </div>
                         <h2 className="cd-card-title">{SERVICIO_LABEL[sv.id_servicio] || "Servicio"}</h2>
-                      </div>
-                      <div className="cd-servicio-grid">
-                        <div>
-                          <span className="cd-field-label">Fecha</span>
-                          <div className="cd-field-icon-row">
-                            <CalendarOutlined className="cd-field-row-icon" />
-                            <span className="cd-field-value">{fmtFechaCorta(sv.fecha)}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="cd-field-label">Ciudad</span>
-                          <div className="cd-field-icon-row">
-                            <EnvironmentOutlined className="cd-field-row-icon" />
-                            <span className="cd-field-value">{CIUDAD_MAP[sv.id_ciudad] || "—"}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="cd-field-label">Horario</span>
-                          <div className="cd-field-icon-row">
-                            <ClockCircleOutlined className="cd-field-row-icon" />
-                            <span className="cd-field-value">{horasLabel}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="cd-servicio-grid2">
-                        <div>
-                          <span className="cd-field-label">Lugar</span>
-                          <span className="cd-field-value">{sv.lugar || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="cd-field-label">Paquete</span>
-                          <div style={{ marginTop: 4 }}>
-                            {pname
-                              ? <span className="cd-pill">{pname}</span>
-                              : <span className="cd-field-value cd-field-value-muted">Sin paquete</span>}
-                          </div>
-                        </div>
-                        {sv.comentarios && (
-                          <div>
-                            <span className="cd-field-label">Comentarios</span>
-                            <p className="cd-servicio-comentarios">{sv.comentarios}</p>
-                          </div>
+                        {canEditar && !isEditing && (
+                          <Dropdown
+                            trigger={["click"]}
+                            menu={{
+                              items: [
+                                { key: "editar", icon: <EditOutlined />, label: "Editar", onClick: () => startEditService(sv, idx) },
+                                { type: "divider" },
+                                { key: "eliminar", icon: <DeleteOutlined />, label: "Eliminar", danger: true, onClick: () => handleDeleteService(sv) },
+                              ],
+                            }}
+                          >
+                            <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                          </Dropdown>
                         )}
                       </div>
+
+                      {isEditing ? (
+                        <div className="cd-edit-form">
+                          <div className="cd-edit-field">
+                            <span className="cd-field-label">Fecha</span>
+                            <DatePicker
+                              value={editingServiceForm.fecha}
+                              onChange={(v) => setEditingServiceForm((f) => ({ ...f, fecha: v }))}
+                              format="DD/MM/YYYY"
+                            />
+                          </div>
+                          <div className="cd-edit-form-row">
+                            <div className="cd-edit-field">
+                              <span className="cd-field-label">Hora inicio</span>
+                              <Input
+                                value={editingServiceForm.hora_inicio}
+                                onChange={(e) => setEditingServiceForm((f) => ({ ...f, hora_inicio: e.target.value }))}
+                                placeholder="HH:mm"
+                              />
+                            </div>
+                            <div className="cd-edit-field">
+                              <span className="cd-field-label">Hora final</span>
+                              <Input
+                                value={editingServiceForm.hora_final}
+                                onChange={(e) => setEditingServiceForm((f) => ({ ...f, hora_final: e.target.value }))}
+                                placeholder="HH:mm"
+                              />
+                            </div>
+                          </div>
+                          <div className="cd-edit-field">
+                            <span className="cd-field-label">Ciudad</span>
+                            <Select
+                              value={editingServiceForm.id_ciudad}
+                              onChange={(v) => setEditingServiceForm((f) => ({ ...f, id_ciudad: v }))}
+                              options={Object.entries(CIUDAD_MAP).map(([value, label]) => ({ value: Number(value), label }))}
+                              allowClear
+                              placeholder="Seleccionar ciudad"
+                            />
+                          </div>
+                          <div className="cd-edit-field">
+                            <span className="cd-field-label">Lugar</span>
+                            <Input
+                              value={editingServiceForm.lugar}
+                              onChange={(e) => setEditingServiceForm((f) => ({ ...f, lugar: e.target.value }))}
+                              placeholder="Lugar del servicio"
+                            />
+                          </div>
+                          {paqueteOptions.length > 0 && (
+                            <div className="cd-edit-field">
+                              <span className="cd-field-label">Paquete</span>
+                              <Select
+                                value={editingServiceForm.id_paquete}
+                                onChange={(v) => setEditingServiceForm((f) => ({ ...f, id_paquete: v }))}
+                                options={paqueteOptions}
+                                allowClear
+                                placeholder="Sin paquete"
+                              />
+                            </div>
+                          )}
+                          <div className="cd-edit-field">
+                            <span className="cd-field-label">Comentarios</span>
+                            <Input.TextArea
+                              rows={2}
+                              value={editingServiceForm.comentarios}
+                              onChange={(e) => setEditingServiceForm((f) => ({ ...f, comentarios: e.target.value }))}
+                              placeholder="Comentarios..."
+                            />
+                          </div>
+                          <div className="cd-edit-form-actions">
+                            <Button onClick={() => setEditingServiceKey(null)}>Cancelar</Button>
+                            <Button type="primary" loading={savingService} onClick={() => handleSaveService(sv)} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="cd-servicio-grid">
+                            <div>
+                              <span className="cd-field-label">Fecha</span>
+                              <div className="cd-field-icon-row">
+                                <CalendarOutlined className="cd-field-row-icon" />
+                                <span className="cd-field-value">{fmtFechaCorta(sv.fecha)}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <span className="cd-field-label">Ciudad</span>
+                              <div className="cd-field-icon-row">
+                                <EnvironmentOutlined className="cd-field-row-icon" />
+                                <span className="cd-field-value">{CIUDAD_MAP[sv.id_ciudad] || "—"}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <span className="cd-field-label">Horario</span>
+                              <div className="cd-field-icon-row">
+                                <ClockCircleOutlined className="cd-field-row-icon" />
+                                <span className="cd-field-value">{horasLabel}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="cd-servicio-grid2">
+                            <div>
+                              <span className="cd-field-label">Lugar</span>
+                              <span className="cd-field-value">{sv.lugar || "—"}</span>
+                            </div>
+                            <div>
+                              <span className="cd-field-label">Paquete</span>
+                              <div style={{ marginTop: 4 }}>
+                                {pname
+                                  ? (() => {
+                                      const pillColor = getChipColors(`${sv.id_servicio}-${sv.id_paquete}`);
+                                      const tipoPaquete = SERVICIO_TO_PAQUETE_TIPO[sv.id_servicio];
+                                      const clickable = Boolean(navigate && canConsultarPaquetes && tipoPaquete !== undefined);
+                                      return (
+                                        <span
+                                          className={`cd-pill${clickable ? " cd-pill-link" : ""}`}
+                                          style={{
+                                            "--chip-bg": pillColor.bg,
+                                            "--chip-text": pillColor.text,
+                                            "--chip-bg-dark": pillColor.darkBg,
+                                            "--chip-text-dark": pillColor.darkText,
+                                            filter: pillColor.filter,
+                                          }}
+                                          onClick={clickable
+                                            ? () => navigate(`/app/paquetes/${sv.id_paquete}?tipo=${tipoPaquete}`)
+                                            : undefined}
+                                        >
+                                          {pname}
+                                        </span>
+                                      );
+                                    })()
+                                  : <span className="cd-field-value cd-field-value-muted">Sin paquete</span>}
+                              </div>
+                            </div>
+                            {sv.comentarios && (
+                              <div>
+                                <span className="cd-field-label">Comentarios</span>
+                                <p className="cd-servicio-comentarios">{sv.comentarios}</p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -1499,13 +1935,10 @@ export default function CotizacionDetallePage() {
                                 `/cotizaciones/${idCotizacion}/equipo/${ee.id_cotizacion_equipo}`,
                                 { headers: authHeaderCotizaciones() }
                               );
-                              notification.success({ message: "Equipo quitado del evento" });
+                              toast("Equipo quitado del evento");
                               fetchEquipoEvento();
                             } catch (err) {
-                              notification.error({
-                                message: "Error al quitar equipo",
-                                description: err?.response?.data?.detail || err.message,
-                              });
+                              toast(err?.response?.data?.detail || err.message || "Error al quitar equipo");
                             }
                           },
                         });
@@ -1589,13 +2022,10 @@ export default function CotizacionDetallePage() {
                                 `/cotizaciones/${idCotizacion}/trabajadores/${ct.id_contrato_trabajador}`,
                                 { headers: authHeaderCotizaciones() }
                               );
-                              notification.success({ message: "Trabajador quitado del evento" });
+                              toast("Trabajador quitado del evento");
                               fetchTrabajadoresEvento();
                             } catch (err) {
-                              notification.error({
-                                message: "Error al quitar trabajador",
-                                description: err?.response?.data?.detail || err.message,
-                              });
+                              toast(err?.response?.data?.detail || err.message || "Error al quitar trabajador");
                             }
                           },
                         });
@@ -1625,7 +2055,7 @@ export default function CotizacionDetallePage() {
         title="Registrar abono"
         confirmLoading={savingPago}
         centered
-        okButtonProps={{ style: { background: "#01369e", borderColor: "#01369e" } }}
+        okButtonProps={{ style: { background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" } }}
       >
         <Form form={pagoForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
@@ -1648,13 +2078,116 @@ export default function CotizacionDetallePage() {
         </Form>
       </Modal>
 
+      {/* Modal: Agregar servicio */}
+      <Modal
+        open={servicioModalOpen}
+        onCancel={() => {
+          setServicioModalOpen(false);
+          servicioForm.resetFields();
+          setNuevoServicioTipo(null);
+        }}
+        onOk={handleAddServicio}
+        okText="Agregar servicio"
+        cancelText="Cancelar"
+        title={
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--eh-ink, #0f172a)" }}>
+            Agregar servicio a la cotización
+          </div>
+        }
+        confirmLoading={savingServicio}
+        centered
+        width={640}
+        destroyOnClose
+        okButtonProps={{ style: { background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" } }}
+        styles={{ body: { padding: "20px 24px 4px" } }}
+      >
+        <p style={{ fontSize: 13, color: "var(--eh-ink-muted, #64748b)", marginTop: 0, marginBottom: 16 }}>
+          Selecciona el tipo de servicio y completa fecha, lugar y horario.
+        </p>
+
+        <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+          {[1, 2, 3, 4].map((id) => {
+            const active = nuevoServicioTipo === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setNuevoServicioTipo(id)}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "18px 8px",
+                  borderRadius: 12,
+                  border: active ? "1px solid var(--eh-primary-btn)" : "1px solid var(--eh-surface-border, #e2e8f0)",
+                  background: active ? "var(--eh-primary-btn)" : "var(--eh-surface-2, #fff)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span className="cd-servicio-tipo-icon" style={{ color: active ? "#fff" : "var(--eh-ink-muted, #64748b)" }}>
+                  {SERVICE_ICONS[id]}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: active ? "#fff" : "var(--eh-ink-2, #374151)" }}>
+                  {SERVICIO_LABEL[id]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <Form form={servicioForm} layout="vertical">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            <Form.Item name="fecha" label="Fecha" rules={[{ required: true, message: "Requerido" }]}>
+              <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="Selecciona fecha" />
+            </Form.Item>
+            <Form.Item name="id_ciudad" label="Ciudad" rules={[{ required: true, message: "Requerido" }]}>
+              <Select
+                placeholder="Selecciona la ciudad"
+                options={Object.entries(CIUDAD_MAP).map(([value, label]) => ({ value: Number(value), label }))}
+                allowClear
+              />
+            </Form.Item>
+          </div>
+          <Form.Item name="lugar" label="Lugar" rules={[{ required: true, message: "Requerido" }]}>
+            <Input placeholder="Nombre del salón, jardín o lugar" />
+          </Form.Item>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            <Form.Item name="hora_inicio" label="Hora inicio" rules={[{ required: true, message: "Requerido" }]}>
+              <TimePicker style={{ width: "100%" }} format="HH:mm" placeholder="--:-- --" minuteStep={15} needConfirm={false} />
+            </Form.Item>
+            <Form.Item name="hora_final" label="Hora fin" rules={[{ required: true, message: "Requerido" }]}>
+              <TimePicker style={{ width: "100%" }} format="HH:mm" placeholder="--:-- --" minuteStep={15} needConfirm={false} />
+            </Form.Item>
+          </div>
+          <Form.Item name="id_paquete" label="Paquete (opcional)">
+            <Select
+              placeholder="Sin paquete"
+              allowClear
+              options={
+                nuevoServicioTipo === 1 ? paquetesSonido.map((p) => ({ value: p.id_paquete_sonido, label: p.nombre })) :
+                nuevoServicioTipo === 2 ? paquetesFoto.map((p) => ({ value: p.id_paquete_fotografia, label: p.nombre })) :
+                nuevoServicioTipo === 3 ? paquetesDecoracion.map((p) => ({ value: p.id_paquete_decoracion, label: p.nombre })) :
+                nuevoServicioTipo === 4 ? paquetesBarra.map((p) => ({ value: p.id_paquete_barra, label: p.nombre })) :
+                []
+              }
+            />
+          </Form.Item>
+          <Form.Item name="comentarios" label="Comentarios (opcional)">
+            <Input.TextArea placeholder="Detalles específicos..." rows={2} maxLength={1000} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* Modal: Agregar equipo */}
       <Modal
         open={equipoModalOpen}
         onCancel={() => setEquipoModalOpen(false)}
         footer={null}
         title={
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--eh-ink, #0f172a)" }}>
             Agregar equipo a la cotización
           </div>
         }
@@ -1700,7 +2233,7 @@ export default function CotizacionDetallePage() {
               <div style={{
                 maxHeight: 460,
                 overflowY: "auto",
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--eh-surface-border, #e2e8f0)",
                 borderRadius: 12,
                 background: "#fafbfc",
               }}>
@@ -1710,10 +2243,10 @@ export default function CotizacionDetallePage() {
                     <div style={{
                       position: "sticky", top: 0, zIndex: 1,
                       fontSize: 10, fontWeight: 800, textTransform: "uppercase",
-                      letterSpacing: "0.09em", color: "#94a3b8",
+                      letterSpacing: "0.09em", color: "var(--eh-ink-faint, #94a3b8)",
                       padding: "10px 16px 8px",
-                      background: "#f1f5f9",
-                      borderBottom: "1px solid #e2e8f0",
+                      background: "var(--eh-surface-2, #f1f5f9)",
+                      borderBottom: "1px solid var(--eh-surface-border, #e2e8f0)",
                     }}>
                       {cat}
                     </div>
@@ -1733,7 +2266,7 @@ export default function CotizacionDetallePage() {
                             alignItems: "center",
                             gap: 14,
                             padding: "12px 16px",
-                            borderBottom: idx < items.length - 1 ? "1px solid #f1f5f9" : "none",
+                            borderBottom: idx < items.length - 1 ? "1px solid var(--eh-surface-border, #f1f5f9)" : "none",
                             opacity: sinStock ? 0.5 : 1,
                             background: "transparent",
                           }}
@@ -1741,7 +2274,7 @@ export default function CotizacionDetallePage() {
                           {/* Thumbnail */}
                           <div style={{
                             width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                            overflow: "hidden", background: "#e2e8f0",
+                            overflow: "hidden", background: "var(--eh-surface-2, #e2e8f0)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                           }}>
                             {eq.path ? (
@@ -1751,20 +2284,20 @@ export default function CotizacionDetallePage() {
                                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                               />
                             ) : (
-                              <AppstoreOutlined style={{ fontSize: 18, color: "#94a3b8" }} />
+                              <AppstoreOutlined style={{ fontSize: 18, color: "var(--eh-ink-faint, #94a3b8)" }} />
                             )}
                           </div>
 
                           {/* Info */}
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", textTransform: "capitalize" }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--eh-ink, #0f172a)", textTransform: "capitalize" }}>
                               {eq.nombre}
                             </div>
                             <div style={{ marginTop: 3 }}>
                               {sinStock ? (
                                 <span style={{
                                   display: "inline-block", fontSize: 11, fontWeight: 700,
-                                  color: "#b91c1c", background: "#fee2e2",
+                                  color: "var(--eh-badge-red-text, #b91c1c)", background: "var(--eh-badge-red-bg, #fee2e2)",
                                   borderRadius: 6, padding: "1px 8px",
                                 }}>
                                   Sin stock
@@ -1772,7 +2305,7 @@ export default function CotizacionDetallePage() {
                               ) : (
                                 <span style={{
                                   display: "inline-block", fontSize: 11, fontWeight: 700,
-                                  color: "#15803d", background: "#dcfce7",
+                                  color: "var(--eh-badge-green-text, #15803d)", background: "var(--eh-badge-green-bg, #dcfce7)",
                                   borderRadius: 6, padding: "1px 8px",
                                 }}>
                                   {disponible} disponible{disponible !== 1 ? "s" : ""}
@@ -1819,14 +2352,11 @@ export default function CotizacionDetallePage() {
                                   { id_equipo: eq.id_equipo, cantidad: cantVal },
                                   { headers: authHeaderCotizaciones() }
                                 );
-                                notification.success({ message: `${eq.nombre} agregado al evento` });
+                                toast(`${eq.nombre} agregado al evento`);
                                 fetchEquipoEvento();
                                 fetchCatalogo();
                               } catch (err) {
-                                notification.error({
-                                  message: "No se pudo agregar",
-                                  description: err?.response?.data?.detail || err.message,
-                                });
+                                toast(err?.response?.data?.detail || err.message || "No se pudo agregar");
                               } finally {
                                 setSavingEquipoId(null);
                               }
@@ -1851,7 +2381,7 @@ export default function CotizacionDetallePage() {
         onCancel={() => setTrabajadoresModalOpen(false)}
         footer={null}
         title={
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--eh-ink, #0f172a)" }}>
             Agregar trabajador a la cotización
           </div>
         }
@@ -1864,7 +2394,7 @@ export default function CotizacionDetallePage() {
 
           {/* Search */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b", marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--eh-ink-muted, #64748b)", marginBottom: 8 }}>
               Selecciona un trabajador
             </div>
             <Input
@@ -1877,7 +2407,7 @@ export default function CotizacionDetallePage() {
             <div style={{
               maxHeight: 260,
               overflowY: "auto",
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--eh-surface-border, #e2e8f0)",
               borderRadius: 12,
               background: "#fafbfc",
             }}>
@@ -1891,7 +2421,7 @@ export default function CotizacionDetallePage() {
                 );
                 if (filtered.length === 0) {
                   return (
-                    <div style={{ padding: "28px 16px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                    <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--eh-ink-faint, #94a3b8)", fontSize: 13 }}>
                       Sin resultados
                     </div>
                   );
@@ -1936,15 +2466,15 @@ export default function CotizacionDetallePage() {
                       </div>
 
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", textTransform: "capitalize" }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--eh-ink, #0f172a)", textTransform: "capitalize" }}>
                           {t.nombre} {t.apellido}
                         </div>
                         {yaAsignado ? (
-                          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginTop: 1 }}>
+                          <div style={{ fontSize: 11, color: "var(--eh-ink-faint, #94a3b8)", fontWeight: 600, marginTop: 1 }}>
                             Ya asignado al evento
                           </div>
                         ) : t.nombre_puesto && (
-                          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                          <div style={{ fontSize: 12, color: "var(--eh-ink-muted, #64748b)", fontWeight: 500, marginTop: 1 }}>
                             {t.nombre_puesto}
                           </div>
                         )}
@@ -1964,7 +2494,7 @@ export default function CotizacionDetallePage() {
                 });
               })()}
               {catalogoTrabajadores.length === 0 && (
-                <div style={{ padding: "28px 16px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--eh-ink-faint, #94a3b8)", fontSize: 13 }}>
                   Sin trabajadores registrados
                 </div>
               )}
@@ -1973,7 +2503,7 @@ export default function CotizacionDetallePage() {
 
           {/* Puesto */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b", marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--eh-ink-muted, #64748b)", marginBottom: 8 }}>
               Puesto en este evento
             </div>
             <select
@@ -1981,8 +2511,8 @@ export default function CotizacionDetallePage() {
               onChange={(e) => setTrabSelectedPuesto(e.target.value ? Number(e.target.value) : null)}
               style={{
                 width: "100%", padding: "10px 14px", borderRadius: 10,
-                border: "1px solid #e2e8f0", fontSize: 14, background: "#f8fafc",
-                outline: "none", color: "#0f172a", appearance: "auto",
+                border: "1px solid var(--eh-surface-border, #e2e8f0)", fontSize: 14, background: "var(--eh-surface-2, #f8fafc)",
+                outline: "none", color: "var(--eh-ink, #0f172a)", appearance: "auto",
               }}
             >
               <option value="">Sin puesto específico</option>
@@ -2008,7 +2538,7 @@ export default function CotizacionDetallePage() {
             }}
             onClick={async () => {
               if (!trabSelectedId) {
-                notification.warning({ message: "Selecciona un trabajador primero" });
+                toast("Selecciona un trabajador primero");
                 return;
               }
               setSavingTrab(true);
@@ -2019,14 +2549,11 @@ export default function CotizacionDetallePage() {
                   { headers: authHeaderCotizaciones() }
                 );
                 const selected = catalogoTrabajadores.find((t) => t.id_trabajador === trabSelectedId);
-                notification.success({ message: `${selected?.nombre || "Trabajador"} agregado al evento` });
+                toast(`${selected?.nombre || "Trabajador"} agregado al evento`);
                 fetchTrabajadoresEvento();
                 setTrabajadoresModalOpen(false);
               } catch (err) {
-                notification.error({
-                  message: "No se pudo agregar",
-                  description: err?.response?.data?.detail || err.message,
-                });
+                toast(err?.response?.data?.detail || err.message || "No se pudo agregar");
               } finally {
                 setSavingTrab(false);
               }
@@ -2087,7 +2614,7 @@ export default function CotizacionDetallePage() {
                 Vista previa no disponible para este tipo de archivo.
               </p>
               <a href={url} download={viewerDoc.filename}>
-                <Button type="primary" style={{ background: "#01369e", borderColor: "#01369e" }}>
+                <Button type="primary" style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>
                   Descargar archivo
                 </Button>
               </a>
@@ -2095,6 +2622,14 @@ export default function CotizacionDetallePage() {
           );
         })()}
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/cotizaciones")}
+      />
     </div>
   );
 }

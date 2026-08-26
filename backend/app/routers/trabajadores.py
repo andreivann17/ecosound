@@ -21,17 +21,7 @@ router = APIRouter(prefix="/trabajadores", tags=["trabajadores"])
 
 
 def _log_audit_trabajador(action: str, message: str, id_trabajador: int, user_id: int, changes=None):
-    try:
-        audit_model.create_audit_log(data={
-            "action": action,
-            "message": message,
-            "id_user": user_id,
-            "id_modulo": TRABAJADOR_MODULO,
-            "id_key": str(id_trabajador),
-            "changes": changes,
-        })
-    except Exception:
-        pass
+    trab_model.log_actividad_trabajador(action, message, id_trabajador, user_id, changes=changes)
 
 
 async def _notify_trabajador(tipo: int, descripcion: str, id_trabajador: int, user_id: int, id_cliente: Optional[int] = None):
@@ -54,6 +44,7 @@ async def _notify_trabajador(tipo: int, descripcion: str, id_trabajador: int, us
         "source": "trabajadores",
         "id_trabajador": id_trabajador,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 
@@ -195,16 +186,30 @@ class ContratoTrabajadorCreate(BaseModel):
 @router.get("/puestos")
 def get_puestos(
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return trab_model.list_puestos()
+    return trab_model.list_puestos(id_cliente=tenant_id)
 
 
 @router.post("/puestos", status_code=201)
 def crear_puesto(
     payload: PuestoCreate,
     _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return trab_model.create_puesto(payload.nombre)
+    return trab_model.create_puesto(payload.nombre, id_cliente=tenant_id)
+
+
+@router.delete("/puestos/{id_puesto}", status_code=200)
+def eliminar_puesto(
+    id_puesto: int,
+    _cu: Dict[str, Any] = Depends(get_current_user),
+    tenant_id: Optional[int] = Depends(get_tenant_filter),
+):
+    affected = trab_model.delete_puesto(id_puesto, id_cliente=tenant_id)
+    if not affected:
+        raise HTTPException(status_code=404, detail="Puesto no encontrado")
+    return {"deleted": 1, "id_puesto": id_puesto}
 
 
 # ================== TRABAJADORES ==================
@@ -212,9 +217,10 @@ def crear_puesto(
 @router.get("")
 def get_trabajadores(
     search: Optional[str] = Query(None),
+    id_puesto: Optional[int] = Query(None),
     tenant_id: Optional[int] = Depends(get_tenant_filter),
 ):
-    return trab_model.list_trabajadores(search=search, id_cliente=tenant_id)
+    return trab_model.list_trabajadores(search=search, id_cliente=tenant_id, id_puesto=id_puesto)
 
 
 @router.post("", status_code=201)
@@ -306,6 +312,18 @@ def get_analisis_trabajador(
     if not row:
         raise HTTPException(status_code=404, detail="Trabajador no encontrado")
     return trab_model.get_trabajador_analisis(id_trabajador, date_from, date_to)
+
+
+@router.get("/{id_trabajador}/proximos-eventos")
+def get_proximos_eventos_trabajador(
+    id_trabajador: int,
+    limit: int = Query(default=5, ge=1, le=20),
+    _cu: Dict[str, Any] = Depends(get_current_user),
+):
+    row = trab_model.get_trabajador_by_id(id_trabajador)
+    if not row:
+        raise HTTPException(status_code=404, detail="Trabajador no encontrado")
+    return trab_model.get_proximos_eventos_trabajador(id_trabajador, limit=limit)
 
 
 @router.delete("/{id_trabajador}")

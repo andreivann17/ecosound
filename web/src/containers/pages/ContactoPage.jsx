@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
-import { notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../api";
+import Toast from "../../components/toasts/toast";
 import "../../assets/css/LandingPage.css";
 import "../../assets/css/ContactoPage.css";
 
@@ -114,17 +114,16 @@ export default function ContactoPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const navigate = useNavigate();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const validate = () => {
     const { nombre, email, telefono } = form;
     if (!nombre.trim() || !email.trim() || !telefono.trim()) {
-      notification.warning({
-        message: "Faltan campos por completar",
-        description: "Por favor completa los campos requeridos.",
-        placement: "bottomRight",
-      });
+      toast("Faltan campos por completar. Por favor completa los campos requeridos.");
       return false;
     }
     return true;
@@ -173,18 +172,10 @@ export default function ContactoPage() {
     try {
       await saveContacto("correo");
       setSent(true);
-      notification.success({
-        message: "¡Mensaje enviado!",
-        description: "Recibimos tu información. Nuestro equipo se pondrá en contacto contigo muy pronto.",
-        placement: "bottomRight",
-      });
+      toast("¡Mensaje enviado! Recibimos tu información. Nuestro equipo se pondrá en contacto contigo muy pronto.");
       setTimeout(() => { setForm(EMPTY); setSent(false); }, 3000);
     } catch (_) {
-      notification.error({
-        message: "No se pudo enviar la solicitud",
-        description: "Inténtalo de nuevo en unos momentos.",
-        placement: "bottomRight",
-      });
+      toast("No se pudo enviar la solicitud. Inténtalo de nuevo en unos momentos.");
     } finally {
       setSending(false);
     }
@@ -358,6 +349,7 @@ export default function ContactoPage() {
         </div>
       </section>
 
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </div>
   );
 }

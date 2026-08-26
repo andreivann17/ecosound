@@ -7,7 +7,7 @@ import {
   authHeaderSesiones,
 } from "../../redux/actions/sesiones_fotos/sesiones_fotos";
 
-import { Button, Modal, Spin, Empty, notification } from "antd";
+import { Button, Modal, Spin, Empty } from "antd";
 import {
   ArrowLeftOutlined,
   EditOutlined,
@@ -19,6 +19,9 @@ import {
   FileTextOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
+
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 import "./EventoDetallePage.css";
 
@@ -66,6 +69,10 @@ export default function SesionDetallePage() {
   const [activeTab, setActiveTab] = useState("datos");
   const [actividad, setActividad] = useState([]);
   const [loadingActividad, setLoadingActividad] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   useEffect(() => {
     let mounted = true;
@@ -73,7 +80,7 @@ export default function SesionDetallePage() {
     apiSesionesInstance
       .get(`/sesiones-fotos/${idSesion}`, { headers: authHeaderSesiones() })
       .then(({ data }) => { if (mounted) setSesion(data); })
-      .catch(() => notification.error({ message: "No se pudo cargar la sesión" }))
+      .catch(() => toast("No se pudo cargar la sesión"))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idSesion]);
@@ -111,13 +118,13 @@ export default function SesionDetallePage() {
           await apiSesionesInstance.delete(`/sesiones-fotos/${idSesion}`, {
             headers: authHeaderSesiones(),
           });
-          notification.success({ message: "Sesión eliminada" });
-          navigate("/app/sesiones");
-        } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
+          setSuccess({
+            show: true,
+            title: "¡Sesión eliminada!",
+            subtitle: `La sesión de "${sesion?.nombre_cliente || ""}" se eliminó correctamente.`,
           });
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         } finally {
           setDeleting(false);
         }
@@ -147,14 +154,7 @@ export default function SesionDetallePage() {
     <div className="cd-main">
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/sesiones")}
-        >
-          Volver a Sesiones
-        </Button>
+
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -190,6 +190,7 @@ export default function SesionDetallePage() {
                 icon={<DeleteOutlined />}
                 className="cd-btn-delete"
                 loading={deleting}
+                disabled={success.show}
                 onClick={handleDelete}
               >
                 Eliminar
@@ -329,6 +330,13 @@ export default function SesionDetallePage() {
         )}
 
       </div>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/sesiones")}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ Entry point for the FastAPI application.
 from __future__ import annotations
 from pathlib import Path
 import os
+import threading
 
 # Cargar variables de entorno desde .env (solo afecta dev local; en Docker
 # las vars vienen de env_file). Tiene que ir ANTES de importar routers que
@@ -37,6 +38,7 @@ from .routers.notificaciones import router as notificaciones_router
 from .routers.ws import router as ws_router
 from .routers.eventos import router as eventos_router
 from .routers.cotizaciones import router as cotizaciones_router
+from .routers.informes import router as informes_router
 from .routers.sesiones_fotos import router as sesiones_fotos_router
 from .routers.estadisticas import router as estadisticas_router
 from .routers.inventario import router as inventario_router
@@ -48,6 +50,9 @@ from .routers.avisos import router as avisos_router
 from .routers.config_correo import router as config_correo_router
 from .routers.contacto import router as contacto_router
 from .routers.contratar import router as contratar_router
+from .routers.configuracion_diseno import router as configuracion_diseno_router
+from .routers.evaluation import router as evaluation_router
+from .services import google_calendar
 # Routers (solo los tuyos)
 from .routers import (
     auth,
@@ -111,8 +116,17 @@ def on_startup():
     _migrate_admin_db()
     _migrate_ecosound_db()
     _migrate_cotizaciones_db()
+    _migrate_spie_db()
     from .utils.scheduler import start_reminder_scheduler
     start_reminder_scheduler()
+
+    def _sync_google_calendar_users():
+        try:
+            google_calendar.sync_all_gmail_users()
+        except Exception:
+            pass
+
+    threading.Thread(target=_sync_google_calendar_users, daemon=True).start()
 
 
 def _seed_notificaciones_schema():
@@ -143,6 +157,7 @@ def _seed_notificaciones_schema():
                 (8, "Clientes Events"),
                 (9, "Gastos"),
                 (10, "Cotizaciones"),
+                (11, "Informes"),
             ]
             for id_m, nombre in modulos:
                 cur.execute(
@@ -220,6 +235,16 @@ def _migrate_ecosound_db():
                     cur.execute(
                         f"ALTER TABLE configuracion_eventos ADD COLUMN {_col} TINYINT(1) NOT NULL DEFAULT 0"
                     )
+
+            # google_event_id en agenda — enlaza cada entrada con su evento en Google Calendar
+            cur.execute("""
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'agenda'
+                  AND COLUMN_NAME = 'google_event_id'
+            """)
+            if cur.fetchone()[0] == 0:
+                cur.execute("ALTER TABLE agenda ADD COLUMN google_event_id VARCHAR(255) DEFAULT NULL")
 
             # Table to track which reminder emails have already been sent
             cur.execute("""
@@ -327,6 +352,18 @@ def _migrate_ecosound_db():
                 """, (col_name,))
                 if cur.fetchone()[0] == 0:
                     cur.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+
+            # Tabla de configuración de diseño (layout horizontal/vertical) por usuario
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS configuracion_diseno (
+                    id_configuracion_diseno INT AUTO_INCREMENT PRIMARY KEY,
+                    is_vertical TINYINT(1) NOT NULL DEFAULT 0,
+                    id_user INT NOT NULL,
+                    active TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user (id_user)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
 
             # Tabla de privilegios por usuario/módulo
             cur.execute("""
@@ -537,6 +574,30 @@ def _migrate_cotizaciones_db():
         conn.close()
 
 
+def _migrate_spie_db():
+    """Crea la tabla retinal_images en la base spie (módulo Evaluation) si no existe."""
+    from .db import get_spie_connection
+    conn = get_spie_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS retinal_images (
+                    id_retinal_image INT AUTO_INCREMENT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    hidden_name  TEXT NOT NULL,
+                    is_real      TINYINT(1) NOT NULL,
+                    stage        VARCHAR(50) NOT NULL,
+                    active       TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime     DATETIME NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
 def _migrate_admin_db():
     """One-time migrations on the administrador database."""
     from .db import get_admin_connection
@@ -653,6 +714,7 @@ app.include_router(ws_router)
 app.include_router(notificaciones_router)
 app.include_router(eventos_router)
 app.include_router(cotizaciones_router)
+app.include_router(informes_router)
 app.include_router(sesiones_fotos_router)
 app.include_router(estadisticas_router)
 app.include_router(inventario_router)
@@ -665,3 +727,5 @@ app.include_router(config_correo_router)
 app.include_router(contacto_router)
 app.include_router(contratar_router)
 app.include_router(general_router)
+app.include_router(configuracion_diseno_router)
+app.include_router(evaluation_router)

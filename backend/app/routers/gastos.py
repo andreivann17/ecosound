@@ -54,6 +54,7 @@ async def _notify_gasto(tipo: int, descripcion: str, id_gasto: int, user_id: int
         "source": "gastos",
         "id_gasto": id_gasto,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 

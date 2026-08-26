@@ -4,13 +4,14 @@ import {
   authHeaderClientesEvents,
 } from "../../../../redux/actions/clientes_events/clientes_events";
 import {
-  Button, Upload, Spin, notification, Tooltip, Progress, Tabs, Empty, Modal,
+  Button, Upload, Spin, Tooltip, Progress, Tabs, Empty, Modal,
 } from "antd";
 import {
   ArrowLeftOutlined, UploadOutlined, DeleteOutlined, DownloadOutlined,
   FileTextOutlined, FileImageOutlined, FolderOutlined, FileOutlined,
   CloudOutlined, ReloadOutlined,
 } from "@ant-design/icons";
+import Toast from "../../../../components/toasts/toast";
 import "../../TrabajadoresPage.css";
 import "./events-detail.css";
 
@@ -60,6 +61,9 @@ function FileManager({ cliente, onBack }) {
   const [loadingTab, setLoadingTab] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingFile, setDeletingFile] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const fetchFiles = useCallback(async (tipo) => {
     setLoadingTab(true);
@@ -91,11 +95,11 @@ function FileManager({ cliente, onBack }) {
           params: { id_app: ID_APP, tipo: activeTab },
         }
       );
-      notification.success({ message: "Archivo subido correctamente" });
+      toast("Archivo subido correctamente");
       onSuccess(null, file);
       fetchFiles(activeTab);
     } catch (err) {
-      notification.error({ message: "Error al subir archivo", description: err?.response?.data?.detail || err.message });
+      toast(err?.response?.data?.detail || err.message || "Error al subir archivo");
       onError(err);
     } finally {
       setUploading(false);
@@ -109,10 +113,10 @@ function FileManager({ cliente, onBack }) {
         `/clientes/${cliente.id_cliente}/storage/archivos/${encodeURIComponent(nombre)}`,
         { headers: authHeaderClientesEvents(), params: { id_app: ID_APP, tipo: activeTab } }
       );
-      notification.success({ message: "Archivo eliminado" });
+      toast("Archivo eliminado");
       fetchFiles(activeTab);
     } catch {
-      notification.error({ message: "Error al eliminar archivo" });
+      toast("Error al eliminar archivo");
     } finally {
       setDeletingFile(null);
     }
@@ -123,12 +127,6 @@ function FileManager({ cliente, onBack }) {
 
   return (
     <div>
-      <Button
-        type="link" icon={<ArrowLeftOutlined />} onClick={onBack}
-        style={{ padding: 0, fontSize: 12, color: "#05060a", marginBottom: 16 }}
-      >
-        Volver al almacenamiento
-      </Button>
 
       {/* Client header */}
       <div className="cd-header-card" style={{ marginBottom: 20 }}>
@@ -263,6 +261,8 @@ function FileManager({ cliente, onBack }) {
           </div>
         )}
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </div>
   );
 }
@@ -273,6 +273,9 @@ export default function AlmacenamientoEventPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCliente, setSelectedCliente] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const fetchResumen = useCallback(async () => {
     setLoading(true);
@@ -283,7 +286,7 @@ export default function AlmacenamientoEventPage() {
       );
       setData(res.data);
     } catch {
-      notification.error({ message: "Error al cargar almacenamiento" });
+      toast("Error al cargar almacenamiento");
     } finally {
       setLoading(false);
     }
@@ -436,6 +439,8 @@ export default function AlmacenamientoEventPage() {
           })}
         </div>
       )}
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </div>
   );
 }

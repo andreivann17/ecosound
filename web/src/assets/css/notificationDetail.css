@@ -22,7 +22,7 @@ body,
   margin: 0;
   padding: 0;
   min-height: 100%;
-  font-family: "Inter", sans-serif;
+  font-family: "Noto Sans", sans-serif;
   background: var(--legal-bg);
   color: var(--text-main);
 }

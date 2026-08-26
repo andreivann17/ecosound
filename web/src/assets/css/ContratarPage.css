@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   color: #0d1224;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Noto Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ── MAIN ─────────────────────────────────────── */
@@ -285,6 +285,34 @@
   text-align: left;
 }
 
+/* ── Offline banner ───────────────────────────── */
+.ctp-offline {
+  width: 100%;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ctp-offline-retry {
+  flex-shrink: 0;
+  background: #012770;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.ctp-offline-retry:hover { background: #01369e; }
+
 /* ── Plan card (paso 2) ───────────────────────── */
 .ctp-plans {
   width: 100%;
@@ -404,7 +432,7 @@
   font-weight: 800;
   letter-spacing: 0.5px;
   color: #374151;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: "Noto Sans", Arial, sans-serif;
 }
 
 .ctp-stripe-wrap {

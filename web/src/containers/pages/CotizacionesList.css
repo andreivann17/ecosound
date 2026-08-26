@@ -16,7 +16,7 @@
 
 .cot-list-page .cot-estado-pendiente {
   background: #e0e9ff;
-  color: #01369e;
+  color: var(--eh-primary-btn);
 }
 
 .cot-list-page .cot-estado-aceptada {
@@ -29,18 +29,19 @@
   color: #ba1a1a;
 }
 
-/* ── Iconos de las tarjetas de métricas (estado) ──────────────── */
-.cot-list-page .cot-stat-pendientes .eventos-stat-icon {
-  background: #e0e9ff;
-  color: #01369e;
-}
-.cot-list-page .cot-stat-aceptadas .eventos-stat-icon {
-  background: #d1fae5;
-  color: #047857;
-}
-.cot-list-page .cot-stat-rechazadas .eventos-stat-icon {
-  background: #ffe1de;
-  color: #dc2626;
+/* Las 3 cards de resumen (Pendientes/Aceptadas/Rechazadas) reutilizan
+   directamente las clases eventos-stat-activos/inactivos/cancelados de
+   EventosPage.css — mismo color, mismo relleno, cero estilos propios aquí. */
+
+/* Relleno reforzado de los controles del panel de filtros (Estado, Tipo de
+   evento) en modo oscuro — asegura que el fondo oscuro gane sin importar
+   el orden de carga de estilos. */
+:root[data-eh-content-theme="dark"] .cot-list-page .eventos-filters-panel .ant-select-selector,
+:root[data-eh-content-theme="dark"] .cot-list-page .eventos-filters-panel .ant-input,
+:root[data-eh-content-theme="dark"] .cot-list-page .eventos-filters-panel .ant-input-affix-wrapper,
+:root[data-eh-content-theme="dark"] .cot-list-page .eventos-filters-panel .ant-picker {
+  background: var(--eh-surface-2, #1e293b) !important;
+  color: var(--eh-ink, #f1f5f9) !important;
 }
 
 /* ── Cuerpo de la card: folio ─────────────────────────────────── */
@@ -54,7 +55,7 @@
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
 }
 
 /* ── Lista de servicios contratados ───────────────────────────── */
@@ -64,7 +65,7 @@
   gap: 8px;
   margin-top: 10px;
   padding-top: 12px;
-  border-top: 1px solid #f0edf2;
+  border-top: 1px solid var(--eh-surface-border, #f0edf2);
 }
 
 .cot-list-page .cot-serv-list {
@@ -82,11 +83,11 @@
   gap: 8px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #1b1b1d;
+  color: var(--eh-ink, #1b1b1d);
 }
 
 .cot-list-page .cot-serv-ic {
-  color: #01369e;
+  color: var(--eh-primary-btn);
   font-size: 15px;
   flex-shrink: 0;
 }
@@ -94,20 +95,28 @@
 .cot-list-page .cot-serv-empty {
   font-size: 12.5px;
   font-style: italic;
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
 }
 
 /* ── Strip neutro con el importe total ────────────────────────── */
 .cot-list-page .evento-bottom-strip.cot-strip-neutral {
-  background: #f3f5f9;
-  color: #0d1b4b;
-  border-top: 1px solid #e8ebf1;
+  background: var(--eh-surface-2, #f3f5f9);
+  color: var(--eh-ink, #0d1b4b);
+  border-top: 1px solid var(--eh-surface-border, #e8ebf1);
+}
+
+/* En modo oscuro, --eh-surface-2 queda casi igual de oscuro que el botón
+   "Ver detalles" de abajo y ambos se confunden — le damos un tono propio,
+   más claro, para que el importe se distinga como franja independiente. */
+:root[data-eh-content-theme="dark"] .cot-list-page .evento-bottom-strip.cot-strip-neutral {
+  background: #2d3a52;
+  border-top: 1px solid #425068;
 }
 
 .cot-list-page .cot-strip-neutral .evento-strip-label {
-  color: #5b6472;
+  color: var(--eh-ink-muted, #5b6472);
 }
 
 .cot-list-page .cot-strip-neutral .evento-strip-amount {
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
 }

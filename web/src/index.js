@@ -33,6 +33,7 @@ import UsuariosPage from "./containers/pages/UsuariosPage.jsx"
 import CrearUsuarioPage from "./containers/pages/crearUsuarioPage.jsx"
 import UsuarioDetallePage from "./containers/pages/UsuarioDetallePage.jsx"
 import EstadisticasPage from "./containers/pages/EstadisticasPage.jsx"
+import InformesPage from "./containers/pages/InformesPage.jsx"
 import TrabajadoresPage from "./containers/pages/TrabajadoresPage.jsx"
 import CrearTrabajadorPage from "./containers/pages/crearTrabajadorPage.jsx"
 import TrabajadorDetallePage from "./containers/pages/TrabajadorDetallePage.jsx"
@@ -56,6 +57,10 @@ import NosotrosPage from "./containers/pages/NosotrosPage.jsx"
 import ContratarPage from "./containers/pages/ContratarPage.jsx"
 import PrivacidadPage from "./containers/pages/PrivacidadPage.jsx"
 import TerminosPage from "./containers/pages/TerminosPage.jsx"
+import EvaluationLayout from "./components/evaluation/EvaluationLayout.jsx"
+import EvaluationHomePage from "./containers/pages/evaluation/EvaluationHomePage.jsx"
+import EvaluationLabelPage from "./containers/pages/evaluation/EvaluationLabelPage.jsx"
+import EvaluationEvaluationPage from "./containers/pages/evaluation/EvaluationEvaluationPage.jsx"
 import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
 import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
 import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
@@ -87,9 +92,13 @@ import { isTokenExpired, tokenExpiresInMs } from "./utils/tokenUtils";
 import { sessionManager } from "./redux/sessionManager";
 import ModalReautenticar from "./components/modals/ModalReautenticar";
 import { Provider, useDispatch } from "react-redux";
+import { ConfigProvider } from "antd";
 import ElectronView from "./electron_view";
 import { PermisosProvider } from "./context/PermisosContext";
+import { TemaProvider, useTema } from "./context/TemaContext";
 import RequireModulo from "./components/guards/RequireModulo";
+
+const NOTO_SANS_FONT_STACK = '"Noto Sans", sans-serif';
 
 const routes = [
   {
@@ -160,6 +169,14 @@ const routes = [
     path: "/login",
     value: "login",
     name: "Login",
+    element: <Login />,
+    nodeRef: createRef(),
+    className: "Login",
+  },
+  {
+    path: "/:clave/login",
+    value: "login-clave",
+    name: "LoginClave",
     element: <Login />,
     nodeRef: createRef(),
     className: "Login",
@@ -239,6 +256,15 @@ const routes = [
     nodeRef: createRef(),
     className: "Estadisticas",
     modulo: "estadisticas",
+  },
+  {
+    path: "/app/informes",
+    value: "informes",
+    name: "Informes",
+    element: <InformesPage />,
+    nodeRef: createRef(),
+    className: "Informes",
+    modulo: "informes",
   },
   {
     path: "/app/eventos/crear",
@@ -562,6 +588,30 @@ const routes = [
     modulo: "gastos",
   },
   {
+    path: "/evaluation",
+    value: "evaluation-home",
+    name: "EvaluationHome",
+    element: <EvaluationHomePage />,
+    nodeRef: createRef(),
+    className: "EvaluationHome",
+  },
+  {
+    path: "/evaluation/label",
+    value: "evaluation-label",
+    name: "EvaluationLabel",
+    element: <EvaluationLabelPage />,
+    nodeRef: createRef(),
+    className: "EvaluationLabel",
+  },
+  {
+    path: "/evaluation/evaluation",
+    value: "evaluation-evaluation",
+    name: "EvaluationEvaluation",
+    element: <EvaluationEvaluationPage />,
+    nodeRef: createRef(),
+    className: "EvaluationEvaluation",
+  },
+  {
     path: "/admin",
     value: "admin",
     name: "Admin",
@@ -735,7 +785,10 @@ function Example() {
   const [showReauthModal, setShowReauthModal] = useState(false);
 
   useEffect(() => {
-    const handleSessionExpired = () => setShowReauthModal(true);
+    const handleSessionExpired = () => {
+      if (window.location.pathname.replace(/\/+$/, "") === "/login") return;
+      setShowReauthModal(true);
+    };
     window.addEventListener("session-expired", handleSessionExpired);
     return () => window.removeEventListener("session-expired", handleSessionExpired);
   }, []);
@@ -806,16 +859,31 @@ function Example() {
 
   // Landing page — usa LandingLayout (navbar fijo + footer compartido + transición de ruta)
   // Excluimos /login, /signup y /admin-login porque deben usar el shell de la app
-  const isAuthPage = ["/login", "/signup", "/prelogin", "/admin-login"].includes(normalpath);
+  // La app siempre usa el layout vertical; /admin conserva su header horizontal propio.
+  const isVertical = !normalpath.startsWith("/admin");
+
+  useEffect(() => {
+    const el = document.querySelector('.content-electron');
+    if (el) el.scrollTop = 0;
+  }, [location.pathname]);
+
+  const isAuthPage =
+    ["/login", "/signup", "/prelogin", "/admin-login"].includes(normalpath) ||
+    /^\/[^/]+\/login$/.test(normalpath);
+  const isEvaluation = normalpath.startsWith("/evaluation");
   const isLanding =
     !normalpath.startsWith("/app") &&
     !normalpath.startsWith("/admin") &&
+    !normalpath.startsWith("/evaluation") &&
     !isAuthPage;
+  if (isEvaluation) {
+    return <EvaluationLayout />;
+  }
   if (isLanding) {
     return <LandingLayout />;
   }
 
-  const hideUserPopover = ["/login", "/prelogin", "/signup", "/admin-login"].includes(normalpath);
+  const hideUserPopover = isAuthPage;
 
   const handleRightClick = (event) => {
     if (event.target.classList.contains("cardcatalogo")) {
@@ -828,7 +896,7 @@ function Example() {
   };
 
   const canShowUser = token != null && !hideUserPopover;
-  const topOffset = canShowUser ? 55 : 45;
+  const topOffset = canShowUser ? (isVertical ? 44 : 55) : 45;
 
   return (
     <>
@@ -848,6 +916,7 @@ function Example() {
         style={{
           marginTop: topOffset,
           height: `calc(100vh - ${topOffset}px)`,
+          marginLeft: isVertical && canShowUser ? 56 : 0,
         }}
       >
    
@@ -857,7 +926,7 @@ function Example() {
               <CSSTransition
                 key={location.pathname}
                 nodeRef={nodeRef}
-                timeout={200}
+                timeout={280}
                 classNames="page"
               >
                 {(state) => (
@@ -880,12 +949,35 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+function ThemedApp({ children }) {
+  const { tema } = useTema() || {};
+  const colorPrimary =
+    tema?.plan_deluxe === 1 && tema?.primary_button_color ? tema.primary_button_color : undefined;
+
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: NOTO_SANS_FONT_STACK,
+          ...(colorPrimary ? { colorPrimary } : {}),
+        },
+      }}
+    >
+      {children}
+    </ConfigProvider>
+  );
+}
+
 const container = document.getElementById("root");
 const root = createRoot(container);
 root.render(
-  <Provider store={store}>
-    <PermisosProvider>
-      <RouterProvider router={router} />
-    </PermisosProvider>
-  </Provider>
+  <TemaProvider>
+    <ThemedApp>
+      <Provider store={store}>
+        <PermisosProvider>
+          <RouterProvider router={router} />
+        </PermisosProvider>
+      </Provider>
+    </ThemedApp>
+  </TemaProvider>
 );

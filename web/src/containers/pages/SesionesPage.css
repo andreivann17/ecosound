@@ -4,7 +4,7 @@
 
 .sf-main {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: var(--eh-app-bg, #f0f2f5);
   padding: 24px;
 }
 
@@ -36,14 +36,14 @@
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  color: #1a2a3a;
+  color: var(--eh-ink, #1a2a3a);
   line-height: 1.2;
 }
 
 .sf-subtitle {
   margin: 0;
   font-size: 13px;
-  color: #8c8c8c;
+  color: var(--eh-ink-muted, #8c8c8c);
 }
 
 .sf-btn-new {
@@ -57,7 +57,7 @@
 
 /* ---- Filters ---- */
 .sf-filters-panel {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
@@ -82,7 +82,7 @@
 .sf-field-label {
   font-size: 12px;
   font-weight: 600;
-  color: #5a6a7a;
+  color: var(--eh-ink-muted, #5a6a7a);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -123,7 +123,7 @@
   justify-content: center;
   align-items: center;
   min-height: 300px;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-radius: 12px;
 }
 
@@ -137,7 +137,7 @@
 
 /* ---- Card ---- */
 .sf-card {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -196,7 +196,7 @@
 
 .sf-row-text {
   font-size: 13px;
-  color: #3a4a5a;
+  color: var(--eh-ink-2, #3a4a5a);
   line-height: 1.4;
 }
 
@@ -205,7 +205,7 @@
 }
 
 .sf-comments-text {
-  color: #6a7a8a;
+  color: var(--eh-ink-muted, #6a7a8a);
   font-style: italic;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -215,11 +215,11 @@
 
 .sf-card-footer {
   padding: 10px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--eh-surface-border, #f0f0f0);
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  background: #fafafa;
+  background: var(--eh-surface-2, #fafafa);
 }
 
 .sf-btn-edit {

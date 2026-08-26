@@ -224,6 +224,75 @@ def get_cliente_by_id(id_app: int, id_cliente: int) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
+def get_cliente_tema(id_cliente: int) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT plan_deluxe, dark_design, nombre_app, primary_color, navbar_color, header_color,
+                       primary_button_color, text_color_navbar,
+                       color_primary_active_nabvar, logo_path, logo_login, logo_container,
+                       background_image
+                FROM clientes
+                WHERE id_cliente = %s AND active = 1
+                LIMIT 1
+                """,
+                (int(id_cliente),),
+            )
+            return cur.fetchone()
+    finally:
+        conn.close()
+
+
+def get_cliente_tema_por_clave(clave: str) -> Optional[Dict[str, Any]]:
+    """Branding público por clave de cliente, usado en /:clave/login (sin auth)."""
+    conn = get_connection()
+    try:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                """
+                SELECT plan_deluxe, dark_design, nombre_app, primary_color, navbar_color, header_color,
+                       primary_button_color, text_color_navbar,
+                       color_primary_active_nabvar, logo_path, logo_login, logo_container,
+                       background_image
+                FROM clientes
+                WHERE clave = %s AND active = 1
+                LIMIT 1
+                """,
+                (clave,),
+            )
+            return cur.fetchone()
+    finally:
+        conn.close()
+
+
+_TEMA_FIELDS = {
+    "plan_deluxe", "dark_design", "nombre_app", "primary_color", "navbar_color", "header_color",
+    "primary_button_color", "text_color_navbar",
+    "color_primary_active_nabvar", "logo_path", "logo_login", "logo_container",
+    "background_image",
+}
+
+
+def update_cliente_tema(id_cliente: int, data: Dict[str, Any]) -> int:
+    up = {k: v for k, v in data.items() if k in _TEMA_FIELDS}
+    if not up:
+        return 0
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            sc = ", ".join(f"{k} = %s" for k in up)
+            cur.execute(
+                f"UPDATE clientes SET {sc} WHERE id_cliente = %s AND active = 1",
+                list(up.values()) + [int(id_cliente)],
+            )
+        conn.commit()
+        return 1
+    finally:
+        conn.close()
+
+
 def _seed_defaults_for_cliente(id_cliente: int) -> None:
     conn = get_ecosound_connection()
     try:

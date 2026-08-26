@@ -76,7 +76,7 @@ class ContratoCreate(BaseModel):
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
-    hora_misa: Any = None
+    fecha_misa: Any = None
 
     model_config = ConfigDict(extra="ignore")
 
@@ -96,7 +96,7 @@ class ContratoUpdate(BaseModel):
     id_ciudad: Optional[int] = None
     comentarios: Optional[str] = None
     direccion_misa: Optional[str] = None
-    hora_misa: Any = None
+    fecha_misa: Any = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -257,6 +257,71 @@ def _cap_end_same_day(start_dt: dt.datetime) -> dt.datetime:
     return end_dt
 
 
+def _sync_agenda_misa(
+    conn,
+    *,
+    id_user: int,
+    id_contrato: int,
+    id_cliente: Optional[int],
+    cliente: str,
+    code: str,
+    fecha_misa: Optional[dt.datetime],
+    direccion_misa: Optional[str],
+    id_ciudad: Optional[int],
+    id_tipo_evento: Optional[int],
+) -> None:
+    """Full-replace de la entrada de agenda de la Misa: desactiva la previa
+    (si existe) y crea una nueva si hay fecha_misa capturada.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE agenda SET active = 0
+            WHERE source_table = 'contratos_misa' AND source_id = %s AND active = 1
+            """,
+            (id_contrato,),
+        )
+
+    if not fecha_misa or not id_ciudad:
+        return
+
+    end_misa = fecha_misa + dt.timedelta(hours=1)
+    if end_misa.date() != fecha_misa.date():
+        end_misa = fecha_misa.replace(hour=23, minute=59, second=0, microsecond=0)
+
+    lugar = (direccion_misa or "").strip()
+    title_misa = f"Misa - {cliente}".strip() if cliente else "Misa"
+    desc_misa = (
+        f"Servicio: Misa. "
+        f"Contrato {code} para {cliente}. "
+        f"Misa el {fecha_misa.strftime('%Y-%m-%d')} a las {fecha_misa.strftime('%H:%M')}. "
+        f"Lugar: {lugar}."
+    )
+
+    agenda_model.create_agenda_conn(
+        conn,
+        id_user,
+        id_tipo_evento or 1,
+        {
+            "start_at": fecha_misa,
+            "end_at": end_misa,
+            "title": title_misa,
+            "source_table": "contratos_misa",
+            "all_day": 0,
+            "status": "active",
+            "location": lugar,
+            "description": desc_misa,
+            "source_id": id_contrato,
+            "ciudad_id": id_ciudad,
+            "reminder": "15m",
+            "url": f"/contratos/{id_contrato}",
+            "in_person": 1,
+            "recurrence": None,
+        },
+        id_cliente=id_cliente,
+    )
+
+
 # ================== ENDPOINTS ==================
 
 @router.post("", status_code=201)
@@ -271,7 +336,7 @@ async def crear_contrato(
 
     payload_dict, _ = await _parse_payload_and_files(request)
 
-    # Combinar fecha_evento + hora_inicio/hora_final/hora_misa ANTES de validar y guardar
+    # Combinar fecha_evento + hora_inicio/hora_final ANTES de validar y guardar
     fecha_base = payload_dict.get("fecha_evento")
     start_dt = _combine_fecha_hora(fecha_base, payload_dict.get("hora_inicio"))
     if not start_dt:
@@ -288,9 +353,9 @@ async def crear_contrato(
     payload_dict["hora_inicio"] = start_dt
     payload_dict["hora_final"] = end_dt
 
-    # hora_misa: combinar con fecha_evento para obtener datetime completo
-    if payload_dict.get("hora_misa"):
-        payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
+    # fecha_misa: fecha propia de la misa (independiente de fecha_evento), ya combinada por el frontend
+    if payload_dict.get("fecha_misa"):
+        payload_dict["fecha_misa"] = _parse_dt(payload_dict["fecha_misa"])
 
     conn = get_connection()
 
@@ -360,6 +425,19 @@ async def crear_contrato(
             id_agenda = agenda_row.get("id_agenda") or agenda_row.get("id")
             if not id_agenda:
                 raise ValueError("No se pudo obtener id_agenda")
+
+            _sync_agenda_misa(
+                conn=conn,
+                id_user=user_id,
+                id_contrato=new_id,
+                id_cliente=int(id_cliente) if id_cliente else None,
+                cliente=cliente,
+                code=code,
+                fecha_misa=payload_dict.get("fecha_misa"),
+                direccion_misa=payload_dict.get("direccion_misa"),
+                id_ciudad=id_ciudad,
+                id_tipo_evento=payload.id_tipo_evento,
+            )
 
             conn.commit()
 
@@ -664,8 +742,8 @@ async def actualizar_contrato(
                     start_dt = None
                     end_dt = None
 
-            if payload_dict.get("hora_misa"):
-                payload_dict["hora_misa"] = _combine_fecha_hora(fecha_base, payload_dict["hora_misa"])
+            if payload_dict.get("fecha_misa"):
+                payload_dict["fecha_misa"] = _parse_dt(payload_dict["fecha_misa"])
 
             affected, code = contrato_model.update_contrato(
                 id_contrato=id_contrato,
@@ -725,6 +803,26 @@ async def actualizar_contrato(
                         agenda_row = agenda_model.create_agenda_conn(conn, int(user_id), 1, agenda_payload)
                         new_id_agenda = int(agenda_row.get("id") or agenda_row.get("id_agenda"))
                         should_ws = True
+
+            _MISA_RELEVANT = {"fecha_misa", "direccion_misa", "id_ciudad"}
+            if _MISA_RELEVANT & set(payload_dict.keys()):
+                fecha_misa_val = payload_dict["fecha_misa"] if "fecha_misa" in payload_dict else row.get("fecha_misa")
+                fecha_misa_dt = (
+                    fecha_misa_val if isinstance(fecha_misa_val, dt.datetime)
+                    else (_parse_dt(fecha_misa_val) if fecha_misa_val else None)
+                )
+                _sync_agenda_misa(
+                    conn=conn,
+                    id_user=int(user_id),
+                    id_contrato=id_contrato,
+                    id_cliente=row.get("id_cliente"),
+                    cliente=(payload_dict.get("cliente_nombre") or row.get("cliente_nombre") or "").strip(),
+                    code=code,
+                    fecha_misa=fecha_misa_dt,
+                    direccion_misa=payload_dict.get("direccion_misa") if "direccion_misa" in payload_dict else row.get("direccion_misa"),
+                    id_ciudad=payload_dict.get("id_ciudad") if "id_ciudad" in payload_dict else row.get("id_ciudad"),
+                    id_tipo_evento=payload_dict.get("id_tipo_evento") or row.get("id_tipo_evento"),
+                )
 
             conn.commit()
 

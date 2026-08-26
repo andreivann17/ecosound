@@ -8,13 +8,13 @@
   grid-template-columns: 64px 1fr;
   border: 1px solid #dfe3ea;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   overflow: hidden;   /* ✔ correcto */
 }
 .ol-timeCol {
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-right: 1px solid #cfd6e1;
   overflow: hidden;
 }
@@ -48,7 +48,7 @@
 .ol-timeHeaderSpacer{
   height: 56px; /* igual al header */
   border-bottom: 1px solid #cfd6e1; /* para que “cierre” la línea */
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 .ol-daysHeader {
   display: grid;
@@ -110,7 +110,7 @@
   position: absolute;
   left: 8px;
   right: 8px;
-  background: #f0f0f2;
+  background: var(--eh-surface-2, #f0f0f2);
   border-left: 4px solid #6b7280;
   border-radius: 10px;
   padding: 6px 8px;
@@ -136,7 +136,7 @@
   flex-direction: column;
   border: 1px solid #dfe3ea;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   overflow: hidden;
 }
 
@@ -200,7 +200,7 @@
 .ol-monthEv {
   height: 22px;
   font-size: 11px;
-  background: #f0f0f2;
+  background: var(--eh-surface-2, #f0f0f2);
   border-left: 3px solid #6b7280;
   border-radius: 999px;
   padding: 0 8px;
@@ -226,7 +226,7 @@
   flex: 0 0 56px;
   height: 56px;
   top: 0;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   z-index: 10;
 }
 .ol-days {
@@ -269,7 +269,7 @@
   grid-template-columns: 64px 1fr;
   border: 1px solid #dfe3ea;
   border-radius: 14px;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   overflow: hidden;
 }
 
@@ -279,7 +279,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid #cfd6e1;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-timeHeaderSpacer{
@@ -314,7 +314,7 @@
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   border-bottom: 1px solid #cfd6e1;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-dayHeaderCell {

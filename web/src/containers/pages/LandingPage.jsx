@@ -14,8 +14,8 @@ import cliente2 from "../../assets/img/clientes/cliente_2.webp";
 import cliente3 from "../../assets/img/clientes/cliente_3.webp";
 import cliente4 from "../../assets/img/clientes/cliente_4.webp";
 import "../../assets/css/LandingPage.css";
-import restauranteShot from "../../assets/img/pexels-simge-tek-595852070-19475469.jpg";
-import promoShot from "../../assets/img/pexels-pavel-danilyuk-7654447.jpg";
+import restauranteShot from "../../assets/img/pexels-simge-tek-595852070-19475469.webp";
+import promoShot from "../../assets/img/pexels-pavel-danilyuk-7654447.webp";
 // ============================================================
 // 👈 Cambia este número por tu WhatsApp (con código de país, sin +)
 // ============================================================

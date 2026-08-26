@@ -54,6 +54,7 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
             type="text"
             size="small"
             icon={<EditOutlined />}
+            style={{ color: "var(--eh-ink-muted, inherit)" }}
             onClick={() => onEdit?.(ev)}
           />
           <Button
@@ -134,6 +135,7 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
               font-size: 20px;
               font-weight: 800;
               line-height: 1.2;
+              color: var(--eh-ink, inherit);
             }
 
             .ol-peekActions {
@@ -143,7 +145,7 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
 
             .ol-peekMeta {
               margin-top: 8px;
-              color: rgba(0,0,0,0.65);
+              color: var(--eh-ink-muted, rgba(0,0,0,0.65));
               font-weight: 500;
             }
 
@@ -156,14 +158,14 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
             .ol-peekLabel {
               font-size: 12px;
               font-weight: 800;
-              color: rgba(0,0,0,0.55);
+              color: var(--eh-ink-muted, rgba(0,0,0,0.55));
               text-transform: uppercase;
               letter-spacing: 0.02em;
             }
 
             .ol-peekValue {
               font-size: 14px;
-              color: rgba(0,0,0,0.85);
+              color: var(--eh-ink, rgba(0,0,0,0.85));
             }
 
             .ol-peekLink {
@@ -173,11 +175,11 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
               text-decoration: none;
               font-size: 14px;
               font-weight: 700;
-              color: rgba(0,0,0,0.88);
+              color: var(--eh-ink, rgba(0,0,0,0.88));
               padding: 10px 12px;
               border-radius: 10px;
-              border: 1px solid rgba(0,0,0,0.08);
-              background: rgba(0,0,0,0.02);
+              border: 1px solid var(--eh-surface-border, rgba(0,0,0,0.08));
+              background: var(--eh-surface-2, rgba(0,0,0,0.02));
               transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
               user-select: none;
               cursor: pointer;
@@ -186,7 +188,7 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
             .ol-peekLink:hover {
               transform: translateY(-1px);
               border-color: rgba(22, 119, 255, 0.35);
-              background: rgba(22, 119, 255, 0.06);
+              background: rgba(22, 119, 255, 0.12);
               box-shadow: 0 6px 18px rgba(0,0,0,0.10);
             }
 
@@ -198,13 +200,18 @@ export default function EventPeek({ ev, onEdit, onDelete }) {
             .ol-peekLinkPath {
               font-size: 12px;
               font-weight: 600;
-              color: rgba(0,0,0,0.55);
+              color: var(--eh-ink-muted, rgba(0,0,0,0.55));
               word-break: break-all;
             }
 
             .ol-peekPopover .ant-popover-inner {
               border-radius: 12px;
               padding: 12px;
+              background: var(--eh-surface, #fff);
+            }
+
+            .ol-peekPopover .ant-popover-arrow::before {
+              background: var(--eh-surface, #fff);
             }
 
             .ol-peekPopover .ant-popover-arrow {

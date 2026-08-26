@@ -14,7 +14,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
 } from "antd";
@@ -25,6 +24,8 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./InventarioPage.css";
 import { PATH as API_BASE } from "../../redux/utils";
 
@@ -55,6 +56,11 @@ export default function CrearEquipoPage() {
   const [dragging, setDragging] = useState(false);
   const fotoInputRef = useRef(null);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
+
   useEffect(() => {
     dispatch(actionCategoriasGet());
   }, [dispatch]);
@@ -76,7 +82,7 @@ export default function CrearEquipoPage() {
   const handleFotoSelect = (file) => {
     if (!file) return;
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      notification.error({ message: "Solo se permiten imágenes (JPG, PNG, WEBP)" });
+      toast("Solo se permiten imágenes (JPG, PNG, WEBP)");
       return;
     }
     setFotoFile(file);
@@ -133,15 +139,15 @@ export default function CrearEquipoPage() {
         );
       }
 
-      notification.success({
-        message: isEditing ? "Equipo actualizado correctamente" : "Equipo creado exitosamente",
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Equipo creado!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `"${values.nombre?.trim() || ""}" ya está en el inventario.`,
       });
-      navigate("/app/inventario");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -154,14 +160,7 @@ export default function CrearEquipoPage() {
         <section className="inv-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/inventario")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Inventario
-              </Button>
+
               <Title level={2} className="inv-title" style={{ marginBottom: 0 }}>
                 {isEditing ? `Editando: ${equipoEditar.nombre}` : "Nuevo equipo"}
               </Title>
@@ -176,13 +175,14 @@ export default function CrearEquipoPage() {
               <Button
                 className="inv-btn-clean"
                 onClick={() => navigate("/app/inventario")}
-                disabled={saving}
+                disabled={saving || success.show}
               >
                 Cancelar
               </Button>
               <Button
                 type="primary"
                 loading={saving}
+                disabled={success.show}
                 onClick={handleSave}
                 style={{ backgroundColor: "#111", borderColor: "#111" }}
               >
@@ -320,6 +320,14 @@ export default function CrearEquipoPage() {
         </Form>
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/inventario")}
+      />
     </main>
   );
 }

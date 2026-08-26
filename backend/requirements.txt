@@ -25,3 +25,5 @@ pytest-cov
 pytesseract
 stripe
 python-dotenv
+google-api-python-client
+google-auth

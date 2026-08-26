@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -10,6 +10,7 @@ import {
   Card,
   Button,
   Input,
+  AutoComplete,
   DatePicker,
   Select,
   Space,
@@ -18,6 +19,7 @@ import {
   Col,
   Pagination,
   Modal,
+  Skeleton,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,9 +31,11 @@ import {
   ExclamationCircleOutlined,
   DownloadOutlined,
   EnvironmentOutlined,
+  UserOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
   ArrowRightOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
 
 import { previewEventosReportPdf, printEventosReportPdf } from "../../components/utils/printEventosReportPdf";
@@ -42,7 +46,7 @@ dayjs.locale("es");
 const { RangePicker } = DatePicker;
 const { Title, Text, Paragraph } = Typography;
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 const TIPO_EVENTO_MAP = {
   1: "Bodas",
@@ -51,6 +55,35 @@ const TIPO_EVENTO_MAP = {
   4: "Corporativo",
   5: "Cumpleaños",
   6: "Otro",
+};
+
+// Paleta de colores distintos para el chip de "tipo de evento" — uno por tipo,
+// para que el usuario lo reconozca de reojo por el tono. Si algún día hay más
+// tipos que colores en la lista, se vuelve a empezar desde el primero pero con
+// un tono distinto (filter hue-rotate/saturate) para que no se repita igual.
+const TIPO_CHIP_PALETTE = [
+  { bg: "#d8e2ff", text: "#0b3f9e", darkBg: "rgba(59, 130, 246, 0.22)",  darkText: "#93c5fd" }, // azul
+  { bg: "#ffdad6", text: "#93000a", darkBg: "rgba(239, 68, 68, 0.22)",   darkText: "#fca5a5" }, // rojo
+  { bg: "#c8f5c8", text: "#004d00", darkBg: "rgba(34, 197, 94, 0.22)",   darkText: "#86efac" }, // verde
+  { bg: "#ffddb5", text: "#5c3600", darkBg: "rgba(245, 158, 11, 0.22)",  darkText: "#fbbf24" }, // ámbar
+  { bg: "#ede9fe", text: "#5b21b6", darkBg: "rgba(139, 92, 246, 0.22)",  darkText: "#c4b5fd" }, // morado
+  { bg: "#93f2f2", text: "#003030", darkBg: "rgba(20, 184, 166, 0.22)",  darkText: "#5eead4" }, // teal
+  { bg: "#ffd6e8", text: "#9d174d", darkBg: "rgba(236, 72, 153, 0.22)",  darkText: "#f9a8d4" }, // rosa
+  { bg: "#ffe4c7", text: "#7c2d12", darkBg: "rgba(249, 115, 22, 0.22)",  darkText: "#fdba74" }, // naranja
+  { bg: "#e8eaed", text: "#44474e", darkBg: "rgba(148, 163, 184, 0.18)", darkText: "#cbd5e1" }, // gris
+  { bg: "#e0e7ff", text: "#3730a3", darkBg: "rgba(99, 102, 241, 0.22)",  darkText: "#a5b4fc" }, // índigo
+];
+
+const getTipoChipColors = (idTipo) => {
+  const n = TIPO_CHIP_PALETTE.length;
+  const key = Number(idTipo) || 0;
+  const idx = ((key - 1) % n + n) % n;
+  const cycle = Math.floor((key - 1) / n);
+  const base = TIPO_CHIP_PALETTE[idx];
+  if (cycle <= 0) return base;
+  const hueShift = (cycle * 37) % 360;
+  const satAdj = cycle % 2 === 0 ? 1.15 : 0.85;
+  return { ...base, filter: `hue-rotate(${hueShift}deg) saturate(${satAdj})` };
 };
 
 const fmtMoney = (val) => {
@@ -97,12 +130,58 @@ const toTitleCase = (str) => {
     .join(" ");
 };
 
+const shuffleArray = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+const buildSuggestionPool = (items) => {
+  const seen = new Set();
+  const pool = [];
+  items.forEach((r) => {
+    const lugar = (r.lugar_evento || "").trim();
+    const lugarKey = `l:${lugar.toLowerCase()}`;
+    if (lugar && lugar.toLowerCase() !== "pendiente" && !seen.has(lugarKey)) {
+      seen.add(lugarKey);
+      pool.push({ label: lugar, type: "lugar" });
+    }
+    const cliente = (r.cliente_nombre || "").trim();
+    const clienteKey = `c:${cliente.toLowerCase()}`;
+    if (cliente && !seen.has(clienteKey)) {
+      seen.add(clienteKey);
+      pool.push({ label: cliente, type: "cliente" });
+    }
+  });
+  return pool;
+};
+
+const toSuggestionOptions = (pool) =>
+  pool.slice(0, 5).map((item, idx) => ({
+    value: item.label,
+    label: (
+      <div className="eventos-suggest-option" style={{ "--i": idx }}>
+        <span className="eventos-suggest-icon">
+          {item.type === "lugar" ? <EnvironmentOutlined /> : <UserOutlined />}
+        </span>
+        <span className="eventos-suggest-text">{item.label}</span>
+        <span className="eventos-suggest-type">
+          {item.type === "lugar" ? "Lugar" : "Cliente"}
+        </span>
+      </div>
+    ),
+  }));
+
 export default function EventosPage() {
   const dispatch = useDispatch();
-  const { items = [] } = useSelector((state) => state.eventos);
+  const { items = [], loading } = useSelector((state) => state.eventos);
 
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
+  const [searchOptions, setSearchOptions] = useState([]);
   const [dateRange, setDateRange] = useState(null);
   const [tipoFilter, setTipoFilter] = useState("todos");
 
@@ -114,6 +193,17 @@ export default function EventosPage() {
   const [exportPreviewHtml, setExportPreviewHtml] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const scrollEl = document.querySelector(".content-electron") || window;
+    const onScroll = () => {
+      const top = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+      setShowBackToTop(top > 300);
+    };
+    scrollEl.addEventListener("scroll", onScroll);
+    return () => scrollEl.removeEventListener("scroll", onScroll);
+  }, []);
 
   const navigate = useNavigate();
   const { perm } = usePermisos() || { perm: () => true };
@@ -127,6 +217,29 @@ export default function EventosPage() {
     }, 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  const suggestionPool = useMemo(() => buildSuggestionPool(items), [items]);
+
+  const handleSearchInput = (value) => {
+    setSearch(value);
+    const q = (value || "").trim().toLowerCase();
+    const filtered = q
+      ? suggestionPool.filter((item) => item.label.toLowerCase().includes(q))
+      : shuffleArray(suggestionPool);
+    setSearchOptions(toSuggestionOptions(filtered));
+  };
+
+  const handleSearchFocus = () => {
+    if (!search) {
+      setSearchOptions(toSuggestionOptions(shuffleArray(suggestionPool)));
+    }
+  };
+
+  const handleSearchSelect = (value) => {
+    setSearch(value);
+    setSearchDebounced(value);
+    setCurrentPage(1);
+  };
 
   const lastFetchKey = useRef("");
 
@@ -164,13 +277,11 @@ export default function EventosPage() {
   const esConcluido = (r) =>
     !esCancelado(r) && !!r.fecha_evento && dayjs(r.fecha_evento).isBefore(today);
 
-  const filteredItems = useMemo(() => {
+  const filteredBase = useMemo(() => {
     let base = items;
-
     if (tipoFilter !== "todos") {
       base = base.filter((r) => r.id_tipo_evento === tipoFilter);
     }
-
     if (searchDebounced) {
       const q = searchDebounced.toLowerCase();
       base = base.filter(
@@ -180,7 +291,6 @@ export default function EventosPage() {
           (r.lugar_evento || "").toLowerCase().includes(q)
       );
     }
-
     if (dateRange?.[0] && dateRange?.[1]) {
       const from = dayjs(dateRange[0]).startOf("day");
       const to = dayjs(dateRange[1]).endOf("day");
@@ -190,10 +300,13 @@ export default function EventosPage() {
         return !d.isBefore(from) && !d.isAfter(to);
       });
     }
+    return base;
+  }, [items, tipoFilter, searchDebounced, dateRange]);
 
-    if (statFilter === "cancelados") return base.filter(esCancelado);
+  const filteredItems = useMemo(() => {
+    if (statFilter === "cancelados") return filteredBase.filter(esCancelado);
     if (statFilter === "activos") {
-      const activos = base.filter(esActivo);
+      const activos = filteredBase.filter(esActivo);
       if (activoSubFilter === "pendiente_pago")
         return activos.filter((r) => {
           const resta = calcResta(r);
@@ -209,7 +322,7 @@ export default function EventosPage() {
       return activos;
     }
     if (statFilter === "concluidos") {
-      const concluidos = base.filter(esConcluido);
+      const concluidos = filteredBase.filter(esConcluido);
       if (concluidoSubFilter === "con_deuda")
         return concluidos.filter((r) => {
           const resta = calcResta(r);
@@ -222,8 +335,8 @@ export default function EventosPage() {
         });
       return concluidos;
     }
-    return base;
-  }, [items, statFilter, activoSubFilter, concluidoSubFilter, tipoFilter, searchDebounced, dateRange]);
+    return filteredBase;
+  }, [filteredBase, statFilter, activoSubFilter, concluidoSubFilter]);
 
   const paginatedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -231,12 +344,12 @@ export default function EventosPage() {
   }, [filteredItems, currentPage]);
 
   const counts = useMemo(() => {
-    const activos = items.filter(esActivo);
-    const concluidos = items.filter(esConcluido);
+    const activos = filteredBase.filter(esActivo);
+    const concluidos = filteredBase.filter(esConcluido);
     return {
       activos: activos.length,
       concluidos: concluidos.length,
-      cancelados: items.filter(esCancelado).length,
+      cancelados: filteredBase.filter(esCancelado).length,
       activosPendientePago: activos.filter((r) => {
         const re = calcResta(r);
         return re !== null && re > 0 && parseNum(r.importe_anticipo) > 0;
@@ -255,16 +368,16 @@ export default function EventosPage() {
         return re !== null && re <= 0;
       }).length,
     };
-  }, [items]);
+  }, [filteredBase]);
 
   const totales = useMemo(() => {
-    const totalImporte = items.reduce((a, r) => a + parseNum(r.importe), 0);
-    const totalAnticipo = items.reduce(
+    const totalImporte = filteredBase.reduce((a, r) => a + parseNum(r.importe), 0);
+    const totalAnticipo = filteredBase.reduce(
       (a, r) => a + parseNum(r.importe_anticipo),
       0
     );
     return { totalImporte, totalAnticipo, totalResta: totalImporte - totalAnticipo };
-  }, [items]);
+  }, [filteredBase]);
 
   const TIPO_LABEL_MAP = {
     todos: "Todos",
@@ -315,25 +428,34 @@ export default function EventosPage() {
           </div>
 
           <div className="eventos-filters-panel">
-            <Row gutter={[16, 14]}>
-              <Col xs={24} lg={10}>
+            <Row gutter={[16, 14]} align="bottom">
+              <Col xs={24} lg={9}>
                 <div>
                   <div className="eventos-field-label">Buscador</div>
-                  <Input
+                  <AutoComplete
                     value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
+                    options={searchOptions}
+                    onSearch={handleSearchInput}
+                    onFocus={handleSearchFocus}
+                    onSelect={handleSearchSelect}
+                    className="eventos-control"
+                    popupClassName="eventos-suggest-dropdown"
+                    filterOption={false}
+                    allowClear
+                    onClear={() => {
+                      setSearch("");
                       setCurrentPage(1);
                     }}
-                    placeholder="Buscar por cliente, código o lugar..."
-                    suffix={<SearchOutlined className="eventos-input-suffix" />}
-                    className="eventos-control"
-                    allowClear
-                  />
+                  >
+                    <Input
+                      placeholder="Buscar por cliente, código o lugar..."
+                      suffix={<SearchOutlined className="eventos-input-suffix" />}
+                    />
+                  </AutoComplete>
                 </div>
               </Col>
 
-              <Col xs={24} lg={8}>
+              <Col xs={24} lg={7}>
                 <div>
                   <div className="eventos-field-label">Fecha del evento</div>
                   <RangePicker
@@ -349,7 +471,7 @@ export default function EventosPage() {
                 </div>
               </Col>
 
-              <Col xs={24} lg={6}>
+              <Col xs={24} lg={4}>
                 <div>
                   <div className="eventos-field-label">Tipo de evento</div>
                   <Select
@@ -371,10 +493,8 @@ export default function EventosPage() {
                   />
                 </div>
               </Col>
-            </Row>
 
-            <Row gutter={[16, 14]} style={{ marginTop: 14 }} align="bottom">
-              <Col xs={24} lg={6}>
+              <Col xs={24} lg={4}>
                 <div className="eventos-actions">
                   <Button
                     className="eventos-btn-clean"
@@ -567,37 +687,61 @@ export default function EventosPage() {
             </div>
           )}
 
-          <div className="eventos-toolbar">
-            <div className="eventos-toolbar-left">
-              <Title level={4} style={{ marginBottom: 0 }}>
-                Eventos ({filteredItems.length})
-              </Title>
-              <Text type="secondary">{filteredItems.length} encontrados</Text>
-            </div>
-            <div className="eventos-toolbar-right">
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={handleExportNow}
-                className="laboral-btn-import laboral-btn-create"
-              >
-                Exportar
-              </Button>
-              {canInsertar && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleOpenCreate}
-                  className="laboral-btn-create custom-button"
-                >
-                  Nuevo evento
-                </Button>
-              )}
-            </div>
-          </div>
-
           <div className="eventos-expedientes-card">
+            <div className="eventos-toolbar">
+              <div className="eventos-toolbar-left">
+                <Title level={4} style={{ marginBottom: 0 }}>
+                  Eventos ({filteredItems.length})
+                </Title>
+                <Text type="secondary">{filteredItems.length} encontrados</Text>
+              </div>
+              <div className="eventos-toolbar-right">
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleExportNow}
+                  className="laboral-btn-import laboral-btn-create"
+                >
+                  Exportar
+                </Button>
+                {canInsertar && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleOpenCreate}
+                    className="laboral-btn-create custom-button"
+                  >
+                    Nuevo evento
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {filteredItems.length > PAGE_SIZE && (
+              <div style={{ marginBottom: 16, textAlign: "right" }}>
+                <Pagination
+                  current={currentPage}
+                  pageSize={PAGE_SIZE}
+                  total={filteredItems.length}
+                  onChange={(page) => setCurrentPage(page)}
+                  size="small"
+                  showSizeChanger={false}
+                />
+              </div>
+            )}
+
             <div className="eventos-grid">
-              {paginatedItems.map((row) => {
+              {loading && Array.from({ length: 8 }).map((_, i) => (
+                <div key={`sk-${i}`} className="evento-card evento-card-skeleton">
+                  <div className="evento-card-header">
+                    <Skeleton active title={{ width: "60%" }} paragraph={{ rows: 1, width: "40%" }} />
+                  </div>
+                  <div className="evento-card-body">
+                    <Skeleton active title={false} paragraph={{ rows: 5 }} />
+                  </div>
+                </div>
+              ))}
+
+              {!loading && paginatedItems.map((row) => {
                 const strip = getBottomStrip(row);
                 const ini = row.hora_inicio
                   ? dayjs(row.hora_inicio).format("HH:mm")
@@ -623,11 +767,23 @@ export default function EventosPage() {
                           {statusLabel}
                         </span>
                       </div>
-                      {TIPO_EVENTO_MAP[row.id_tipo_evento] && (
-                        <span className="evento-tipo-chip">
-                          {TIPO_EVENTO_MAP[row.id_tipo_evento]}
-                        </span>
-                      )}
+                      {TIPO_EVENTO_MAP[row.id_tipo_evento] && (() => {
+                        const chipColor = getTipoChipColors(row.id_tipo_evento);
+                        return (
+                          <span
+                            className="evento-tipo-chip"
+                            style={{
+                              "--chip-bg": chipColor.bg,
+                              "--chip-text": chipColor.text,
+                              "--chip-bg-dark": chipColor.darkBg,
+                              "--chip-text-dark": chipColor.darkText,
+                              filter: chipColor.filter,
+                            }}
+                          >
+                            {TIPO_EVENTO_MAP[row.id_tipo_evento]}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <div className="evento-card-body">
@@ -688,12 +844,12 @@ export default function EventosPage() {
               })}
             </div>
 
-            {paginatedItems.length === 0 && (
+            {!loading && paginatedItems.length === 0 && (
               <div
                 style={{
                   padding: "36px 12px",
                   textAlign: "center",
-                  color: "rgba(0,0,0,0.55)",
+                  color: "var(--eh-ink-muted, rgba(0,0,0,0.55))",
                 }}
               >
                 <div style={{ fontSize: 16, fontWeight: 500 }}>
@@ -717,6 +873,21 @@ export default function EventosPage() {
           </div>
       </div>
 
+      {showBackToTop && (
+        <button
+          type="button"
+          className="eventos-back-to-top"
+          onClick={() => {
+            const scrollEl = document.querySelector(".content-electron");
+            if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: "smooth" });
+            else window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Volver arriba"
+        >
+          <ArrowUpOutlined />
+        </button>
+      )}
+
       <Modal
         open={exportPreviewOpen}
         onCancel={() => setExportPreviewOpen(false)}
@@ -730,7 +901,7 @@ export default function EventosPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              style={{ background: "#01369e", borderColor: "#01369e" }}
+              style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               onClick={() => {
                 printEventosReportPdf({
                   items: filteredItems,

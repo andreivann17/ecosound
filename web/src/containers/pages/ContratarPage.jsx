@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -9,11 +8,10 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { API_URL } from "../../api";
+import { requestStripe, STRIPE_PK } from "../../utils/stripeLoader";
 import "../../assets/css/ContratarPage.css";
 
-const STRIPE_PK = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "";
 const WHATSAPP_SUPPORT = "https://wa.me/526532091200?text=Hola%2C%20necesito%20ayuda%20con%20mi%20cuenta%20de%20HerrSoft%20Events.";
-const stripePromise = STRIPE_PK ? loadStripe(STRIPE_PK) : null;
 
 const PLANS = [
   {
@@ -326,6 +324,28 @@ export default function ContratarPage() {
   const [loadingIntent, setLoadingIntent]     = useState(false);
   const [submittingStep1, setSubmittingStep1] = useState(false);
   const [selectedPlan, setSelectedPlan]       = useState(PLANS[0]);
+
+  const [stripePromise, setStripePromise] = useState(null);
+  const [stripeOffline, setStripeOffline] = useState(false);
+
+  const tryLoadStripe = useCallback(() => {
+    if (!STRIPE_PK) return;
+    setStripeOffline(false);
+    requestStripe().then((inst) => {
+      if (inst) setStripePromise((prev) => prev || Promise.resolve(inst));
+      else setStripeOffline(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (step === 3 && !stripePromise) tryLoadStripe();
+  }, [step]); // eslint-disable-line
+
+  useEffect(() => {
+    const handler = () => { if (stripeOffline || !stripePromise) tryLoadStripe(); };
+    window.addEventListener("online", handler);
+    return () => window.removeEventListener("online", handler);
+  }, [stripeOffline, stripePromise, tryLoadStripe]);
 
   // Verificación de correo (paso 1.5)
   const [verifyStep, setVerifyStep]           = useState(false);
@@ -878,9 +898,15 @@ export default function ContratarPage() {
             <StepStepper current={3} />
             <h1 className="ctp-title">Configura tu tarjeta de crédito o débito.</h1>
 
-            {!stripePromise && (
+            {!STRIPE_PK && (
               <div className="ctp-error">
                 Falta configurar la clave pública de Stripe (REACT_APP_STRIPE_PUBLISHABLE_KEY).
+              </div>
+            )}
+            {STRIPE_PK && stripeOffline && (
+              <div className="ctp-offline">
+                <span>Sin conexión a internet. El formulario de pago no está disponible.</span>
+                <button type="button" className="ctp-offline-retry" onClick={tryLoadStripe}>Reintentar</button>
               </div>
             )}
             {errorMsg && <div className="ctp-error">{errorMsg}</div>}
@@ -890,10 +916,11 @@ export default function ContratarPage() {
                 stripe={stripePromise}
                 options={{
                   clientSecret,
+                  fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" }],
                   appearance: {
                     theme: "stripe",
                     variables: { colorPrimary: "#012770", borderRadius: "10px",
-                                 fontFamily: "system-ui, -apple-system, sans-serif" },
+                                 fontFamily: '"Noto Sans", system-ui, -apple-system, sans-serif' },
                   },
                 }}
               >

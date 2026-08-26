@@ -10,7 +10,6 @@ import {
 import {
   Button,
   Modal,
-  notification,
   Spin,
   Empty,
   Typography,
@@ -33,6 +32,7 @@ import {
 } from "@ant-design/icons";
 
 import { previewConteosReportPdf, printConteosReportPdf } from "../../components/utils/printConteosReportPdf";
+import Toast from "../../components/toasts/toast";
 import "./InventarioPage.css";
 
 dayjs.locale("es");
@@ -70,6 +70,10 @@ export default function ConteosPage() {
 
   const [exportPreviewOpen, setExportPreviewOpen] = useState(false);
   const [exportPreviewHtml, setExportPreviewHtml] = useState("");
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const fetchConteos = useCallback(async () => {
     setLoading(true);
@@ -132,13 +136,10 @@ export default function ConteosPage() {
             `/inventario/conteos/${c.id_inventario_conteo}`,
             { headers: authHeaderInventario() }
           );
-          notification.success({ message: "Conteo eliminado" });
+          toast("Conteo eliminado");
           fetchConteos();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         }
       },
     });
@@ -161,14 +162,7 @@ export default function ConteosPage() {
 
         <section className="inv-header-section">
           <Space direction="vertical" size={2}>
-            <Button
-              type="link"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/app/inventario")}
-              style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-            >
-              Volver a Inventario
-            </Button>
+
             <Title level={2} className="inv-title" style={{ marginBottom: 0 }}>
               Conteos de inventario
             </Title>
@@ -379,6 +373,8 @@ export default function ConteosPage() {
           />
         </div>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </main>
   );
 }

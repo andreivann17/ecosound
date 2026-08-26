@@ -11,38 +11,14 @@ import {
   eventKey,
   groupEventsByDay,
 } from "./boardUtils";
+import { getServiceBadge, getServiceKey, SERVICE_BADGE_ORDER } from "./serviceBadges";
 
 dayjs.extend(utc);
 dayjs.extend(isoWeek);
 
-// ─── Tipo contrato badge config ───────────────────────────────────────────────
-const TIPO_CFG = {
-  1:  { label: "Bodas",        bg: "#fce7f3", color: "#be123c", dot: "#be123c", tipoKey: 1  },
-  2:  { label: "XV",           bg: "#ede9fe", color: "#7c3aed", dot: "#7c3aed", tipoKey: 2  },
-  3:  { label: "Graduación",   bg: "#dbeafe", color: "#1d4ed8", dot: "#1d4ed8", tipoKey: 3  },
-  4:  { label: "Corporativo",  bg: "#d1fae5", color: "#0f766e", dot: "#0f766e", tipoKey: 4  },
-  5:  { label: "Cumpleaños",   bg: "#ffedd5", color: "#ea580c", dot: "#ea580c", tipoKey: 5  },
-  6:  { label: "Citas",        bg: "#e0f2fe", color: "#0891b2", dot: "#0891b2", tipoKey: 6  },
-  7:  { label: "Reunion Zoom", bg: "#eef2ff", color: "#4f46e5", dot: "#4f46e5", tipoKey: 7  },
-  8:  { label: "Pendiente",    bg: "#fef3c7", color: "#d97706", dot: "#d97706", tipoKey: 8  },
-  10: { label: "Fotografía",   bg: "#fdf4ff", color: "#c026d3", dot: "#c026d3", tipoKey: 10 },
-};
-const SESION_BADGE = { label: "Sesión Fotos", bg: "#fdf2f8", color: "#be185d", dot: "#e91e8c", tipoKey: "sesion" };
-const OTHER_BADGE  = { label: "Otro",         bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af", tipoKey: "otro"  };
-
-const BADGE_ORDER = [
-  { tipoKey: 1,        label: "Bodas",        bg: "#fce7f3", color: "#be123c", dot: "#be123c" },
-  { tipoKey: 2,        label: "XV",           bg: "#ede9fe", color: "#7c3aed", dot: "#7c3aed" },
-  { tipoKey: 3,        label: "Graduación",   bg: "#dbeafe", color: "#1d4ed8", dot: "#1d4ed8" },
-  { tipoKey: 4,        label: "Corporativo",  bg: "#d1fae5", color: "#0f766e", dot: "#0f766e" },
-  { tipoKey: 5,        label: "Cumpleaños",   bg: "#ffedd5", color: "#ea580c", dot: "#ea580c" },
-  { tipoKey: 6,        label: "Citas",        bg: "#e0f2fe", color: "#0891b2", dot: "#0891b2" },
-  { tipoKey: 7,        label: "Reunion Zoom", bg: "#eef2ff", color: "#4f46e5", dot: "#4f46e5" },
-  { tipoKey: 8,        label: "Pendiente",    bg: "#fef3c7", color: "#d97706", dot: "#d97706" },
-  { tipoKey: 10,       label: "Fotografía",   bg: "#fdf4ff", color: "#c026d3", dot: "#c026d3" },
-  { tipoKey: "sesion", label: "Sesión Fotos", bg: "#fdf2f8", color: "#be185d", dot: "#e91e8c" },
-  { tipoKey: "otro",   label: "Otro",         bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
-];
+// ─── Badge por servicio agendado (Sonido, Fotografía, Banquete, Barra,
+// Sesión Fotos) en vez de por tipo de contrato ─────────────────────────────
+const BADGE_ORDER = SERVICE_BADGE_ORDER.map((b) => ({ ...b, tipoKey: b.key }));
 
 // Ciudad config por id (ciudades de EcoSound)
 const CITY_CFG = {
@@ -52,28 +28,14 @@ const CITY_CFG = {
   4: { label: "V.SL", bg: "#e0f2fe", color: "#0369a1" },
   5: { label: "V.MX", bg: "#fef3c7", color: "#92400e" },
 };
-const OTHER_CITY = { label: "GEN", bg: "#f3f4f6", color: "#6b7280" };
-
-const TIPO_LABELS = {
-  1:  "Bodas",
-  2:  "XV Años",
-  3:  "Graduación",
-  4:  "Corporativo",
-  5:  "Cumpleaños",
-  6:  "Citas",
-  7:  "Reunion Zoom",
-  8:  "Pendiente",
-  10: "Fotografía",
-};
+const OTHER_CITY = { label: "GEN", bg: "#f3f4f6", color: "var(--eh-ink-muted, #6b7280)" };
 
 function getEventBadge(ev) {
-  if (ev?.source === "sesiones_fotos" || ev?.color_hex === "#e91e8c") return SESION_BADGE;
-  return TIPO_CFG[Number(ev?.contrato_tipo_id)] || OTHER_BADGE;
+  return getServiceBadge(ev);
 }
 
 function getBadgeTipoKey(ev) {
-  if (ev?.source === "sesiones_fotos" || ev?.color_hex === "#e91e8c") return "sesion";
-  return Number(ev?.contrato_tipo_id) || "otro";
+  return getServiceKey(ev);
 }
 
 function getCityBadge(ev) {
@@ -91,9 +53,7 @@ function getModulo(ev) {
 }
 
 function getTipo(ev) {
-  if (ev?.source === "sesiones_fotos") return "SESIÓN";
-  const id = Number(ev?.contrato_tipo_id);
-  return (TIPO_LABELS[id] || "Evento").toUpperCase();
+  return getServiceBadge(ev).label.toUpperCase();
 }
 
 function fmtAmPm(iso) {
@@ -137,7 +97,7 @@ function EventRow({ ev, openPeek, onEditEvent, onDeleteEvent }) {
           gridTemplateColumns: COLS,
           alignItems: "center",
           padding: "10px 16px",
-          borderBottom: "1px solid #f3f4f6",
+          borderBottom: "1px solid var(--eh-surface-border, #f3f4f6)",
           background: "transparent",
           borderLeft: `4px solid ${tipoBadge.dot}`,
           cursor: "pointer",
@@ -151,11 +111,11 @@ function EventRow({ ev, openPeek, onEditEvent, onDeleteEvent }) {
           e.stopPropagation();
           onEditEvent?.(ev);
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--eh-surface-2, #f9fafb)"; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
       >
         {/* HORA */}
-        <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", whiteSpace: "nowrap" }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--eh-ink, #111827)", whiteSpace: "nowrap" }}>
           {fmtAmPm(ev.start)}
         </div>
 
@@ -184,7 +144,7 @@ function EventRow({ ev, openPeek, onEditEvent, onDeleteEvent }) {
             style={{
               fontWeight: 600,
               fontSize: 13,
-              color: "#111827",
+              color: "var(--eh-ink, #111827)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -193,7 +153,7 @@ function EventRow({ ev, openPeek, onEditEvent, onDeleteEvent }) {
             {ev.title || "(Sin título)"}
           </div>
           {ev.location && (
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>{ev.location}</div>
+            <div style={{ fontSize: 11, color: "var(--eh-ink-faint, #9ca3af)" }}>{ev.location}</div>
           )}
         </div>
 
@@ -216,7 +176,7 @@ function EventRow({ ev, openPeek, onEditEvent, onDeleteEvent }) {
         </div>
 
         {/* MÓDULO */}
-        <div style={{ textAlign: "right", fontWeight: 600, fontSize: 12, color: "#374151", paddingRight: 4 }}>
+        <div style={{ textAlign: "right", fontWeight: 600, fontSize: 12, color: "var(--eh-ink-2, #374151)", paddingRight: 4 }}>
           {getModulo(ev)}
         </div>
       </div>
@@ -231,11 +191,11 @@ function NavArrow({ onClick, path }) {
       onClick={onClick}
       style={{
         padding: "7px 10px",
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--eh-surface-border, #e5e7eb)",
         borderRadius: 6,
-        background: "#fff",
+        background: "var(--eh-surface, #fff)",
         cursor: "pointer",
-        color: "#9ca3af",
+        color: "var(--eh-ink-faint, #9ca3af)",
         display: "flex",
         alignItems: "center",
       }}
@@ -301,24 +261,17 @@ export default function OutlookCalendarWeekDayView({
   }, [allEvs]);
 
   const isActive = (tipoKey) => {
-    if (tipoKey === "sesion") return filters?.showSesiones !== false;
-    if (tipoKey === "otro") return true;
-    const ids = filters?.tipoContratoIds;
-    if (!Array.isArray(ids)) return true;
-    return ids.includes(tipoKey);
+    const hidden = filters?.hiddenServicios;
+    if (!Array.isArray(hidden)) return true;
+    return !hidden.includes(tipoKey);
   };
 
   const toggleBadge = (tipoKey) => {
     if (!setFilters) return;
-    if (tipoKey === "sesion") {
-      setFilters((p) => ({ ...(p || {}), showSesiones: !p?.showSesiones }));
-      return;
-    }
-    if (tipoKey === "otro") return;
     setFilters((p) => {
-      const cur = new Set(Array.isArray(p?.tipoContratoIds) ? p.tipoContratoIds : []);
+      const cur = new Set(Array.isArray(p?.hiddenServicios) ? p.hiddenServicios : []);
       cur.has(tipoKey) ? cur.delete(tipoKey) : cur.add(tipoKey);
-      return { ...(p || {}), tipoContratoIds: Array.from(cur) };
+      return { ...(p || {}), hiddenServicios: Array.from(cur) };
     });
   };
 
@@ -343,7 +296,8 @@ export default function OutlookCalendarWeekDayView({
     : "SEMANA";
   const rightNum = isDayView ? anchor.format("D") : anchor.isoWeek();
 
-  function renderDayContent(dayStart, dayEvs) {
+  function renderDayContent(dayStart, dayEvsRaw) {
+    const dayEvs = (dayEvsRaw || []).filter((ev) => isActive(getBadgeTipoKey(ev)));
     if (!dayEvs || dayEvs.length === 0) {
       return (
         <div
@@ -351,7 +305,7 @@ export default function OutlookCalendarWeekDayView({
             padding: "14px 16px",
             textAlign: "center",
             fontSize: 12,
-            color: "#9ca3af",
+            color: "var(--eh-ink-faint, #9ca3af)",
             fontStyle: "italic",
           }}
         >
@@ -374,13 +328,13 @@ export default function OutlookCalendarWeekDayView({
     display: "grid",
     gridTemplateColumns: COLS,
     padding: "8px 16px",
-    borderBottom: "1px solid #f3f4f6",
-    background: "#f9fafb",
+    borderBottom: "1px solid var(--eh-surface-border, #f3f4f6)",
+    background: "var(--eh-surface-2, #f9fafb)",
   };
   const colLabelStyle = {
     fontSize: 11,
     fontWeight: 700,
-    color: "#9ca3af",
+    color: "var(--eh-ink-faint, #9ca3af)",
     textTransform: "uppercase",
     letterSpacing: "0.06em",
   };
@@ -389,10 +343,10 @@ export default function OutlookCalendarWeekDayView({
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div
         style={{
-          background: "#fff",
+          background: "var(--eh-surface, #fff)",
           borderRadius: 12,
           boxShadow: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-          border: "1px solid #f1f3f5",
+          border: "1px solid var(--eh-surface-border, #f1f3f5)",
           overflow: "hidden",
           height: "100%",
           display: "flex",
@@ -403,7 +357,7 @@ export default function OutlookCalendarWeekDayView({
         <div
           style={{
             padding: "14px 20px",
-            borderBottom: "1px solid #f3f4f6",
+            borderBottom: "1px solid var(--eh-surface-border, #f3f4f6)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -413,7 +367,7 @@ export default function OutlookCalendarWeekDayView({
         >
           <div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginTop: 6 }}>
-              {BADGE_ORDER.filter((b) => (tipoCounts[b.tipoKey] || 0) > 0).map((b) => {
+              {BADGE_ORDER.map((b) => {
                 const active = isActive(b.tipoKey);
                 return (
                   <button
@@ -461,9 +415,9 @@ export default function OutlookCalendarWeekDayView({
                     borderRadius: 9999,
                     fontSize: 11,
                     fontWeight: 700,
-                    background: "#f9fafb",
-                    color: "#6b7280",
-                    border: "1px solid #e5e7eb",
+                    background: "var(--eh-surface-2, #f9fafb)",
+                    color: "var(--eh-ink-muted, #6b7280)",
+                    border: "1px solid var(--eh-surface-border, #e5e7eb)",
                   }}
                 >
                   TOTAL: {allEvs.length}
@@ -490,7 +444,7 @@ export default function OutlookCalendarWeekDayView({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--eh-surface-border, #e5e7eb)",
                   borderRadius: 8,
                   overflow: "hidden",
                   cursor: "pointer",
@@ -498,7 +452,7 @@ export default function OutlookCalendarWeekDayView({
               >
                 <div
                   style={{
-                    background: "#01369e",
+                    background: "var(--eh-primary-btn)",
                     padding: "8px 12px",
                     color: "#fff",
                     display: "flex",
@@ -514,7 +468,7 @@ export default function OutlookCalendarWeekDayView({
                     padding: "8px 14px",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#4b5563",
+                    color: "var(--eh-ink-2, #4b5563)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -531,7 +485,7 @@ export default function OutlookCalendarWeekDayView({
             <div
               style={{
                 textAlign: "right",
-                borderLeft: "1px solid #e5e7eb",
+                borderLeft: "1px solid var(--eh-surface-border, #e5e7eb)",
                 paddingLeft: 20,
                 minWidth: 60,
               }}
@@ -540,7 +494,7 @@ export default function OutlookCalendarWeekDayView({
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: "#9ca3af",
+                  color: "var(--eh-ink-faint, #9ca3af)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   marginBottom: 2,
@@ -552,7 +506,7 @@ export default function OutlookCalendarWeekDayView({
                 style={{
                   fontSize: 42,
                   fontWeight: 900,
-                  color: "#1e293b",
+                  color: "var(--eh-ink, #1e293b)",
                   lineHeight: 1,
                 }}
               >
@@ -586,17 +540,17 @@ export default function OutlookCalendarWeekDayView({
                 <div key={key}>
                   <div
                     style={{
-                      background: "#f9fafb",
+                      background: "var(--eh-surface-2, #f9fafb)",
                       padding: "6px 16px",
-                      borderTop: "1px solid #e5e7eb",
-                      borderBottom: "1px solid #e5e7eb",
+                      borderTop: "1px solid var(--eh-surface-border, #e5e7eb)",
+                      borderBottom: "1px solid var(--eh-surface-border, #e5e7eb)",
                     }}
                   >
                     <span
                       style={{
                         fontSize: 13,
                         fontWeight: 700,
-                        color: "#374151",
+                        color: "var(--eh-ink-2, #374151)",
                         textTransform: "uppercase",
                         letterSpacing: "0.04em",
                       }}

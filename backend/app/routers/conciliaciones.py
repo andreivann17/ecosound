@@ -487,7 +487,7 @@ async def crear_conciliacion(
                 "source": "conciliacion",
                 "id_conciliacion": new_id,
                 "descripcion_notificacion": data_create["descripcion_notificacion"],
-               
+                "id_user": user_id,
             })
 
             print("about to broadcast, clients:", len(manager.active))

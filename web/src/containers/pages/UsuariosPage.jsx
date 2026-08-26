@@ -1,12 +1,12 @@
-﻿// src/containers/pages/UsuariosPage.jsx
+// src/containers/pages/UsuariosPage.jsx
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import { actionUsuariosGet } from "../../redux/actions/usuarios/usuarios";
 
-import { Button, Input, Modal, Space, Typography, Pagination } from "antd";
-import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons";
+import { Button, Input, AutoComplete, Modal, Space, Typography, Pagination } from "antd";
+import { PlusOutlined, SearchOutlined, DownloadOutlined, ArrowUpOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
 import { previewUsuariosReportPdf, printUsuariosReportPdf } from "../../components/utils/printUsuariosReportPdf";
 
 import "./ContratosPage.css";
@@ -16,6 +16,51 @@ import { PATH as API_BASE } from "../../redux/utils";
 
 const { Title, Text } = Typography;
 const PAGE_SIZE = 20;
+
+const shuffleArray = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+const buildSuggestionPool = (items) => {
+  const seen = new Set();
+  const pool = [];
+  items.forEach((u) => {
+    const name = (u.name || "").trim();
+    const nameKey = `n:${name.toLowerCase()}`;
+    if (name && !seen.has(nameKey)) {
+      seen.add(nameKey);
+      pool.push({ label: name, type: "usuario" });
+    }
+    const email = (u.email || "").trim();
+    const emailKey = `e:${email.toLowerCase()}`;
+    if (email && !seen.has(emailKey)) {
+      seen.add(emailKey);
+      pool.push({ label: email, type: "correo" });
+    }
+  });
+  return pool;
+};
+
+const toSuggestionOptions = (pool) =>
+  pool.slice(0, 5).map((item, idx) => ({
+    value: item.label,
+    label: (
+      <div className="contratos-suggest-option" style={{ "--i": idx }}>
+        <span className="contratos-suggest-icon">
+          {item.type === "correo" ? <MailOutlined /> : <UserOutlined />}
+        </span>
+        <span className="contratos-suggest-text">{item.label}</span>
+        <span className="contratos-suggest-type">
+          {item.type === "correo" ? "Correo" : "Usuario"}
+        </span>
+      </div>
+    ),
+  }));
 
 export default function UsuariosPage() {
   const dispatch = useDispatch();
@@ -27,9 +72,22 @@ export default function UsuariosPage() {
 
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
+  const [searchOptions, setSearchOptions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportHtml, setExportHtml]  = useState("");
+
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const scrollEl = document.querySelector(".content-electron") || window;
+    const onScroll = () => {
+      const top = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+      setShowBackToTop(top > 300);
+    };
+    scrollEl.addEventListener("scroll", onScroll);
+    return () => scrollEl.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleExport = async () => {
     const html = await previewUsuariosReportPdf({ items: filteredItems });
@@ -44,6 +102,29 @@ export default function UsuariosPage() {
     }, 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  const suggestionPool = useMemo(() => buildSuggestionPool(items), [items]);
+
+  const handleSearchInput = (value) => {
+    setSearch(value);
+    const q = (value || "").trim().toLowerCase();
+    const filtered = q
+      ? suggestionPool.filter((item) => item.label.toLowerCase().includes(q))
+      : shuffleArray(suggestionPool);
+    setSearchOptions(toSuggestionOptions(filtered));
+  };
+
+  const handleSearchFocus = () => {
+    if (!search) {
+      setSearchOptions(toSuggestionOptions(shuffleArray(suggestionPool)));
+    }
+  };
+
+  const handleSearchSelect = (value) => {
+    setSearch(value);
+    setSearchDebounced(value);
+    setCurrentPage(1);
+  };
 
   const lastFetchKey = useRef("");
 
@@ -89,21 +170,31 @@ export default function UsuariosPage() {
             <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <div className="contratos-field-label">Buscar usuario</div>
-                <Input
+                <AutoComplete
                   value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
+                  options={searchOptions}
+                  onSearch={handleSearchInput}
+                  onFocus={handleSearchFocus}
+                  onSelect={handleSearchSelect}
+                  className="contratos-control"
+                  popupClassName="contratos-suggest-dropdown"
+                  filterOption={false}
+                  allowClear
+                  onClear={() => {
+                    setSearch("");
                     setCurrentPage(1);
                   }}
-                  placeholder="Buscar por nombre o correo..."
-                  suffix={<SearchOutlined className="contratos-input-suffix" />}
-                  className="contratos-control"
-                  allowClear
-                />
+                >
+                  <Input
+                    placeholder="Buscar por nombre o correo..."
+                    suffix={<SearchOutlined className="contratos-input-suffix" />}
+                  />
+                </AutoComplete>
               </div>
-              <div>
+              <div style={{ minWidth: 220 }}>
                 <Button
                   className="contratos-btn-clean"
+                  style={{ width: "100%" }}
                   onClick={() => {
                     setSearch("");
                     setCurrentPage(1);
@@ -147,6 +238,19 @@ export default function UsuariosPage() {
 
           {/* CARDS */}
           <div className="contratos-expedientes-card">
+            {filteredItems.length > PAGE_SIZE && (
+              <div style={{ marginBottom: 16, textAlign: "right" }}>
+                <Pagination
+                  current={currentPage}
+                  pageSize={PAGE_SIZE}
+                  total={filteredItems.length}
+                  onChange={(page) => setCurrentPage(page)}
+                  size="small"
+                  showSizeChanger={false}
+                />
+              </div>
+            )}
+
             <div className="usr-grid">
               {paginatedItems.map((user) => {
                 const initials = (user.name || "?")
@@ -195,7 +299,7 @@ export default function UsuariosPage() {
             </div>
 
             {paginatedItems.length === 0 && (
-              <div style={{ padding: "36px 12px", textAlign: "center", color: "rgba(0,0,0,0.55)" }}>
+              <div style={{ padding: "36px 12px", textAlign: "center", color: "var(--eh-ink-muted, rgba(0,0,0,0.55))" }}>
                 <div style={{ fontSize: 16, fontWeight: 500 }}>
                   Sin usuarios que coincidan con los filtros
                 </div>
@@ -219,6 +323,21 @@ export default function UsuariosPage() {
         </section>
       </div>
 
+      {showBackToTop && (
+        <button
+          type="button"
+          className="usr-back-to-top"
+          onClick={() => {
+            const scrollEl = document.querySelector(".content-electron");
+            if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: "smooth" });
+            else window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Volver arriba"
+        >
+          <ArrowUpOutlined />
+        </button>
+      )}
+
       {/* ── Modal: Exportar ── */}
       <Modal
         open={exportOpen}
@@ -238,7 +357,7 @@ export default function UsuariosPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              style={{ background: "#01369e", borderColor: "#01369e" }}
+              style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               onClick={() => printUsuariosReportPdf({ items: filteredItems })}
             >
               Exportar PDF

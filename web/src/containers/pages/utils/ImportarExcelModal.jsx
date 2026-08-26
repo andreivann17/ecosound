@@ -29,9 +29,10 @@
 //   </Button>
 
 import React, { useState, useCallback, useRef } from "react";
-import { Modal, Button, notification, Progress } from "antd";
+import { Modal, Button, Progress } from "antd";
 import axios from "axios";
 import { PATH } from "../../../redux/utils";
+import Toast from "../../../components/toasts/toast";
 const API_BASE = `${PATH}`;
 /* ─── helpers de auth (mismo patrón que la página) ─── */
 const authHeader = () => {
@@ -66,6 +67,10 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
   const [result, setResult]       = useState(null);          // respuesta backend
   const fileInputRef              = useRef(null);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   /* ── reset completo ── */
   const reset = useCallback(() => {
     setFile(null);
@@ -96,7 +101,7 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
   const pickFile = (f) => {
     const err = validate(f);
     if (err) {
-      notification.error({ message: "Archivo inválido", description: err });
+      toast(err);
       return;
     }
     setFile(f);
@@ -161,15 +166,9 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
       setPhase("success");
 
       if (data?.errores > 0) {
-        notification.error({
-          message: "Hubo un error en el archivo",
-          description: "Revisa el archivo e intenta de nuevo.",
-        });
+        toast("Hubo un error en el archivo. Revisa el archivo e intenta de nuevo.");
       } else {
-        notification.success({
-          message: "Importación exitosa",
-          description: `Se procesaron ${data?.total ?? data?.insertados ?? "los"} registros correctamente.`,
-        });
+        toast(`Importación exitosa. Se procesaron ${data?.total ?? data?.insertados ?? "los"} registros correctamente.`);
         if (typeof onSuccess === "function") onSuccess(data);
       }
 
@@ -181,7 +180,7 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
         "Error al importar el archivo.";
       setPhase("error");
       setErrorMsg(msg);
-      notification.error({ message: "Error en importación", description: msg });
+      toast(msg);
     }
   };
 
@@ -380,6 +379,7 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
 
   /* ══════════ render principal ══════════ */
   return (
+    <>
     <Modal
       open={open}
       onCancel={handleClose}
@@ -466,6 +466,8 @@ export default function ImportarExcelModal({ open, onClose, onSuccess, context =
        
       </div>
     </Modal>
+    <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+    </>
   );
 }
 

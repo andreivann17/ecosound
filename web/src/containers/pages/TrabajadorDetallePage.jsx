@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
 import dayjs from "dayjs";
@@ -7,48 +7,42 @@ import {
   apiTrabajadoresInstance,
   authHeaderTrabajadores,
 } from "../../redux/actions/trabajadores/trabajadores";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
+import { PATH as API_BASE } from "../../redux/utils";
+import { previewTrabajadorPdf, printTrabajadorPdf } from "../../components/utils/printTrabajadorPdf";
 
 import {
   Button,
   Modal,
-  notification,
   Select,
   DatePicker,
   Spin,
   Empty,
+  Dropdown,
+  Input,
 } from "antd";
 import {
-  ArrowLeftOutlined,
   EditOutlined,
   DeleteOutlined,
+  ExportOutlined,
+  EllipsisOutlined,
   UserOutlined,
   CalendarOutlined,
-  BarChartOutlined,
   TeamOutlined,
   HistoryOutlined,
+  ClockCircleOutlined,
+  CameraOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 
 import "./EventoDetallePage.css";
 import "./EstadisticasPage.css";
+import "./TrabajadoresPage.css";
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 dayjs.locale("es");
-ChartJS.register(ArcElement, Tooltip, Legend);
 
-const { RangePicker } = DatePicker;
-
-const PERIODO_OPTIONS = [
-  { value: "semana",   label: "Esta semana" },
-  { value: "quincena", label: "Esta quincena" },
-  { value: "mes",      label: "Este mes" },
-  { value: "custom",   label: "Personalizado" },
-];
-
-const DONUT_COLORS = [
-  "#6366f1", "#10b981", "#f97316", "#f59e0b",
-  "#3b82f6", "#ef4444", "#8b5cf6", "#14b8a6",
-];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const fmtFecha = (v) => {
   if (!v) return "—";
@@ -62,26 +56,24 @@ const fmtFechaCorta = (v) => {
   return d.isValid() ? d.format("D MMM YYYY") : "—";
 };
 
-function getDateRange(periodo, customRange) {
-  const today = dayjs();
-  if (periodo === "semana") {
-    return [today.startOf("week").format("YYYY-MM-DD"), today.endOf("week").format("YYYY-MM-DD")];
-  }
-  if (periodo === "quincena") {
-    const day = today.date();
-    if (day <= 15) {
-      return [today.startOf("month").format("YYYY-MM-DD"), today.date(15).format("YYYY-MM-DD")];
-    }
-    return [today.date(16).format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-  }
-  if (periodo === "mes") {
-    return [today.startOf("month").format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-  }
-  if (periodo === "custom" && customRange) {
-    return [customRange[0].format("YYYY-MM-DD"), customRange[1].format("YYYY-MM-DD")];
-  }
-  return [today.startOf("month").format("YYYY-MM-DD"), today.endOf("month").format("YYYY-MM-DD")];
-}
+const fmtDiaChip = (v) => {
+  const d = dayjs(v);
+  if (!d.isValid()) return null;
+  return {
+    dow: d.format("ddd").toUpperCase(),
+    dia: d.format("D"),
+    mes: d.format("MMM").toUpperCase(),
+  };
+};
+
+const fmtHorarioEvento = (e) => {
+  const inicio = e.fecha_inicio || e.hora_inicio;
+  const final = e.fecha_final || e.hora_final;
+  if (!inicio && !final) return null;
+  const startLabel = e.fecha_inicio ? dayjs(e.fecha_inicio).format("HH:mm") : (e.hora_inicio || "—");
+  const endLabel = e.fecha_final ? dayjs(e.fecha_final).format("HH:mm") : (e.hora_final || "—");
+  return `${startLabel} – ${endLabel}`;
+};
 
 export default function TrabajadorDetallePage() {
   const { idTrabajador } = useParams();
@@ -92,15 +84,28 @@ export default function TrabajadorDetallePage() {
 
   const [trabajador, setTrabajador] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
   const [activeTab, setActiveTab] = useState("datos");
   const [deletingModal, setDeletingModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportHtml, setReportHtml] = useState("");
 
-  // Análisis state
-  const [analisisPeriodo, setAnalisisPeriodo] = useState("mes");
-  const [analisisCustomRange, setAnalisisCustomRange] = useState(null);
-  const [analisisData, setAnalisisData] = useState(null);
-  const [analisisLoading, setAnalisisLoading] = useState(false);
+  // Edición inline "Información personal"
+  const [puestosOptions, setPuestosOptions] = useState([]);
+  const [editingInfoCard, setEditingInfoCard] = useState(false);
+  const [editingInfoForm, setEditingInfoForm] = useState({});
+  const [savingInfoCard, setSavingInfoCard] = useState(false);
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const fotoInputRef = useRef(null);
+
+  // Próximos eventos
+  const [proximosEventos, setProximosEventos] = useState([]);
+  const [loadingProximos, setLoadingProximos] = useState(true);
 
   // Actividad state
   const [actividad, setActividad] = useState([]);
@@ -115,7 +120,7 @@ export default function TrabajadorDetallePage() {
       );
       setTrabajador(res.data);
     } catch {
-      notification.error({ message: "Error al cargar trabajador" });
+      toast("Error al cargar trabajador");
     } finally {
       setLoading(false);
     }
@@ -123,31 +128,29 @@ export default function TrabajadorDetallePage() {
 
   useEffect(() => { fetchTrabajador(); }, [fetchTrabajador]);
 
-  const fetchAnalisis = useCallback(async (periodo, customRange) => {
-    if (periodo === "custom" && !customRange) return;
-    const [dateFrom, dateTo] = getDateRange(periodo, customRange);
-    setAnalisisLoading(true);
+  const fetchProximosEventos = useCallback(async () => {
+    setLoadingProximos(true);
     try {
       const { data } = await apiTrabajadoresInstance.get(
-        `/trabajadores/${idTrabajador}/analisis`,
-        {
-          headers: authHeaderTrabajadores(),
-          params: { date_from: dateFrom, date_to: dateTo },
-        }
+        `/trabajadores/${idTrabajador}/proximos-eventos`,
+        { headers: authHeaderTrabajadores() }
       );
-      setAnalisisData(data);
+      setProximosEventos(Array.isArray(data) ? data : []);
     } catch {
-      setAnalisisData(null);
+      setProximosEventos([]);
     } finally {
-      setAnalisisLoading(false);
+      setLoadingProximos(false);
     }
   }, [idTrabajador]);
 
+  useEffect(() => { fetchProximosEventos(); }, [fetchProximosEventos]);
+
   useEffect(() => {
-    if (activeTab === "analisis") {
-      fetchAnalisis(analisisPeriodo, analisisCustomRange);
-    }
-  }, [activeTab, analisisPeriodo, analisisCustomRange, fetchAnalisis]);
+    apiTrabajadoresInstance
+      .get("/trabajadores/puestos", { headers: authHeaderTrabajadores() })
+      .then(({ data }) => setPuestosOptions(data || []))
+      .catch(() => setPuestosOptions([]));
+  }, []);
 
   const fetchActividad = useCallback(async () => {
     setLoadingActividad(true);
@@ -168,15 +171,6 @@ export default function TrabajadorDetallePage() {
     if (activeTab === "actividad") fetchActividad();
   }, [activeTab, fetchActividad]);
 
-  const handleAnalisisPeriodo = (val) => {
-    setAnalisisPeriodo(val);
-    if (val !== "custom") setAnalisisCustomRange(null);
-  };
-
-  const handleAnalisisRangeChange = (dates) => {
-    if (dates && dates[0] && dates[1]) setAnalisisCustomRange(dates);
-  };
-
   const handleDelete = async () => {
     setDeleting(true);
     try {
@@ -184,16 +178,63 @@ export default function TrabajadorDetallePage() {
         `/trabajadores/${idTrabajador}`,
         { headers: authHeaderTrabajadores() }
       );
-      notification.success({ message: "Trabajador eliminado" });
-      navigate("/app/trabajadores");
-    } catch (err) {
-      notification.error({
-        message: "Error al eliminar",
-        description: err?.response?.data?.detail || err.message,
+      setDeletingModal(false);
+      setSuccess({
+        show: true,
+        title: "¡Trabajador eliminado!",
+        subtitle: `"${trabajador?.nombre || ""} ${trabajador?.apellido || ""}" se eliminó correctamente.`,
       });
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al eliminar");
+      setDeletingModal(false);
     } finally {
       setDeleting(false);
-      setDeletingModal(false);
+    }
+  };
+
+  const handleFotoSelect = (file) => {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast("Solo se permiten imágenes (JPG, PNG, WEBP)");
+      return;
+    }
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleSaveInfoCard = async () => {
+    setSavingInfoCard(true);
+    try {
+      await apiTrabajadoresInstance.patch(
+        `/trabajadores/${idTrabajador}`,
+        {
+          nombre: editingInfoForm.nombre,
+          apellido: editingInfoForm.apellido,
+          id_puesto: editingInfoForm.id_puesto,
+          fecha_nacimiento: editingInfoForm.fecha_nacimiento
+            ? editingInfoForm.fecha_nacimiento.format("YYYY-MM-DD")
+            : null,
+        },
+        { headers: authHeaderTrabajadores() }
+      );
+      if (fotoFile) {
+        const fd = new FormData();
+        fd.append("file", fotoFile);
+        await apiTrabajadoresInstance.post(
+          `/trabajadores/${idTrabajador}/imagen`,
+          fd,
+          { headers: { ...authHeaderTrabajadores(), "Content-Type": "multipart/form-data" } }
+        );
+      }
+      await fetchTrabajador();
+      setEditingInfoCard(false);
+      setFotoFile(null);
+      setFotoPreview(null);
+      toast("Datos del trabajador actualizados");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
+    } finally {
+      setSavingInfoCard(false);
     }
   };
 
@@ -201,6 +242,23 @@ export default function TrabajadorDetallePage() {
     const a = (nombre || " ")[0] || "";
     const b = (apellido || " ")[0] || "";
     return (a + b).toUpperCase();
+  };
+
+  const buildReportData = () => ({
+    idTrabajador: trabajador?.id_trabajador,
+    nombre: trabajador?.nombre,
+    apellido: trabajador?.apellido,
+    nombrePuesto: trabajador?.nombre_puesto,
+    fechaNacimiento: trabajador?.fecha_nacimiento,
+    fechaRegistro: trabajador?.datetime,
+    fotoUrl: trabajador?.path ? `${API_BASE}/${trabajador.path}` : null,
+    proximosEventos,
+  });
+
+  const handleOpenReport = async () => {
+    const html = await previewTrabajadorPdf(buildReportData());
+    setReportHtml(html);
+    setReportOpen(true);
   };
 
   if (loading) {
@@ -215,42 +273,40 @@ export default function TrabajadorDetallePage() {
 
   if (!trabajador) return null;
 
-  // Análisis chart data
-  const comparacion = analisisData?.comparacion_puesto || [];
-  const donutData = comparacion.length > 0 ? {
-    labels: comparacion.map((c) => c.nombre),
-    datasets: [{
-      data: comparacion.map((c) => c.eventos_count || 0),
-      backgroundColor: DONUT_COLORS.slice(0, comparacion.length),
-      borderWidth: 0,
-    }],
-  } : null;
-
-  const donutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "bottom", labels: { font: { size: 12 }, padding: 12, usePointStyle: true } },
-      tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} eventos` } },
-    },
-  };
-
-  const stats = analisisData?.stats || {};
-  const eventos = analisisData?.eventos || [];
-  const totalHorasEvt = eventos.reduce((s, e) => s + (parseFloat(e.duracion_horas) || 0), 0);
-
   return (
     <div className="cd-main">
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/trabajadores")}
+        <Modal
+          open={reportOpen}
+          onCancel={() => setReportOpen(false)}
+          title="Ficha del trabajador"
+          width={900}
+          centered
+          destroyOnClose
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button onClick={() => setReportOpen(false)}>Cerrar</Button>
+              <Button
+                type="primary"
+                icon={<FileTextOutlined />}
+                style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
+                onClick={() => printTrabajadorPdf(buildReportData())}
+              >
+                Descargar PDF
+              </Button>
+            </div>
+          }
         >
-          Volver a Trabajadores
-        </Button>
+          <div style={{ height: "72vh", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            <iframe
+              title="preview-trabajador"
+              style={{ width: "100%", height: "100%", border: 0, background: "#fff" }}
+              srcDoc={reportHtml}
+            />
+          </div>
+        </Modal>
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -289,20 +345,19 @@ export default function TrabajadorDetallePage() {
             </div>
 
             <div className="cd-header-actions">
-              {canEditar && (
-                <Button
-                  icon={<EditOutlined />}
-                  className="cd-btn-edit"
-                  onClick={() => navigate(`/app/trabajadores/${idTrabajador}/editar`, { state: { trabajador } })}
-                >
-                  Editar
-                </Button>
-              )}
+              <Button
+                icon={<ExportOutlined />}
+                className="cd-btn-export"
+                onClick={handleOpenReport}
+              >
+                Exportar
+              </Button>
               {canEliminar && (
                 <Button
                   icon={<DeleteOutlined />}
                   className="cd-btn-delete"
                   loading={deleting}
+                  disabled={success.show}
                   onClick={() => setDeletingModal(true)}
                 >
                   Eliminar
@@ -318,13 +373,6 @@ export default function TrabajadorDetallePage() {
             >
               <UserOutlined />
               Datos del trabajador
-            </button>
-            <button
-              className={`cd-tab-btn ${activeTab === "analisis" ? "cd-tab-btn-active" : ""}`}
-              onClick={() => setActiveTab("analisis")}
-            >
-              <BarChartOutlined />
-              Análisis
             </button>
             <button
               className={`cd-tab-btn ${activeTab === "actividad" ? "cd-tab-btn-active" : ""}`}
@@ -345,165 +393,193 @@ export default function TrabajadorDetallePage() {
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><UserOutlined /></div>
                 <h2 className="cd-card-title">Información personal</h2>
+                {canEditar && !editingInfoCard && (
+                  <Dropdown
+                    trigger={["click"]}
+                    menu={{
+                      items: [
+                        {
+                          key: "editar", icon: <EditOutlined />, label: "Editar",
+                          onClick: () => {
+                            setEditingInfoForm({
+                              nombre: trabajador.nombre || "",
+                              apellido: trabajador.apellido || "",
+                              id_puesto: trabajador.id_puesto || null,
+                              fecha_nacimiento: trabajador.fecha_nacimiento ? dayjs(trabajador.fecha_nacimiento) : null,
+                            });
+                            setFotoFile(null);
+                            setFotoPreview(trabajador.path ? `${API_BASE}/${trabajador.path}` : null);
+                            setEditingInfoCard(true);
+                          },
+                        },
+                      ],
+                    }}
+                  >
+                    <Button type="text" icon={<EllipsisOutlined />} size="small" style={{ marginLeft: "auto" }} />
+                  </Dropdown>
+                )}
               </div>
-              <div className="cd-client-fields">
-                <div>
-                  <span className="cd-field-label">Nombre</span>
-                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.nombre || "—"}</span>
+              <div style={{ display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
+                <div
+                  onClick={() => editingInfoCard && fotoInputRef.current?.click()}
+                  className="td-foto-frame"
+                  style={{
+                    width: 200, height: 220, minWidth: 160, borderRadius: 10, overflow: "hidden",
+                    flexShrink: 0, position: "relative",
+                    cursor: editingInfoCard ? "pointer" : "default",
+                  }}
+                >
+                  {(editingInfoCard ? fotoPreview : trabajador.path ? `${API_BASE}/${trabajador.path}` : null) ? (
+                    <img
+                      src={editingInfoCard ? fotoPreview : `${API_BASE}/${trabajador.path}`}
+                      alt={`${trabajador.nombre} ${trabajador.apellido}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: "100%", height: "100%",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6
+                    }}>
+                      <span style={{ fontSize: 22, opacity: 0.4 }}>📷</span>
+                      <span className="td-foto-sin-imagen">Sin imagen</span>
+                    </div>
+                  )}
+                  {editingInfoCard && (
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+                      background: "rgba(15, 23, 42, 0.45)", color: "#fff", opacity: 0, transition: "opacity 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = 0; }}
+                    >
+                      <CameraOutlined style={{ fontSize: 22 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>Cambiar foto</span>
+                    </div>
+                  )}
+                  <input
+                    ref={fotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleFotoSelect(e.target.files[0])}
+                  />
                 </div>
-                <div>
-                  <span className="cd-field-label">Apellido</span>
-                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.apellido || "—"}</span>
-                </div>
-                <div>
-                  <span className="cd-field-label">Puesto</span>
-                  <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.nombre_puesto || "—"}</span>
-                </div>
-                <div>
-                  <span className="cd-field-label">Fecha de nacimiento</span>
-                  <span className="cd-field-value">{fmtFecha(trabajador.fecha_nacimiento)}</span>
-                </div>
+                {editingInfoCard ? (
+                  <div className="cd-edit-form" style={{ flex: 1, minWidth: 220 }}>
+                    <div className="cd-edit-field">
+                      <span className="cd-field-label">Nombre</span>
+                      <Input value={editingInfoForm.nombre}
+                        onChange={(e) => setEditingInfoForm((f) => ({ ...f, nombre: e.target.value }))} />
+                    </div>
+                    <div className="cd-edit-field">
+                      <span className="cd-field-label">Apellido</span>
+                      <Input value={editingInfoForm.apellido}
+                        onChange={(e) => setEditingInfoForm((f) => ({ ...f, apellido: e.target.value }))} />
+                    </div>
+                    <div className="cd-edit-field">
+                      <span className="cd-field-label">Puesto</span>
+                      <Select
+                        value={editingInfoForm.id_puesto}
+                        onChange={(v) => setEditingInfoForm((f) => ({ ...f, id_puesto: v }))}
+                        options={puestosOptions.map((p) => ({ label: p.nombre, value: p.id_puesto }))}
+                        allowClear
+                        placeholder="Selecciona un puesto"
+                      />
+                    </div>
+                    <div className="cd-edit-field">
+                      <span className="cd-field-label">Fecha de nacimiento</span>
+                      <DatePicker
+                        value={editingInfoForm.fecha_nacimiento}
+                        onChange={(v) => setEditingInfoForm((f) => ({ ...f, fecha_nacimiento: v }))}
+                        format="DD/MM/YYYY"
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                    <div className="cd-edit-form-actions">
+                      <Button onClick={() => {
+                        setEditingInfoCard(false);
+                        setFotoFile(null);
+                        setFotoPreview(null);
+                      }}>Cancelar</Button>
+                      <Button type="primary" loading={savingInfoCard} onClick={handleSaveInfoCard} style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}>Guardar</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="cd-client-fields" style={{ flex: 1, minWidth: 180 }}>
+                    <div>
+                      <span className="cd-field-label">Nombre</span>
+                      <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.nombre || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="cd-field-label">Apellido</span>
+                      <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.apellido || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="cd-field-label">Puesto</span>
+                      <span className="cd-field-value" style={{ textTransform: "capitalize" }}>{trabajador.nombre_puesto || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="cd-field-label">Fecha de nacimiento</span>
+                      <span className="cd-field-value">{fmtFecha(trabajador.fecha_nacimiento)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="cd-card">
               <div className="cd-card-header">
                 <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
-                <h2 className="cd-card-title">Registro</h2>
+                <h2 className="cd-card-title">Próximos Eventos</h2>
               </div>
-              <div className="cd-client-fields">
-                <div>
-                  <span className="cd-field-label">Fecha de registro</span>
-                  <span className="cd-field-value">{fmtFecha(trabajador.datetime)}</span>
+              {loadingProximos ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: 30 }}>
+                  <Spin />
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "analisis" && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, justifyContent: "flex-end" }}>
-              <Select
-                value={analisisPeriodo}
-                onChange={handleAnalisisPeriodo}
-                options={PERIODO_OPTIONS}
-                style={{ width: 160 }}
-                size="middle"
-                className="est-select"
-              />
-              {analisisPeriodo === "custom" && (
-                <RangePicker
-                  onChange={handleAnalisisRangeChange}
-                  format="DD/MM/YYYY"
-                  placeholder={["Desde", "Hasta"]}
-                />
+              ) : proximosEventos.length === 0 ? (
+                <Empty description="Sin eventos próximos" style={{ margin: "28px 0" }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {proximosEventos.map((e) => {
+                    const chip = fmtDiaChip(e.fecha_evento);
+                    const horario = fmtHorarioEvento(e);
+                    return (
+                      <div key={e.id_contrato} className="td-proximo-row">
+                        <div style={{
+                          width: 52, textAlign: "center", flexShrink: 0,
+                          background: "linear-gradient(160deg, var(--eh-primary-btn) 0%, #0450d6 100%)",
+                          borderRadius: 10, padding: "6px 0", color: "#fff",
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", opacity: 0.85 }}>{chip?.dow || "—"}</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{chip?.dia ?? "—"}</div>
+                          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", opacity: 0.85 }}>{chip?.mes || ""}</div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="td-proximo-nombre" style={{
+                            fontWeight: 700, fontSize: 14, textTransform: "capitalize",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {e.cliente_nombre || "Cliente sin nombre"}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                            {e.nombre_puesto_evento && (
+                              <span className="trab-puesto-badge">{e.nombre_puesto_evento}</span>
+                            )}
+                            {horario && (
+                              <span className="td-proximo-horario">
+                                <ClockCircleOutlined style={{ fontSize: 11 }} />
+                                {horario}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-
-            {analisisLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-                <Spin size="large" />
-              </div>
-            ) : (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Horas trabajadas en eventos</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: "#05060a" }}>
-                      {stats.total_horas ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 4 }}>hrs</span>
-                    </p>
-                    <span className="cd-financial-note">En el período seleccionado</span>
-                  </div>
-
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Eventos donde participó</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: "#05060a" }}>
-                      {stats.eventos_count ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 4 }}>
-                        de {stats.total_eventos_negocio ?? 0}
-                      </span>
-                    </p>
-                    <span className="cd-financial-note">Total de eventos del negocio en el período</span>
-                  </div>
-
-                  <div className="cd-card" style={{ padding: "20px 24px" }}>
-                    <span className="cd-field-label">Tasa de participación</span>
-                    <p className="cd-financial-value" style={{ fontSize: 32, margin: "8px 0 4px", color: (stats.tasa_pct ?? 0) >= 50 ? "#15803d" : "#05060a" }}>
-                      {stats.tasa_pct ?? 0}
-                      <span style={{ fontSize: 14, fontWeight: 400, color: "#64748b", marginLeft: 2 }}>%</span>
-                    </p>
-                    <span className="cd-financial-note">
-                      {trabajador.nombre} participó en el {stats.tasa_pct ?? 0}% de los eventos
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div className="cd-card">
-                    <div className="cd-card-header">
-                      <div className="cd-card-icon-wrap"><CalendarOutlined /></div>
-                      <h2 className="cd-card-title">Eventos en el período</h2>
-                    </div>
-                    {eventos.length === 0 ? (
-                      <Empty description="Sin eventos en este período" style={{ margin: "32px 0" }} />
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                          <thead>
-                            <tr style={{ borderBottom: "2px solid #f1f5f9" }}>
-                              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Fecha</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Cliente</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Puesto</th>
-                              <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, color: "#64748b" }}>Duración</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {eventos.map((e) => (
-                              <tr key={e.id_contrato} style={{ borderBottom: "1px solid #f8fafc" }}>
-                                <td style={{ padding: "7px 8px" }}>{fmtFechaCorta(e.fecha_evento)}</td>
-                                <td style={{ padding: "7px 8px", color: "#374151" }}>{e.cliente_nombre || "—"}</td>
-                                <td style={{ padding: "7px 8px", color: "#64748b", fontSize: 12 }}>{e.nombre_puesto_evento || "—"}</td>
-                                <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 600 }}>
-                                  {parseFloat(e.duracion_horas || 0).toFixed(1)} hrs
-                                </td>
-                              </tr>
-                            ))}
-                            <tr style={{ borderTop: "2px solid #e2e8f0", background: "#f8fafc" }}>
-                              <td style={{ padding: "8px", fontWeight: 700 }} colSpan={3}>
-                                Total — {eventos.length} eventos
-                              </td>
-                              <td style={{ padding: "8px", textAlign: "right", fontWeight: 700 }}>
-                                {totalHorasEvt.toFixed(1)} hrs
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="cd-card">
-                    <div className="cd-card-header">
-                      <div className="cd-card-icon-wrap"><TeamOutlined /></div>
-                      <h2 className="cd-card-title">Comparación en puesto</h2>
-                    </div>
-                    <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                      {trabajador.nombre_puesto ? `Puesto: ${trabajador.nombre_puesto}` : "Todos los trabajadores"}
-                      {" — "}por número de eventos participados en el período
-                    </p>
-                    {!donutData || comparacion.every((c) => c.eventos_count === 0) ? (
-                      <Empty description="Sin datos de comparación" style={{ margin: "32px 0" }} />
-                    ) : (
-                      <div style={{ height: 260, display: "flex", justifyContent: "center" }}>
-                        <Doughnut data={donutData} options={donutOptions} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         )}
 
@@ -585,6 +661,13 @@ export default function TrabajadorDetallePage() {
           Esta acción no se puede deshacer.
         </p>
       </Modal>
+
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/trabajadores")}
+      />
     </div>
   );
 }

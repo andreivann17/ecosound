@@ -1,11 +1,12 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { notification, Button, Spin } from "antd";
+import { Button, Spin } from "antd";
 import logo from "../../assets/img/logo_herrsoft.webp";
 import { actionLoginAdmin } from "../../redux/actions/login/login";
 import { Form, FloatingLabel } from 'react-bootstrap';
 import ModalOlvidar from "../../components/modals/modalPasswordResetAdmin";
+import Toast from "../../components/toasts/toast";
 import "../../assets/css/loginVoyager.css";
 
 function Login() {
@@ -32,11 +33,12 @@ useEffect(() => {
   const [loading, setLoading] = useState(false);
   const [token,setToken]  = useState(localStorage.getItem("token"))
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   const openNotification = (msg) => {
-    notification.error({
-      message: "Error",
-      description: msg,
-    });
+    toast(msg);
   };
 
   const checkFields = () => {
@@ -171,6 +173,7 @@ openNotification("Please complete all fields correctly.");
       <ModalOlvidar show={show} setShow={setShow} />
     </div>
 
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
         </>
   );
 }

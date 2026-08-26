@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { usePermisos } from "../../context/PermisosContext";
@@ -24,7 +24,6 @@ import {
   Space,
   Modal,
   Form,
-  notification,
 } from "antd";
 import {
   PlusOutlined,
@@ -38,9 +37,11 @@ import {
   UploadOutlined,
   CloseCircleOutlined,
   DownloadOutlined,
+  ArrowUpOutlined,
 } from "@ant-design/icons";
 
 import { previewGastosReportPdf, printGastosReportPdf } from "../../components/utils/printGastosReportPdf";
+import Toast from "../../components/toasts/toast";
 import "./GastosPage.css";
 
 dayjs.locale("es");
@@ -149,6 +150,22 @@ export default function GastosPage() {
   const fileInputRef                = useRef(null);
 
   const lastFetchKey = useRef("");
+
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const scrollEl = document.querySelector(".content-electron") || window;
+    const onScroll = () => {
+      const top = scrollEl === window ? window.scrollY : scrollEl.scrollTop;
+      setShowBackToTop(top > 300);
+    };
+    scrollEl.addEventListener("scroll", onScroll);
+    return () => scrollEl.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDeb(search), 350);
@@ -261,16 +278,13 @@ export default function GastosPage() {
         });
       }
 
-      notification.success({ message: "Gasto registrado correctamente" });
+      toast("Gasto registrado correctamente");
       setModalOpen(false);
       setSelectedFile(null);
       lastFetchKey.current = "";
       dispatch(actionGastosGet(fetchParams));
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -288,8 +302,8 @@ export default function GastosPage() {
             <Text className="gas-subtitle">Registro y control de gastos del negocio</Text>
           </Space>
 
-          <Row gutter={[16, 14]}>
-            <Col xs={24} md={8}>
+          <Row gutter={[16, 14]} align="bottom">
+            <Col xs={24} md={7}>
               <div className="gas-field-label">Buscador</div>
               <Input
                 value={search}
@@ -300,7 +314,7 @@ export default function GastosPage() {
                 allowClear
               />
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={6}>
               <div className="gas-field-label">Tipo de gasto</div>
               <Select
                 value={tipoFilter ?? "todos"}
@@ -312,7 +326,7 @@ export default function GastosPage() {
                 ]}
               />
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={6}>
               <div className="gas-field-label">Período</div>
               <Select
                 value={periodo}
@@ -331,9 +345,7 @@ export default function GastosPage() {
                 />
               </Col>
             )}
-          </Row>
-          <Row style={{ marginTop: 14 }} align="bottom">
-            <Col>
+            <Col xs={24} md={5}>
               <Button className="gas-btn-clean" onClick={clearFilters}>
                 Limpiar filtros
               </Button>
@@ -464,65 +476,66 @@ export default function GastosPage() {
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="gas-toolbar">
-          <div className="gas-toolbar-left">
-            <Title level={4} style={{ marginBottom: 0 }}>
-              Gastos ({displayItems.length})
-            </Title>
-            <Text type="secondary">{displayItems.length} encontrados</Text>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleExport}
-              className="laboral-btn-import"
-              style={{ flex: "none" }}
-            >
-              Exportar
-            </Button>
-            {canInsertar && (
+        <div className="gas-expedientes-card">
+          {/* Toolbar */}
+          <div className="gas-toolbar">
+            <div className="gas-toolbar-left">
+              <Title level={4} style={{ marginBottom: 0 }}>
+                Gastos ({displayItems.length})
+              </Title>
+              <Text type="secondary">{displayItems.length} encontrados</Text>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
               <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={openModal}
-                className="laboral-btn-create custom-button"
+                icon={<DownloadOutlined />}
+                onClick={handleExport}
+                className="laboral-btn-import"
+                style={{ flex: "none" }}
               >
-                Agregar
+                Exportar
               </Button>
-            )}
-          </div>
-        </div>
-
-        {/* List */}
-        {displayItems.length === 0 && !loading && (
-          <div className="gas-empty">
-            <DollarOutlined style={{ fontSize: 36, marginBottom: 12 }} />
-            <div style={{ fontSize: 15, fontWeight: 500 }}>Sin gastos que coincidan con los filtros</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>
-              Usa el botón "Agregar" para registrar tu primer gasto
+              {canInsertar && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={openModal}
+                  className="laboral-btn-create custom-button"
+                >
+                  Agregar
+                </Button>
+              )}
             </div>
           </div>
-        )}
 
-        <div className="gas-list">
-          {displayItems.map((gasto) => (
-            <div key={gasto.id_gasto} className="gas-card">
-              <div className="gas-card-accent" />
-              <div className="gas-card-body">
+          {/* List */}
+          {displayItems.length === 0 && !loading && (
+            <div className="gas-empty">
+              <DollarOutlined style={{ fontSize: 36, marginBottom: 12 }} />
+              <div style={{ fontSize: 15, fontWeight: 500 }}>Sin gastos que coincidan con los filtros</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>
+                Usa el botón "Agregar" para registrar tu primer gasto
+              </div>
+            </div>
+          )}
 
-                {/* Left: badge + title + meta */}
-                <div className="gas-card-main">
-                  {gasto.nombre_tipo_gasto && (
-                    <span className="gas-cat-badge">{gasto.nombre_tipo_gasto}</span>
-                  )}
-                  <div className="gas-card-desc">{gasto.descripcion}</div>
-                  <div className="gas-card-meta">
-                    <span className="gas-card-meta-item">
-                      <CalendarOutlined style={{ fontSize: 11 }} />
-                      {fmtDate(gasto.fecha)}
-                    </span>
-                    {gasto.filename && (
+          <div className="gas-list">
+            {displayItems.map((gasto) => (
+              <div key={gasto.id_gasto} className="gas-card">
+                <div className="gas-card-accent" />
+                <div className="gas-card-body">
+
+                  {/* Left: badge + title + meta */}
+                  <div className="gas-card-main">
+                    {gasto.nombre_tipo_gasto && (
+                      <span className="gas-cat-badge">{gasto.nombre_tipo_gasto}</span>
+                    )}
+                    <div className="gas-card-desc">{gasto.descripcion}</div>
+                    <div className="gas-card-meta">
+                      <span className="gas-card-meta-item">
+                        <CalendarOutlined style={{ fontSize: 11 }} />
+                        {fmtDate(gasto.fecha)}
+                      </span>
+                      {gasto.filename && (
                       <span className="gas-card-meta-item gas-card-attachment">
                         <PaperClipOutlined style={{ fontSize: 11 }} />
                         <a
@@ -561,9 +574,25 @@ export default function GastosPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
       </div>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="gas-back-to-top"
+          onClick={() => {
+            const scrollEl = document.querySelector(".content-electron");
+            if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: "smooth" });
+            else window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label="Volver arriba"
+        >
+          <ArrowUpOutlined />
+        </button>
+      )}
 
       {/* ── Modal: Exportar ───────────────────────────────────────────────── */}
       <Modal
@@ -584,7 +613,7 @@ export default function GastosPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              style={{ background: "#01369e", borderColor: "#01369e" }}
+              style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               onClick={() => printGastosReportPdf({
                 items: filteredItems,
                 periodoLabel: PERIODO_LABEL_MAP[periodo] || "Todos los gastos",
@@ -632,7 +661,7 @@ export default function GastosPage() {
             type="primary"
             loading={saving}
             onClick={handleModalSave}
-            style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+            style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
           >
             Registrar gasto
           </Button>,
@@ -740,6 +769,7 @@ export default function GastosPage() {
               <Button
                 icon={<UploadOutlined />}
                 onClick={() => fileInputRef.current?.click()}
+                className="gas-btn-upload"
                 style={{ borderStyle: "dashed" }}
               >
                 Adjuntar documento o imagen
@@ -749,6 +779,8 @@ export default function GastosPage() {
 
         </Form>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </main>
   );
 }

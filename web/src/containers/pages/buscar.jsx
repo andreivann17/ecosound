@@ -1,350 +1,247 @@
-// src/components/expedientes/BuscarExpedienteModal.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, Card, Row, Col, Typography, AutoComplete, Input, notification } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Modal, Typography, AutoComplete, Input } from "antd";
+import {
+  SearchOutlined,
+  CalendarOutlined,
+  AppstoreOutlined,
+  FileTextOutlined,
+  HomeOutlined,
+  BarChartOutlined,
+  DollarOutlined,
+  UserOutlined,
+  SettingOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import logo from "../../assets/img/logo.png";
 import axios from "axios";
-import {PATH} from "../../redux/utils"
-const API_BASE = PATH;
+import { PATH } from "../../redux/utils";
+import logoPng from "../../assets/img/logo_hersoft_event.webp";
+
 const { Title, Text } = Typography;
 
-
-const apiServiceGet = axios.create({
-  baseURL: API_BASE,
-  headers: { "Content-Type": "application/json" },
-});
+const api = axios.create({ baseURL: PATH, headers: { "Content-Type": "application/json" } });
 const authHeader = () => {
-  const token = localStorage.getItem("tokenadmin") || localStorage.getItem("token");
+  const token = localStorage.getItem("token") || localStorage.getItem("tokenadmin");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
-// ===============================
-// 1. Comandos estáticos (front)
-// ===============================
-/**
- * Estos son "destinos" fijos del sistema.
- * Puedes agregar / quitar rutas sin tocar el backend.
- */
-const STATIC_COMMANDS = [
-  {
-    key: "laboral-centro-conciliacion",
-    type: "route",
-    label: "Centro de conciliación (Laboral)",
-    description: "Ir al panel de Centro de conciliación",
-    route: "/materias/laboral/centro-conciliacion",
-    keywords: ["centro", "conciliacion", "conciliación", "laboral", "prejudicial"],
-  },
-  {
-    key: "laboral-tribunal",
-    type: "route",
-    label: "Tribunal laboral",
-    description: "Ir al panel de Tribunal laboral",
-    route: "/materias/laboral/tribunal",
-    keywords: ["tribunal", "juicio", "tri", "laboral"],
-  },
-  {
-    key: "laboral-documentacion",
-    type: "route",
-    label: "Documentación laboral",
-    description: "Ir al módulo de documentación",
-    route: "/materias/laboral/documentacion",
-    keywords: ["documentacion", "documentación", "docs", "archivos", "laboral"],
-  },
-];
 
+const TIPO_EVENTO_MAP = {
+  1: "Bodas", 2: "XV", 3: "Graduación", 4: "Corporativo", 5: "Cumpleaños", 6: "Otro",
+};
+
+const STATIC_COMMANDS = [
+  { key: "inicio",        type: "route", label: "Inicio",         description: "Panel de inicio",         route: "/app/home",          icon: <HomeOutlined />,       keywords: ["inicio", "home", "panel"] },
+  { key: "eventos",       type: "route", label: "Eventos",        description: "Gestión de eventos",       route: "/app/eventos",       icon: <CalendarOutlined />,   keywords: ["eventos", "evento", "boda", "xv", "graduacion", "cumple"] },
+  { key: "paquetes",      type: "route", label: "Paquetes",       description: "Catálogo de paquetes",     route: "/app/paquetes",      icon: <AppstoreOutlined />,   keywords: ["paquetes", "paquete", "sonido", "foto", "equipo"] },
+  { key: "cotizaciones",  type: "route", label: "Cotizaciones",   description: "Módulo de cotizaciones",   route: "/app/cotizaciones",  icon: <FileTextOutlined />,   keywords: ["cotizaciones", "cotizacion", "cotización", "presupuesto"] },
+  { key: "agenda",        type: "route", label: "Agenda",         description: "Calendario de eventos",    route: "/app/agenda",        icon: <CalendarOutlined />,   keywords: ["agenda", "calendario", "calendar"] },
+  { key: "gastos",        type: "route", label: "Gastos",         description: "Registro de gastos",       route: "/app/gastos",        icon: <DollarOutlined />,     keywords: ["gastos", "gasto", "egresos"] },
+  { key: "estadisticas",  type: "route", label: "Estadísticas",   description: "Reportes y estadísticas",  route: "/app/estadisticas",  icon: <BarChartOutlined />,   keywords: ["estadisticas", "estadísticas", "reportes"] },
+  { key: "usuarios",      type: "route", label: "Usuarios",       description: "Gestión de usuarios",      route: "/app/usuarios",      icon: <UserOutlined />,       keywords: ["usuarios", "usuario", "user"] },
+  { key: "configuracion", type: "route", label: "Configuración",  description: "Ajustes del sistema",      route: "/app/configuracion", icon: <SettingOutlined />,    keywords: ["configuracion", "configuración", "settings", "ajustes"] },
+];
 
 function buildStaticOptions(query) {
   const q = (query || "").toLowerCase().trim();
-  if (!q) {
-    // Puedes devolver algunos comandos por defecto o dejar vacío
-    return STATIC_COMMANDS.map((cmd) => ({
-      value: cmd.key,
-      label: (
-        <div>
-          <div>{cmd.label}</div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>
-            {cmd.description}
-          </div>
-        </div>
-      ),
-      // metadata extra que luego usamos en onSelect
-      type: cmd.type,
-      route: cmd.route,
-    }));
-  }
+  const list = !q
+    ? STATIC_COMMANDS
+    : STATIC_COMMANDS.filter((c) =>
+        c.label.toLowerCase().includes(q) ||
+        (c.keywords || []).some((k) => k.toLowerCase().includes(q))
+      );
 
-  return STATIC_COMMANDS.filter((cmd) => {
-    const hayEnLabel = cmd.label.toLowerCase().includes(q);
-    const hayEnKeywords =
-      Array.isArray(cmd.keywords) &&
-      cmd.keywords.some((k) => k.toLowerCase().includes(q));
-    return hayEnLabel || hayEnKeywords;
-  }).map((cmd) => ({
+  return list.map((cmd) => ({
     value: cmd.key,
     label: (
       <div>
         <div>{cmd.label}</div>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          {cmd.description}
-        </div>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>{cmd.description}</div>
       </div>
     ),
-    type: cmd.type,
+    type: "route",
     route: cmd.route,
   }));
 }
 
-function buildExpedienteOptions(items) {
-  if (!Array.isArray(items)) return [];
+function buildResultOptions(eventos, paquetes, cotizaciones) {
+  const opts = [];
 
-  return items.map((item) => {
-    const expedienteFormat = item.expediente_format || item.expediente || "";
-    let title = expedienteFormat
-    
-    const trabajador = item.trabajador || item.nombre_trabajador || "";
-    const empresa = item.empresa || item.nombre_empresa || "";
-    if(item.type == "expediente"){
-      if(item.subtype == "desvinculacion"){
-        title = trabajador + " VS " +  empresa;
-      }
-    }
-
-    const secondaryParts = [];
-    if (trabajador) secondaryParts.push(trabajador);
-    if (empresa) secondaryParts.push(empresa);
-    const secondary = secondaryParts.join(" • ");
-
-    const materia = item.materia || "laboral";
-    const procedimiento = item.procedimiento || "";
-    const type = item.type || "expediente";
-    const key = item.key;
-
-    let seccionLabel = "Sección no especificada";
-    if (materia === "laboral" && procedimiento === "centro-conciliacion") {
-      seccionLabel = "Centro de conciliación (Laboral)";
-    } else if (materia === "laboral" && procedimiento === "tribunal") {
-      seccionLabel = "Tribunal laboral";
-    } else if (materia === "laboral" && procedimiento === "documentacion") {
-      seccionLabel = "Documentación laboral";
-    } else if (materia === "laboral" && procedimiento === "desvinculaciones") {
-      seccionLabel = "Desvinculaciones";
-    }
-
-    return {
-      value: expedienteFormat,
+  eventos.forEach((ev) => {
+    const tipo = TIPO_EVENTO_MAP[ev.id_tipo_evento] || "";
+    opts.push({
+      value: `evento-${ev.id_evento}`,
       label: (
         <div>
-          <div>
-            <strong>{title}</strong>
+          <div><strong>{ev.cliente_nombre || "—"}</strong></div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Evento{tipo && ` · ${tipo}`}{ev.lugar_evento ? ` · ${ev.lugar_evento}` : ""}
           </div>
-          <div style={{ fontSize: 12, color: "#6b7280" }}>{seccionLabel}</div>
-          {secondary && <div style={{ fontSize: 12, color: "#9ca3af" }}>{secondary}</div>}
         </div>
       ),
-      // metadata
-      type,           // 'conciliacion' | 'desvinculacion'
-      key,            // id real
-      expediente_format: expedienteFormat,
-      materia,
-      procedimiento,
-    };
+      type: "evento",
+      id: ev.id_evento,
+    });
   });
+
+  paquetes.forEach((pq) => {
+    opts.push({
+      value: `paquete-${pq.id_paquete}`,
+      label: (
+        <div>
+          <div><strong>{pq.nombre_paquete || pq.nombre || "—"}</strong></div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Paquete</div>
+        </div>
+      ),
+      type: "paquete",
+      id: pq.id_paquete,
+    });
+  });
+
+  cotizaciones.forEach((cot) => {
+    opts.push({
+      value: `cotizacion-${cot.id_cotizacion}`,
+      label: (
+        <div>
+          <div><strong>{cot.cliente_nombre || "—"}</strong></div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Cotización{cot.code ? ` · ${cot.code}` : ""}
+          </div>
+        </div>
+      ),
+      type: "cotizacion",
+      id: cot.id_cotizacion,
+    });
+  });
+
+  return opts;
 }
 
-
-function BuscarExpedienteModal({ open, onClose }) {
+export default function BuscarModal({ open, onClose }) {
   const navigate = useNavigate();
-
   const [searchValue, setSearchValue] = useState("");
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const searchTimeoutRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // Reset cada vez que se abre / cierra
   useEffect(() => {
     if (!open) {
       setSearchValue("");
       setOptions([]);
     } else {
-      // Al abrir puedes mostrar comandos estáticos por defecto
       setOptions(buildStaticOptions(""));
     }
   }, [open]);
 
-const fetchExpedientes = async (q) => {
-  const query = (q || "").trim();
-  if (!query) return [];
+  const fetchResults = async (q) => {
+    try {
+      setLoading(true);
+      const h = authHeader();
+      const [evRes, pqRes, cotRes] = await Promise.allSettled([
+        api.get("/eventos",      { headers: h, params: { search: q, limit: 5 } }),
+        api.get("/paquetes",     { headers: h, params: { search: q, limit: 5 } }),
+        api.get("/cotizaciones", { headers: h, params: { search: q, limit: 5 } }),
+      ]);
 
-  try {
-    setLoading(true);
+      const ev  = evRes.status  === "fulfilled" ? (evRes.value.data?.items  || evRes.value.data  || []) : [];
+      const pq  = pqRes.status  === "fulfilled" ? (pqRes.value.data?.items  || pqRes.value.data  || []) : [];
+      const cot = cotRes.status === "fulfilled" ? (cotRes.value.data?.items || cotRes.value.data || []) : [];
 
-    const { data } = await apiServiceGet.get("materias/search", {
-      params: { q: query, limit: 10 },
-      headers: authHeader(),
-    });
-
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.error("Error al buscar:", err?.response?.status || err);
-    return [];
-  } finally {
-    setLoading(false);
-  }
-};
+      return { ev: Array.isArray(ev) ? ev : [], pq: Array.isArray(pq) ? pq : [], cot: Array.isArray(cot) ? cot : [] };
+    } catch {
+      return { ev: [], pq: [], cot: [] };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (value) => {
     setSearchValue(value);
+    const q = (value || "").trim();
+    const staticOpts = buildStaticOptions(q);
 
-    const trimmed = (value || "").trim();
-
-    // Siempre construimos primero las opciones estáticas
-    const staticOpts = buildStaticOptions(trimmed);
-
-    // Si no hay nada escrito, solo mostramos comandos estáticos
-    if (!trimmed) {
+    if (!q) {
       setOptions(staticOpts);
       return;
     }
 
-    // Debounce para no pegar al backend en cada tecla
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(async () => {
-      const expedientes = await fetchExpedientes(trimmed);
-      const expedienteOptions = buildExpedienteOptions(expedientes);
-
-      // Combinamos estáticos + expedientes
-      setOptions([...staticOpts, ...expedienteOptions]);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      const { ev, pq, cot } = await fetchResults(q);
+      const resultOpts = buildResultOptions(ev, pq, cot);
+      setOptions(resultOpts.length > 0 ? [...staticOpts, ...resultOpts] : staticOpts);
     }, 350);
   };
 
-
-  const handleSelect = (value, option) => {
-
-    const optType = option?.type;
-
-    // 1) Navegación a secciones fijas
-    if (optType === "route") {
-      if (option.route) {
-        console.log(option)
-        navigate(option.route);
-      } else {
-        
-        console.warn("Opción de tipo route sin 'route' definida:", option);
-      }
-      handleCloseInternal();
-      return;
+  const handleSelect = (_, option) => {
+    if (option.type === "route") {
+      navigate(option.route);
+    } else if (option.type === "evento") {
+      navigate(`/app/eventos/${option.id}`);
+    } else if (option.type === "paquete") {
+      navigate(`/app/paquetes/${option.id}`);
+    } else if (option.type === "cotizacion") {
+      navigate(`/app/cotizaciones/${option.id}`);
     }
-
-    // 2) Abrir expediente
-    if (optType === "expediente") {
-      console.log(option)
-
-      const materia = option.materia || "laboral";
-      const procedimiento = option.procedimiento || "centro-conciliacion";
-
-      // Aquí defines cómo se construye la ruta a detalle
-      navigate(
-          `/materias/${materia}/${procedimiento}/${option.key}`
-      );
-
-      handleCloseInternal();
-      return;
-    }
-
-    // Si por alguna razón llega algo raro:
-    console.warn("Opción seleccionada sin tipo conocido:", option);
+    close();
   };
 
-  const handleCloseInternal = () => {
+  const close = () => {
     setSearchValue("");
     setOptions([]);
     if (typeof onClose === "function") onClose();
   };
 
-  const handleCancel = () => {
-    handleCloseInternal();
-  };
-
   return (
     <Modal
       open={open}
-      onCancel={handleCancel}
+      onCancel={close}
       footer={null}
       width={720}
       destroyOnClose
       closeIcon={
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#111827",
-            lineHeight: 1,
-          }}
-        >
+        <span style={{ fontSize: 20, fontWeight: 700, color: "var(--eh-ink, #111827)", lineHeight: 1 }}>
           ×
         </span>
       }
     >
-      <Card
-        style={{ width: "100%", borderRadius: 18, boxShadow: "none" }}
-        bodyStyle={{ padding: "24px 32px 24px 32px" }}
-      >
-        {/* Header */}
-        <Row justify="center" style={{ marginBottom: 24 }}>
-          <Col span={24} style={{ textAlign: "center" }}>
-            <div style={{ marginBottom: 12 }}>
-              <img
-                src={logo}
-                alt="Logo"
-                style={{
-                  width: 72,
-                  height: 72,
-                  objectFit: "contain",
-                  borderRadius: "50%",
-                  border: "1px solid #e5e7eb",
-                  padding: 8,
-                }}
-              />
-            </div>
+      <div style={{ padding: "8px 8px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <img
+            src={logoPng}
+            alt="Logo"
+            style={{
+              width: 72,
+              height: 72,
+              objectFit: "contain",
+              margin: "0 auto 12px",
+              display: "block",
+            }}
+          />
+          <Title level={3} style={{ marginBottom: 4, color: "var(--eh-ink, inherit)" }}>
+            Buscar sección o evento
+          </Title>
+          <Text type="secondary" style={{ color: "var(--eh-ink-muted, inherit)" }}>
+            Introduce el nombre del cliente, evento, paquete o la sección que deseas abrir.
+          </Text>
+        </div>
 
-            <Title level={3} style={{ marginBottom: 0 }}>
-              Buscar sección o expediente
-            </Title>
-            <Text type="secondary">
-             Introduce el número de expediente o términos relacionados con la sección que deseas abrir.
-            </Text>
-          </Col>
-        </Row>
-
-        {/* Barra de búsqueda única */}
-        <Row justify="center">
-          <Col xs={24}>
-            <AutoComplete
-              style={{ width: "100%" }}
-              value={searchValue}
-              options={options}
-              onSearch={handleSearch}
-              onSelect={handleSelect}
-              allowClear
-              notFoundContent={
-                loading ? "Buscando..." : "No se encontraron resultados."
-              }
-              filterOption={false} // manejamos el filtrado manualmente
-            >
-              <Input
-                size="large"
-                prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
-                placeholder="Ejemplo: MXLI-CI-2025-000123, centro, tribunal..."
-              />
-            </AutoComplete>
-          </Col>
-        </Row>
-      </Card>
+        <AutoComplete
+          style={{ width: "100%" }}
+          value={searchValue}
+          options={options}
+          onSearch={handleSearch}
+          onSelect={handleSelect}
+          allowClear
+          notFoundContent={loading ? "Buscando..." : "No se encontraron resultados."}
+          filterOption={false}
+        >
+          <Input
+            size="large"
+            prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
+            placeholder="Ejemplo: María García, bodas, paquetes, cotizaciones..."
+          />
+        </AutoComplete>
+      </div>
     </Modal>
   );
 }
-
-export default BuscarExpedienteModal;

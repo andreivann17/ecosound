@@ -6,7 +6,6 @@ import {
   Input,
   Typography,
   Space,
-  notification,
 } from "antd";
 import {
   MailOutlined,
@@ -49,6 +48,8 @@ function ModalPasswordResetAdmin({ show, setShow }) {
   const [code, setCode]       = useState("");
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const [formEmail]    = Form.useForm();
   const [formCode]     = Form.useForm();
@@ -84,11 +85,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
           (res) => {
             setLoading(false);
             if (!res?.status) {
-              notification.error({
-                message: "No se pudo continuar",
-                description: "El correo no existe en el sistema.",
-                placement: "top",
-              });
+              toast("El correo no existe en el sistema.");
               return;
             }
             setEmail(val);
@@ -96,11 +93,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
           },
           () => {
             setLoading(false);
-            notification.error({
-              message: "Error",
-              description: "No se pudo enviar el código.",
-              placement: "top",
-            });
+            toast("No se pudo enviar el código.");
           }
         )
       );
@@ -119,11 +112,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
           (res) => {
             setLoading(false);
             if (!res?.status) {
-              notification.error({
-                message: "Código inválido",
-                description: "Verifica el código e inténtalo de nuevo.",
-                placement: "top",
-              });
+              toast("Código inválido. Verifica el código e inténtalo de nuevo.");
               return;
             }
             setCode(codeVal);
@@ -131,11 +120,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
           },
           () => {
             setLoading(false);
-            notification.error({
-              message: "Error",
-              description: "No se pudo validar el código.",
-              placement: "top",
-            });
+            toast("No se pudo validar el código.");
           }
         )
       );
@@ -147,11 +132,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
     try {
       const { newPassword, confirmPassword } = await formPassword.validateFields();
       if (newPassword !== confirmPassword) {
-        notification.error({
-          message: "Las contraseñas no coinciden",
-          description: "Verifica que ambas contraseñas sean iguales.",
-          placement: "top",
-        });
+        toast("Las contraseñas no coinciden. Verifica que ambas contraseñas sean iguales.");
         return;
       }
       setLoading(true);
@@ -162,15 +143,12 @@ function ModalPasswordResetAdmin({ show, setShow }) {
             setLoading(false);
             resetAll();
             setShow(false);
+            setToastMsg("Tu contraseña fue actualizada correctamente.");
             setShowToast(true);
           },
           (err) => {
             setLoading(false);
-            notification.error({
-              message: "No se pudo actualizar",
-              description: typeof err === "string" ? err : "Error al actualizar la contraseña.",
-              placement: "top",
-            });
+            toast(typeof err === "string" ? err : "Error al actualizar la contraseña.");
           }
         )
       );
@@ -191,7 +169,7 @@ function ModalPasswordResetAdmin({ show, setShow }) {
 
   return (
     <>
-      <Toast show={showToast} msg="Tu contraseña fue actualizada correctamente." setShow={setShowToast} />
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
 
       <Modal
         open={show}

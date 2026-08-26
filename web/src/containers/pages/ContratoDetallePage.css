@@ -1,7 +1,7 @@
 /* ContratoDetallePage.css */
 
 .cd-main {
-  background-color: #f5f7f9;
+  background-color: var(--eh-app-bg, #f5f7f9);
   min-height: calc(100vh - 56px);
   padding: 24px;
 }
@@ -16,7 +16,7 @@
   font-size: 12px;
   margin-bottom: 16px;
   display: inline-flex !important;
-  color: #01369e !important;
+  color: var(--eh-primary-btn) !important;
 }
 
 .cd-back-btn:hover {
@@ -25,7 +25,7 @@
 
 /* ── Header card ── */
 .cd-header-card {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
@@ -51,7 +51,7 @@
 .cd-client-name {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 0;
   line-height: 1.2;
 }
@@ -92,7 +92,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   flex-wrap: wrap;
 }
 
@@ -101,7 +101,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
 }
 
 .cd-header-actions {
@@ -114,14 +114,14 @@
 .cd-btn-edit.ant-btn {
   border-radius: 999px !important;
   border: 1px solid rgba(171, 173, 175, 0.5) !important;
-  color: #2c2f31 !important;
+  color: var(--eh-ink, #2c2f31) !important;
   font-weight: 600;
   font-size: 13px;
   background: transparent;
 }
 
 .cd-btn-edit.ant-btn:hover {
-  background: #f8fafc !important;
+  background: var(--eh-surface-2, #f8fafc) !important;
   border-color: #cbd5e1 !important;
 }
 
@@ -168,7 +168,7 @@
 }
 
 .cd-tab-btn-active {
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(5, 6, 10, 0.22);
 }
@@ -197,7 +197,7 @@
 
 /* ── Card base ── */
 .cd-card {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
@@ -220,13 +220,13 @@
   background: #eff6ff;
   border-radius: 10px;
   font-size: 17px;
-  color: #01369e;
+  color: var(--eh-primary-btn);
 }
 
 .cd-card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 0;
 }
 
@@ -243,23 +243,23 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   margin-bottom: 4px;
 }
 
 .cd-field-value {
   font-size: 13px;
   font-weight: 600;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
 }
 
 .cd-field-value-primary {
-  color: #01369e;
+  color: var(--eh-primary-btn);
 }
 
 .cd-field-value-muted {
   font-weight: 400 !important;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   line-height: 1.5;
 }
 
@@ -270,7 +270,7 @@
 }
 
 .cd-phone-icon {
-  color: #01369e;
+  color: var(--eh-primary-btn);
   font-size: 14px;
 }
 
@@ -291,14 +291,14 @@
 
 .cd-field-row-icon {
   font-size: 16px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
 }
 
 .cd-event-location {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #eef1f3;
+  background: var(--eh-surface-2, #eef1f3);
   border-radius: 10px;
   padding: 14px 16px;
   border: 1px solid rgba(171, 173, 175, 0.2);
@@ -306,7 +306,7 @@
 
 .cd-location-icon {
   font-size: 18px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -314,7 +314,7 @@
 .cd-location-text {
   font-size: 13px;
   font-weight: 500;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 4px 0 0;
   line-height: 1.5;
 }
@@ -348,18 +348,18 @@
 .cd-financial-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 8px 0 4px;
   line-height: 1;
 }
 
-.cd-financial-primary { color: #01369e; }
+.cd-financial-primary { color: var(--eh-primary-btn); }
 .cd-financial-error { color: #b31b25; }
 .cd-financial-ok { color: #15803d; }
 
 .cd-financial-note {
   font-size: 0.65rem;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   font-style: italic;
   margin-top: 2px;
 }
@@ -397,12 +397,12 @@
 .cd-tl-date {
   font-size: 12px;
   font-weight: 700;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
 }
 
 .cd-tl-time {
   font-size: 11px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
 }
 
 .cd-tl-dot {
@@ -415,7 +415,7 @@
   font-size: 13px;
 }
 
-.cd-tl-dot-contrato { background: #f1f5f9; color: #01369e; border: 2px solid #cbd5e1; }
+.cd-tl-dot-contrato { background: #f1f5f9; color: var(--eh-primary-btn); border: 2px solid #cbd5e1; }
 .cd-tl-dot-pago     { background: #dcfce7; color: #15803d; border: 2px solid #bbf7d0; }
 .cd-tl-dot-evento   { background: #fff7ed; color: #c2410c; border: 2px solid #fed7aa; }
 
@@ -426,13 +426,13 @@
 .cd-tl-title {
   font-size: 13px;
   font-weight: 700;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin-bottom: 2px;
 }
 
 .cd-tl-desc {
   font-size: 12px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   line-height: 1.5;
 }
 
@@ -460,8 +460,8 @@
 .cd-btn-add-pago.ant-btn {
   border-radius: 10px !important;
   font-weight: 700;
-  background: #01369e !important;
-  border-color: #01369e !important;
+  background: var(--eh-primary-btn) !important;
+  border-color: var(--eh-primary-btn) !important;
   color: #fff !important;
 }
 
@@ -469,7 +469,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  background: #f5f7f9;
+  background: var(--eh-surface-2, #f5f7f9);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 16px;
@@ -484,7 +484,7 @@
 .cd-pagos-summary-val {
   font-size: 16px;
   font-weight: 700;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
 }
 
 .cd-pagos-list {
@@ -499,8 +499,8 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 600;
-  color: #595c5e;
-  border-bottom: 1px solid #e2e8f0;
+  color: var(--eh-ink-2, #595c5e);
+  border-bottom: 1px solid var(--eh-surface-border, #e2e8f0);
 }
 
 .cd-pagos-row {
@@ -508,17 +508,17 @@
   grid-template-columns: 2fr 1fr 1fr;
   padding: 12px;
   font-size: 13px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--eh-surface-border, #f1f5f9);
   align-items: center;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
 }
 
 .cd-pagos-row-anticipo {
-  background: #f8fafc;
+  background: var(--eh-surface-2, #f8fafc);
 }
 
 .cd-pagos-row-creacion {
-  background: #f8fafc;
+  background: var(--eh-surface-2, #f8fafc);
 }
 
 .cd-pagos-monto {
@@ -531,19 +531,19 @@
   border-radius: 10px !important;
   font-weight: 600;
   font-size: 13px;
-  border-color: #01369e !important;
-  color: #01369e !important;
+  border-color: var(--eh-primary-btn) !important;
+  color: var(--eh-primary-btn) !important;
 }
 .cd-btn-upload.ant-btn:hover {
-  background: #f8fafc !important;
+  background: var(--eh-surface-2, #f8fafc) !important;
 }
 
 /* ── Contrato PDF viewer ── */
 .cd-pdf-viewer-wrap {
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background: #f5f7f9;
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
+  background: var(--eh-surface-2, #f5f7f9);
   min-height: calc(100vh - 260px);
 }
 
@@ -572,13 +572,13 @@
 .cd-empty-doc-title {
   font-size: 16px;
   font-weight: 700;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 0;
 }
 
 .cd-empty-doc-sub {
   font-size: 13px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
   margin: 0 0 8px;
   text-align: center;
 }
@@ -588,8 +588,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--eh-surface-2, #f1f5f9);
+  color: var(--eh-ink-2, #475569);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
@@ -631,7 +631,7 @@
 .cd-actividad-line {
   width: 2px;
   flex: 1;
-  background: #e2e8f0;
+  background: var(--eh-surface-border, #e2e8f0);
   margin: 6px 0;
   min-height: 20px;
 }
@@ -663,7 +663,7 @@
 .cd-actividad-message {
   font-size: 13px;
   font-weight: 500;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   margin: 0;
   line-height: 1.5;
 }
@@ -677,7 +677,7 @@
 
 .cd-actividad-time {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
 }
 
 .cd-actividad-user {
@@ -685,11 +685,11 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #595c5e;
+  color: var(--eh-ink-2, #595c5e);
 }
 
 .cd-actividad-email {
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
 }
 
 /* ── Documentos grid ── */
@@ -702,9 +702,9 @@
 
 .cd-doc-card {
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   overflow: hidden;
-  background: #fff;
+  background: var(--eh-surface, #fff);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
@@ -716,7 +716,7 @@
 .cd-doc-card-preview {
   position: relative;
   height: 130px;
-  background: #f8fafc;
+  background: var(--eh-surface-2, #f8fafc);
   cursor: pointer;
   overflow: hidden;
   display: flex;
@@ -768,13 +768,13 @@
   justify-content: space-between;
   padding: 8px 10px;
   gap: 6px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--eh-surface-border, #f1f5f9);
 }
 
 .cd-doc-name {
   font-size: 11px;
   font-weight: 600;
-  color: #2c2f31;
+  color: var(--eh-ink, #2c2f31);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -785,7 +785,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--eh-ink-faint, #9ca3af);
   font-size: 14px;
   display: flex;
   align-items: center;

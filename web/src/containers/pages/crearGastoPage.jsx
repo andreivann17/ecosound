@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   apiGastosInstance,
@@ -13,10 +13,11 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
 } from "antd";
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import {
   ArrowLeftOutlined,
   DollarOutlined,
@@ -36,6 +37,11 @@ export default function CrearGastoPage() {
   const [form]        = Form.useForm();
   const [saving, setSaving]         = useState(false);
   const [tiposGasto, setTiposGasto] = useState([]);
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   useEffect(() => {
     apiGastosInstance
@@ -84,18 +90,15 @@ export default function CrearGastoPage() {
         });
       }
 
-      notification.success({
-        message: isEditing ? "Gasto actualizado" : "Gasto registrado",
-        description: isEditing
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Gasto registrado!",
+        subtitle: isEditing
           ? "Los cambios se guardaron correctamente."
-          : "El gasto fue registrado en el sistema.",
+          : `"${values.descripcion?.trim() || ""}" ya está registrado en el sistema.`,
       });
-      navigate("/app/gastos");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -108,14 +111,7 @@ export default function CrearGastoPage() {
         <section className="gas-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/gastos")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Gastos
-              </Button>
+
               <Title level={2} className="gas-title" style={{ marginBottom: 0 }}>
                 {isEditing ? `Editando: ${gastoEditar.descripcion}` : "Nuevo gasto"}
               </Title>
@@ -130,15 +126,16 @@ export default function CrearGastoPage() {
               <Button
                 className="gas-btn-clean"
                 onClick={() => navigate("/app/gastos")}
-                disabled={saving}
+                disabled={saving || success.show}
               >
                 Cancelar
               </Button>
               <Button
                 type="primary"
                 loading={saving}
+                disabled={success.show}
                 onClick={handleSave}
-                style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+                style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               >
                 {isEditing ? "Guardar cambios" : "Registrar gasto"}
               </Button>
@@ -208,6 +205,14 @@ export default function CrearGastoPage() {
         </Form>
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/gastos")}
+      />
     </main>
   );
 }

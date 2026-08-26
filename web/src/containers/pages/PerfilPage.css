@@ -1,7 +1,7 @@
 /* PerfilPage.css */
 
 .perf-main {
-  background-color: #f5f7f9;
+  background-color: var(--eh-app-bg, #f5f7f9);
   min-height: calc(100vh - 56px);
   padding: 24px;
 }
@@ -21,7 +21,7 @@
 /* ── Header card ─────────────────────────────────────── */
 
 .perf-header-card {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
@@ -101,7 +101,7 @@
 .perf-header-name {
   font-size: 22px;
   font-weight: 800;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   margin: 0;
   text-transform: capitalize;
   line-height: 1.2;
@@ -110,7 +110,7 @@
 .perf-header-email,
 .perf-header-since {
   font-size: 13px;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   display: flex;
   align-items: center;
 }
@@ -119,7 +119,7 @@
 .perf-tabs {
   display: flex;
   gap: 4px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--eh-surface-border, #f1f5f9);
   padding-top: 20px;
 }
 
@@ -133,14 +133,14 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .perf-tab-btn:hover {
-  background: #f1f5f9;
-  color: #0d1b4b;
+  background: var(--eh-surface-2, #f1f5f9);
+  color: var(--eh-ink, #0d1b4b);
 }
 
 .perf-tab-btn.active {
@@ -160,7 +160,7 @@
 /* ── Card ────────────────────────────────────────────── */
 
 .perf-card {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 16px;
   padding: 28px;
   box-shadow: 0 10px 40px rgba(44, 47, 49, 0.06);
@@ -177,25 +177,30 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: var(--eh-surface-2, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #475569;
+  color: var(--eh-ink-2, #475569);
   flex-shrink: 0;
+}
+
+:root[data-eh-content-theme="dark"] .perf-card-icon {
+  background: var(--eh-accent-soft, rgba(59, 130, 246, 0.16));
+  color: var(--eh-accent-text, var(--eh-primary-btn));
 }
 
 .perf-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   margin: 0;
 }
 
 .perf-card-desc {
   font-size: 13px;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   margin-bottom: 20px;
   margin-top: -8px;
 }
@@ -221,14 +226,14 @@
 .perf-label {
   font-size: 11px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .perf-value {
   font-size: 14px;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -237,7 +242,7 @@
 }
 
 .perf-value-muted {
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
 }
 
 .perf-value-pre {
@@ -249,8 +254,8 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--eh-surface-2, #f1f5f9);
+  color: var(--eh-ink-2, #475569);
   border-radius: 4px;
   padding: 2px 7px;
   text-transform: uppercase;
@@ -285,7 +290,7 @@
   gap: 10px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--eh-surface-border, #f1f5f9);
 }
 
 .perf-btn-edit {
@@ -310,6 +315,85 @@
 .perf-btn-save:hover {
   background: #0248c7 !important;
   border-color: #0248c7 !important;
+}
+
+/* ── Apariencia (selector de estilo) ─────────────────── */
+
+.perf-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.perf-theme-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--eh-surface-border, #e2e8f0);
+  background: var(--eh-surface-2, #f8fafc);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.perf-theme-option:hover {
+  border-color: var(--eh-primary-btn, #012770);
+  transform: translateY(-1px);
+}
+
+.perf-theme-option:disabled {
+  cursor: default;
+  opacity: 0.7;
+  transform: none;
+}
+
+.perf-theme-option.active {
+  border-color: var(--eh-primary-btn, #012770);
+  background: var(--eh-accent-soft, rgba(1, 39, 112, 0.06));
+}
+
+.perf-theme-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--eh-primary-btn, #012770);
+  font-size: 16px;
+}
+
+.perf-theme-icon {
+  font-size: 26px;
+  color: var(--eh-ink-2, #475569);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+}
+
+.perf-theme-option.active .perf-theme-icon {
+  color: var(--eh-primary-btn, #012770);
+}
+
+.perf-theme-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--eh-ink, #0d1b4b);
+}
+
+.perf-theme-desc {
+  font-size: 12px;
+  color: var(--eh-ink-muted, #64748b);
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .perf-theme-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Password form ───────────────────────────────────── */

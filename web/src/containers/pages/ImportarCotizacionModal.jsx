@@ -9,7 +9,6 @@ import {
   Typography,
   AutoComplete,
   Input,
-  notification,
 } from "antd";
 import { SearchOutlined, FileTextOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -18,6 +17,7 @@ import {
   apiCotizacionesInstance,
   authHeaderCotizaciones,
 } from "../../redux/actions/cotizaciones/cotizaciones";
+import Toast from "../../components/toasts/toast";
 
 dayjs.locale("es");
 
@@ -33,13 +33,13 @@ function buildOptions(items) {
       value: `${item.id_cotizacion}-${item.code || ""}`,
       label: (
         <div style={{ padding: "2px 0" }}>
-          <div style={{ fontSize: 13, color: "#0d1b4b" }}>
+          <div style={{ fontSize: 13, color: "var(--eh-ink, #0d1b4b)" }}>
             <strong>#{item.code || "—"}</strong>
-            <span style={{ color: "#6b7280", marginLeft: 8 }}>
+            <span style={{ color: "var(--eh-ink-muted, #6b7280)", marginLeft: 8 }}>
               {item.cliente_nombre || "Sin cliente"}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--eh-ink-faint, #9ca3af)", marginTop: 2 }}>
             Evento: {fecha}
           </div>
         </div>
@@ -55,6 +55,9 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   // Reset al abrir/cerrar
   useEffect(() => {
@@ -115,10 +118,7 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
       if (typeof onPick === "function") onPick(data);
       handleCloseInternal();
     } catch (err) {
-      notification.error({
-        message: "No se pudo importar la cotización",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "No se pudo importar la cotización");
     } finally {
       setImporting(false);
     }
@@ -131,6 +131,7 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
   };
 
   return (
+    <>
     <Modal
       open={open}
       onCancel={handleCloseInternal}
@@ -138,13 +139,13 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
       width={680}
       destroyOnClose
       closeIcon={
-        <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>
+        <span style={{ fontSize: 20, fontWeight: 700, color: "var(--eh-ink, #111827)", lineHeight: 1 }}>
           ×
         </span>
       }
     >
       <Card
-        style={{ width: "100%", borderRadius: 18, boxShadow: "none" }}
+        style={{ width: "100%", borderRadius: 18, boxShadow: "none", background: "var(--eh-surface, #fff)", border: "1px solid var(--eh-surface-border, #f0f0f0)" }}
         bodyStyle={{ padding: "20px 32px 28px" }}
       >
         <Row justify="center" style={{ marginBottom: 22 }}>
@@ -158,17 +159,17 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
                   width: 60,
                   height: 60,
                   borderRadius: 16,
-                  background: "linear-gradient(135deg, #eef2ff 0%, #dbe4ff 100%)",
-                  color: "#01369e",
+                  background: "var(--eh-accent-soft, linear-gradient(135deg, #eef2ff 0%, #dbe4ff 100%))",
+                  color: "var(--eh-accent-text, var(--eh-primary-btn))",
                 }}
               >
                 <FileTextOutlined style={{ fontSize: 28 }} />
               </div>
             </div>
-            <Title level={4} style={{ marginBottom: 4, color: "#0d1b4b" }}>
+            <Title level={4} style={{ marginBottom: 4, color: "var(--eh-ink, #0d1b4b)" }}>
               Importar de una cotización
             </Title>
-            <Text type="secondary" style={{ fontSize: 13 }}>
+            <Text type="secondary" style={{ fontSize: 13, color: "var(--eh-ink-muted, inherit)" }}>
               Busca por folio o por nombre del cliente. Al seleccionar, los datos
               llenarán el formulario automáticamente.
             </Text>
@@ -198,7 +199,7 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
             >
               <Input
                 size="large"
-                prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
+                prefix={<SearchOutlined style={{ color: "var(--eh-ink-muted, #9ca3af)" }} />}
                 placeholder="Folio (ej. WKCBGAWY) o nombre del cliente"
                 disabled={importing}
               />
@@ -207,5 +208,7 @@ export default function ImportarCotizacionModal({ open, onClose, onPick }) {
         </Row>
       </Card>
     </Modal>
+    <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+    </>
   );
 }

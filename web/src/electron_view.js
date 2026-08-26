@@ -18,17 +18,42 @@ import {
   SoundOutlined,
   ToolOutlined,
   DollarOutlined,
+  FileSearchOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
 import { usePermisos } from "./context/PermisosContext";
+import BuscarModal from "./containers/pages/buscar.jsx";
+import VerticalSidebar from "./components/navigation/VerticalSidebar.jsx";
 import logoPng from "./assets/img/logo_hersoft_event.webp";
 import logoAdminPng from "./assets/img/logo_herrsoft.webp";
 import "./styles.css";
 import { actionNotificacionesGet } from "./redux/actions/notificaciones/notificaciones";
-import { WS_PATH } from "./redux/utils.js";
+import { PATH, WS_PATH } from "./redux/utils.js";
+import { logoUrlFromPath, readClaveCache, writeClaveCache } from "./context/TemaContext";
 import { performLogout } from "./utils/logout";
+import { getCurrentUserId } from "./utils/tokenUtils";
 const { Text } = Typography;
+
+function applyHeaderClaveVars(data) {
+  const root = document.documentElement;
+  if (data?.navbar_color) root.style.setProperty("--eh-navbar-bg", data.navbar_color);
+  if (data?.header_color) root.style.setProperty("--eh-header-bg", data.header_color);
+}
+
+function clearHeaderClaveVars() {
+  // --eh-navbar-bg / --eh-header-bg también las usa TemaContext para la app
+  // autenticada. Si ya hay sesión (login recién exitoso), no las borres —
+  // TemaContext ya las tomó/está por tomarlas; borrarlas aquí dejaba la app
+  // en fábrica hasta el próximo refresh.
+  if (localStorage.getItem("token")) return;
+  const root = document.documentElement;
+  root.style.removeProperty("--eh-navbar-bg");
+  root.style.removeProperty("--eh-header-bg");
+}
 
 export default function ElectronHeader({ hideUserPopover }) {
   const navigate = useNavigate();
@@ -43,6 +68,10 @@ export default function ElectronHeader({ hideUserPopover }) {
   );
   const [userOpen, setUserOpen] = useState(false);
   const [appMenuOpen, setAppMenuOpen] = useState(false);
+  const [buscarOpen, setBuscarOpen] = useState(false);
+
+  const [histIdx, setHistIdx] = useState(() => window.history.state?.idx ?? 0);
+  const maxHistIdxRef = useRef(histIdx);
 
   const appMenuRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -69,8 +98,50 @@ export default function ElectronHeader({ hideUserPopover }) {
     return () => navigator.windowControlsOverlay.removeEventListener("geometrychange", update);
   }, [isElectron]);
 
-  const isLoginPage = ["/login", "/admin-login", "/signup", "/prelogin"].includes(location.pathname);
+  const isLoginPage =
+    ["/login", "/admin-login", "/signup", "/prelogin"].includes(location.pathname) ||
+    /^\/[^/]+\/login$/.test(location.pathname);
   const canShowUser = !isLoginPage;
+
+  // /:clave/login trae su propia marca (logo, colores) igual que la tarjeta
+  // de login (ver login.jsx) — aquí se aplica a la barra superior para que
+  // no se quede con el logo/colores genéricos mientras se muestra esa marca.
+  // El estado inicial ya arranca con lo último cacheado para esa clave (si
+  // existe) y aplica las variables CSS de forma síncrona, antes del primer
+  // paint, para no mostrar fábrica un instante y luego cambiar a la marca.
+  const routeClave = location.pathname.match(/^\/([^/]+)\/login$/)?.[1] || null;
+  const [claveTema, setClaveTema] = useState(() => {
+    const cached = readClaveCache(routeClave);
+    if (cached?.plan_deluxe === 1) applyHeaderClaveVars(cached);
+    return cached;
+  });
+
+  useEffect(() => {
+    if (!routeClave) {
+      setClaveTema(null);
+      return;
+    }
+    let cancelled = false;
+    axios
+      .get(`${PATH}/clientes/tema/publico/${encodeURIComponent(routeClave)}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data?.plan_deluxe === 1) {
+          setClaveTema(data);
+          writeClaveCache(routeClave, data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [routeClave]);
+
+  useEffect(() => {
+    if (!claveTema) return;
+    applyHeaderClaveVars(claveTema);
+    return clearHeaderClaveVars;
+  }, [claveTema]);
 
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("email") || "—");
   const userInitials = useMemo(() => {
@@ -154,9 +225,13 @@ const connectWS = useCallback(() => {
     } catch {}
 
     if (msg?.type === "NOTIFICACION_INVALIDATE") {
-      notifyWsUpdate(
-        msg?.descripcion_notificacion || "Nueva notificación detectada."
-      );
+      const isOwnAction =
+        msg?.id_user != null && Number(msg.id_user) === Number(getCurrentUserId());
+      if (!isOwnAction) {
+        notifyWsUpdate(
+          msg?.descripcion_notificacion || "Nueva notificación detectada."
+        );
+      }
       dispatch(actionNotificacionesGet());
     }
 
@@ -200,6 +275,17 @@ const connectWS = useCallback(() => {
   }, [connectWS, isLoginPage]);
 
   useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setBuscarOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
     if (!appMenuOpen) return;
     const handler = (e) => {
       if (appMenuRef.current && !appMenuRef.current.contains(e.target)) {
@@ -226,6 +312,12 @@ const connectWS = useCallback(() => {
   const pathname = location.pathname || "/";
 
   const isAdmin = pathname.startsWith("/admin");
+
+  const headerLogo = claveTema?.logo_path
+    ? logoUrlFromPath(claveTema.logo_path)
+    : isAdmin
+    ? logoAdminPng
+    : logoPng;
 
   const isEventos = pathname.startsWith("/app/eventos");
   const isPaquetes = pathname.startsWith("/app/paquetes");
@@ -255,6 +347,7 @@ const connectWS = useCallback(() => {
     ...(perm("agenda",        "modulo") ? [{ key: "agenda",        label: "Agenda",        icon: <CalendarFilled />,   iconCls: "eh-app-icon-agenda",        path: "/app/agenda"        }] : []),
     ...(perm("configuracion", "modulo") ? [{ key: "configuracion", label: "Configuración", icon: <SettingFilled />,    iconCls: "eh-app-icon-configuracion", path: "/app/configuracion" }] : []),
     ...(perm("estadisticas",  "modulo") ? [{ key: "estadisticas",  label: "Estadísticas",  icon: <BarChartOutlined />, iconCls: "eh-app-icon-estadisticas",  path: "/app/estadisticas"  }] : []),
+    ...(perm("informes",      "modulo") ? [{ key: "informes",      label: "Informes",      icon: <FileSearchOutlined />, iconCls: "eh-app-icon-informes",   path: "/app/informes"      }] : []),
     ...(perm("gastos",        "modulo") ? [{ key: "gastos",        label: "Gastos",        icon: <DollarOutlined />,   iconCls: "eh-app-icon-gastos",        path: "/app/gastos"        }] : []),
     ...(perm("usuarios",      "modulo") ? [{ key: "usuarios",      label: "Usuarios",      icon: <UserOutlined />,     iconCls: "eh-app-icon-usuarios",      path: "/app/usuarios"      }] : []),
   ];
@@ -278,6 +371,8 @@ const connectWS = useCallback(() => {
     7: "Usuarios",
     8: "Clientes",
     9: "Gastos",
+    10: "Cotizaciones",
+    11: "Informes",
   };
 
   const notifications = (concSlice?.data?.items || []).map((item) => {
@@ -381,18 +476,97 @@ const connectWS = useCallback(() => {
   );
 
 
-  return (
-    <>
- 
+  useEffect(() => {
+    const idx = window.history.state?.idx ?? 0;
+    if (idx > maxHistIdxRef.current) maxHistIdxRef.current = idx;
+    setHistIdx(idx);
+  }, [location]);
 
-      <header className="eh-root">
-        <div className="eh-bar" style={isAdmin ? { background: "#01369e" } : undefined}>
-          <div className="eh-left">
-            <div className="eh-brand">
-              <img className="eh-logo" style={{width:isAdmin ? "80px" : "50px"}} src={isAdmin ? logoAdminPng : logoPng} alt="Logo" />
+  const canGoBack = histIdx > 0;
+  const canGoForward = histIdx < maxHistIdxRef.current;
+
+  /* ─── App: siempre sidebar vertical + header compacto ─── */
+  if (!isLoginPage && !isAdmin) {
+    return (
+      <>
+        <VerticalSidebar />
+
+        <header className="eh-root eh-root--compact">
+          <div className="eh-bar eh-bar--compact">
+            <div className="eh-nav-history electron-no-drag">
+              <button
+                type="button"
+                className={`eh-nav-history-btn${canGoBack ? "" : " disabled"}`}
+                onClick={() => canGoBack && navigate(-1)}
+                aria-label="Atrás"
+                title="Atrás"
+              >
+                <LeftOutlined />
+              </button>
+              <button
+                type="button"
+                className={`eh-nav-history-btn${canGoForward ? "" : " disabled"}`}
+                onClick={() => canGoForward && navigate(1)}
+                aria-label="Adelante"
+                title="Adelante"
+              >
+                <RightOutlined />
+              </button>
             </div>
 
-            {isLoginPage !== true && (
+            <div className="eh-right electron-no-drag" style={{ marginLeft: "auto" }}>
+              <button
+                type="button"
+                className="eh-ico-btn electron-no-drag"
+                aria-label="Buscar"
+                title="Buscar (Ctrl+K)"
+                onClick={() => setBuscarOpen(true)}
+              >
+                
+                <SearchOutlined />
+              </button>
+
+              {isElectron && (
+                <div className="win-controls">
+                  <button className="electron-btn" title="Minimizar" onClick={() => window.electronAPI?.minimize?.()}>🗕</button>
+                  <button className="electron-btn" title="Maximizar/Restaurar" onClick={() => window.electronAPI?.maximize?.()}>🗖</button>
+                  <button className="electron-btn electron-btn-close" title="Cerrar" onClick={() => window.electronAPI?.close?.()}>✕</button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="eh-drag-overlay" />
+        </header>
+
+        <BuscarModal open={buscarOpen} onClose={() => setBuscarOpen(false)} />
+      </>
+    );
+  }
+
+  return (
+    <>
+
+      <header className="eh-root">
+        <div
+          className="eh-bar"
+          style={{
+            ...(isAdmin ? { background: "#01369e" } : {}),
+            // Mismas dimensiones que la barra ya autenticada (.eh-bar--compact):
+            // el logo grande solo tiene sentido en el panel admin normal.
+            ...(isLoginPage ? { height: 44 } : {}),
+          }}
+        >
+          <div className="eh-left">
+            <div className="eh-brand">
+              <img
+                className="eh-logo"
+                style={isLoginPage ? { width: 26, height: 26 } : { width: isAdmin ? "80px" : "50px" }}
+                src={headerLogo}
+                alt="Logo"
+              />
+            </div>
+
+            {isLoginPage !== true && isAdmin && (
               <nav className="eh-nav electron-no-drag" style={{ marginLeft: 16 }}>
                 {links.map((l) => (
                   <button
@@ -412,7 +586,16 @@ const connectWS = useCallback(() => {
           <div className="eh-right electron-no-drag" style={wcoRight > 0 ? { paddingRight: wcoRight } : undefined}>
             {isLoginPage !== true && (
               <>
-              
+
+                <button
+                  type="button"
+                  className="eh-ico-btn electron-no-drag"
+                  aria-label="Buscar"
+                  title="Buscar (Ctrl+K)"
+                  onClick={() => setBuscarOpen(true)}
+                >
+                  <SearchOutlined />
+                </button>
 
                 {perm("notificaciones", "modulo") && (
                 <Popover
@@ -598,6 +781,8 @@ const connectWS = useCallback(() => {
 
         <div className="eh-drag-overlay" />
       </header>
+
+      <BuscarModal open={buscarOpen} onClose={() => setBuscarOpen(false)} />
     </>
   );
 }

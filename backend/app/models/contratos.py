@@ -46,7 +46,7 @@ def create_contrato(
             importe_anticipo,
             comentarios,
             direccion_misa,
-            hora_misa,
+            fecha_misa,
             datetime,
             code,
             active,
@@ -72,7 +72,7 @@ def create_contrato(
             data.get("importe_anticipo", ""),
             data.get("comentarios") or None,
             data.get("direccion_misa") or None,
-            data.get("hora_misa") or None,
+            data.get("fecha_misa") or None,
             now,
             "",
             id_cliente,
@@ -190,7 +190,7 @@ def update_contrato(
         "cliente_nombre", "domicilio", "celular", "fecha_evento", "lugar_evento",
         "hora_inicio", "hora_final", "importe", "fecha_anticipo",
         "importe_anticipo", "id_tipo_evento", "id_ciudad", "comentarios",
-        "direccion_misa", "hora_misa",
+        "direccion_misa", "fecha_misa",
     }
     # Incluir campos aunque sean None explícito (para poder borrar valores)
     updates = {k: v for k, v in data.items() if k in allowed}

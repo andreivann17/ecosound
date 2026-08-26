@@ -6,6 +6,7 @@ import json
 import secrets, string, shutil, hashlib, os
 from ..db import get_connection
 from ..models import conciliaciones as obj_conciliacion
+from ..services import google_calendar
 from pathlib import Path as FsPath
 from fastapi import HTTPException, UploadFile
 import os, time
@@ -48,6 +49,8 @@ def _row_to_api(row: Dict[str, Any]) -> Dict[str, Any]:
         "nombre_ciudad": row.get("nombre_ciudad") or None,
         "color_hex": row.get("color_hex") or None,
         "contrato_tipo_id": row.get("contrato_tipo_id"),
+        "tipo_evento_nombre": row.get("tipo_evento_nombre") or None,
+        "usuario_nombre": row.get("usuario_nombre") or None,
 
         "reminder": row.get("reminder"),
         "inPerson": bool(row.get("in_person")) if row.get("in_person") is not None else False,
@@ -303,6 +306,8 @@ def list_agenda_post(
             a.reminder, a.in_person, a.is_recurring,
             ar.rule_json, ar.until AS rec_until,
             co.id_tipo_evento AS contrato_tipo_id,
+            te.nombre AS tipo_evento_nombre,
+            u2.name AS usuario_nombre,
             ad.filename AS documento_filename,
             CASE
                 WHEN ad.filename IS NULL THEN NULL
@@ -311,7 +316,10 @@ def list_agenda_post(
             FROM agenda a
             LEFT JOIN agenda_recurrence ar ON ar.id_agenda = a.id_agenda AND ar.active = 1
             LEFT JOIN ciudades c ON c.id_ciudad = a.id_ciudad
-            LEFT JOIN contratos co ON co.id_contrato = a.source_id AND a.source_table = 'contratos'
+            LEFT JOIN contratos co ON co.id_contrato = a.source_id
+                AND a.source_table IN ('contratos', 'eventos', 'eventos_servicios')
+            LEFT JOIN tipo_eventos te ON te.id_tipo_evento = co.id_tipo_evento
+            LEFT JOIN users u2 ON u2.id_user = a.id_user
             LEFT JOIN (
             SELECT d1.*
             FROM agenda_documentos d1
@@ -626,6 +634,23 @@ def create_agenda_conn(conn, id_user: int, id_agenda_evento: int, payload: Dict[
 
         if recurrence:
             _upsert_recurrence(conn, new_id, recurrence)
+
+        try:
+            google_event_id = google_calendar.create_event(
+                title=payload["title"],
+                start_at=payload["start_at"],
+                end_at=payload["end_at"],
+                location=payload.get("location"),
+                description=payload.get("description"),
+            )
+            if google_event_id:
+                cur.execute(
+                    "UPDATE agenda SET google_event_id = %s WHERE id_agenda = %s",
+                    (google_event_id, new_id),
+                )
+        except Exception:
+            # La sincronización con Google Calendar nunca debe tumbar el guardado local.
+            pass
 
         row = get_agenda_by_id_conn(conn, id_user, new_id)
         if not row:

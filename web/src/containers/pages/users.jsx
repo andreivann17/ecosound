@@ -17,7 +17,6 @@ import {
   Drawer,
   Checkbox,
   Grid,
-  notification,
 } from "antd";
 import {
   ReloadOutlined,
@@ -29,6 +28,7 @@ import Contenido from "../../components/navigation/content.jsx";
 import AddExpedienteModal from "../../components/modals/expedientes/AddCasoPrejudicialModal.js";
 import { actionConciliacionGet } from "../../redux/actions/conciliacion/conciliacion.js";
 import { useDispatch, useSelector } from "react-redux";
+import Toast from "../../components/toasts/toast";
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -234,6 +234,10 @@ function statusTagColor(status) {
 
 // ================= Tabla =================
 function ExpedientesTable({ items, densityState, onOpenColumns, onEdit }) {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   const defaultColumns = useMemo(
     () => [
       { title: "ID", dataIndex: "id", key: "id", width: 90, fixed: "left", render: (v) => <Text code>{v}</Text> },
@@ -282,9 +286,9 @@ function ExpedientesTable({ items, densityState, onOpenColumns, onEdit }) {
               ],
               onClick: ({ key }) => {
                 if (key === "edit") {
-                  onEdit ? onEdit(row) : notification.info({ message: `edit – id ${row.id}` });
+                  onEdit ? onEdit(row) : toast(`edit – id ${row.id}`);
                 } else {
-                  notification.info({ message: `${key} – id ${row.id}` });
+                  toast(`${key} – id ${row.id}`);
                 }
               },
             }}
@@ -303,20 +307,23 @@ function ExpedientesTable({ items, densityState, onOpenColumns, onEdit }) {
   const columns = useMemo(() => defaultColumns.filter((c) => visibleKeys.has(c.key)), [defaultColumns, visibleKeys]);
 
   return (
-    <Card bordered style={{ borderRadius: 12 }}>
-      <div style={{ minHeight: 800 }}>
-        <Table
-          rowKey={(r) => r.id}
-          dataSource={items}
-          columns={columns}
-          size={densityState}
-          pagination={false}
-          scroll={{ x: 1400 }}
-          locale={{ emptyText: <Empty description="Sin resultados" /> }}
-        />
-      </div>
-      {DrawerUI}
-    </Card>
+    <>
+      <Card bordered style={{ borderRadius: 12 }}>
+        <div style={{ minHeight: 800 }}>
+          <Table
+            rowKey={(r) => r.id}
+            dataSource={items}
+            columns={columns}
+            size={densityState}
+            pagination={false}
+            scroll={{ x: 1400 }}
+            locale={{ emptyText: <Empty description="Sin resultados" /> }}
+          />
+        </div>
+        {DrawerUI}
+      </Card>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+    </>
   );
 }
 

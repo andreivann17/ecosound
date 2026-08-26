@@ -12,7 +12,6 @@ import {
   Select,
   Input,
   DatePicker,
-  notification,
   Spin,
   Space,
   Typography,
@@ -23,6 +22,8 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./InventarioPage.css";
 
 dayjs.locale("es");
@@ -50,6 +51,11 @@ export default function NuevoConteoPage() {
   const [detalles, setDetalles] = useState([]);
   const [fisicaMap, setFisicaMap] = useState({});
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
+
   const initConteo = useCallback(async () => {
     setLoading(true);
     try {
@@ -72,10 +78,7 @@ export default function NuevoConteoPage() {
       });
       setFisicaMap(map);
     } catch (err) {
-      notification.error({
-        message: "Error al iniciar el conteo",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al iniciar el conteo");
     } finally {
       setLoading(false);
     }
@@ -106,13 +109,13 @@ export default function NuevoConteoPage() {
           )
         )
       );
-      notification.success({ message: "Conteo guardado correctamente" });
-      navigate("/app/inventario/conteos");
-    } catch (err) {
-      notification.error({
-        message: "Error al guardar conteo",
-        description: err?.response?.data?.detail || err.message,
+      setSuccess({
+        show: true,
+        title: "¡Conteo guardado!",
+        subtitle: "El conteo físico del inventario se registró correctamente.",
       });
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar conteo");
     } finally {
       setSaving(false);
     }
@@ -135,14 +138,7 @@ export default function NuevoConteoPage() {
         <section className="inv-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/inventario")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Inventario
-              </Button>
+
               <Title level={2} className="inv-title" style={{ marginBottom: 0 }}>
                 Nuevo conteo de inventario
               </Title>
@@ -156,7 +152,7 @@ export default function NuevoConteoPage() {
                 <Button
                   className="inv-btn-clean"
                   onClick={() => navigate("/app/inventario")}
-                  disabled={saving}
+                  disabled={saving || success.show}
                 >
                   Cancelar
                 </Button>
@@ -164,6 +160,7 @@ export default function NuevoConteoPage() {
                   type="primary"
                   icon={<SaveOutlined />}
                   loading={saving}
+                  disabled={success.show}
                   onClick={handleSave}
                   style={{ backgroundColor: "#111", borderColor: "#111" }}
                 >
@@ -287,6 +284,14 @@ export default function NuevoConteoPage() {
         )}
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/inventario/conteos")}
+      />
     </main>
   );
 }

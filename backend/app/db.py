@@ -23,6 +23,7 @@ from mysql.connector import pooling
 #: :func:`init_pool` and used by :func:`get_connection`.
 _POOL: Optional[pooling.MySQLConnectionPool] = None
 _POOL_ADMIN: Optional[pooling.MySQLConnectionPool] = None
+_POOL_SPIE: Optional[pooling.MySQLConnectionPool] = None
 
 
 def _get_base_config() -> dict:
@@ -69,11 +70,31 @@ def _init_admin_pool() -> None:
     )
 
 
+def _init_spie_pool() -> None:
+    global _POOL_SPIE
+    cfg = _get_base_config()
+    _POOL_SPIE = mysql.connector.pooling.MySQLConnectionPool(
+        pool_name="fastapi_spie_pool",
+        pool_size=cfg["pool_size"],
+        host=cfg["host"],
+        port=cfg["port"],
+        database=os.getenv("DB_SPIE_NAME", "spie"),
+        user=cfg["user"],
+        password=cfg["password"],
+        autocommit=cfg["autocommit"],
+        consume_results=cfg["consume_results"],
+    )
+
+
 def init_pool() -> None:
-    """Initialize both MySQL connection pools independently."""
+    """Initialize all MySQL connection pools independently."""
     _init_main_pool()
     try:
         _init_admin_pool()
+    except Exception:
+        pass
+    try:
+        _init_spie_pool()
     except Exception:
         pass
 
@@ -85,6 +106,15 @@ def get_admin_connection() -> mysql.connector.connection.MySQLConnection:
         _init_admin_pool()
     assert _POOL_ADMIN is not None
     return _POOL_ADMIN.get_connection()
+
+
+def get_spie_connection() -> mysql.connector.connection.MySQLConnection:
+    """Get a connection from the spie pool (database: spie — módulo Evaluation)."""
+    global _POOL_SPIE
+    if _POOL_SPIE is None:
+        _init_spie_pool()
+    assert _POOL_SPIE is not None
+    return _POOL_SPIE.get_connection()
 
 
 def get_connection() -> mysql.connector.connection.MySQLConnection:

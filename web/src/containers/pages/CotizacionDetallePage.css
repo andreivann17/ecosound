@@ -34,8 +34,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #f8fafc;
-  border: 1px solid #eef2f7;
+  background: var(--eh-surface-2, #f8fafc);
+  border: 1px solid var(--eh-surface-border, #eef2f7);
   border-radius: 12px;
   padding: 16px;
 }
@@ -48,17 +48,26 @@
   border-color: #dbeafe;
 }
 
+:root[data-eh-content-theme="dark"] .cd-cot-tile-importe {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
 .cd-cot-importe-val {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #01369e;
+  color: var(--eh-primary-btn);
   line-height: 1.1;
 }
 
-.cd-cot-importe-icon { font-size: 18px; color: #01369e; }
+:root[data-eh-content-theme="dark"] .cd-cot-importe-val { color: #93c5fd; }
+
+.cd-cot-importe-icon { font-size: 18px; color: var(--eh-primary-btn); }
+
+:root[data-eh-content-theme="dark"] .cd-cot-importe-icon { color: #93c5fd; }
 
 /* Servicios a todo lo ancho: campos repartidos como columnas para llenar. */
 .cd-cotizacion-detalle .cd-servicio-grid,
@@ -111,10 +120,10 @@
 }
 
 /* Colores por estado (compartidos por badge y chip) */
-.cd-cotizacion-detalle .cd-estado-pendiente { background: #e0e9ff; color: #01369e; }
+.cd-cotizacion-detalle .cd-estado-pendiente { background: #e0e9ff; color: var(--eh-primary-btn); }
 .cd-cotizacion-detalle .cd-estado-aceptada  { background: #d1fae5; color: #047857; }
 .cd-cotizacion-detalle .cd-estado-rechazada { background: #fee2e2; color: #b91c1c; }
-.cd-cotizacion-detalle .cd-estado-dot-pendiente { background: #01369e; }
+.cd-cotizacion-detalle .cd-estado-dot-pendiente { background: var(--eh-primary-btn); }
 .cd-cotizacion-detalle .cd-estado-dot-aceptada  { background: #047857; }
 .cd-cotizacion-detalle .cd-estado-dot-rechazada { background: #b91c1c; }
 
@@ -123,8 +132,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: #f8fafc;
-  border: 1px solid #eef2f7;
+  background: var(--eh-surface-2, #f8fafc);
+  border: 1px solid var(--eh-surface-border, #eef2f7);
   border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 14px;
@@ -135,7 +144,7 @@
   font-family: "Courier New", monospace;
   font-weight: 800;
   letter-spacing: 1px;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   font-size: 15px;
 }
 
@@ -145,7 +154,7 @@
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #eef0f4;
+  border-top: 1px solid var(--eh-surface-border, #eef0f4);
 }
 .cd-cotizacion-detalle .cd-btn-aceptar,
 .cd-cotizacion-detalle .cd-btn-rechazar {
@@ -159,9 +168,9 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  color: #374151;
+  background: var(--eh-surface, #ffffff);
+  border: 1.5px solid var(--eh-surface-border, #e2e8f0);
+  color: var(--eh-ink-2, #374151);
   transition: all 0.15s ease;
 }
 .cd-cotizacion-detalle .cd-btn-aceptar:hover:not(:disabled) {
@@ -197,7 +206,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -210,16 +219,16 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
 }
 .cd-cotizacion-detalle .cd-servicios-banner-sub {
   margin: 3px 0 0;
   font-size: 0.82rem;
-  color: #5b6472;
+  color: var(--eh-ink-muted, #5b6472);
 }
 .cd-cotizacion-detalle .cd-servicios-banner-count {
   flex-shrink: 0;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -228,21 +237,48 @@
   white-space: nowrap;
 }
 
+.cd-cotizacion-detalle .cd-btn-add-servicio {
+  flex-shrink: 0;
+  background: #ffffff;
+  border: 1.5px solid var(--eh-primary-btn);
+  color: var(--eh-primary-btn);
+  font-weight: 600;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.cd-cotizacion-detalle .cd-btn-add-servicio:hover,
+.cd-cotizacion-detalle .cd-btn-add-servicio:focus {
+  background: var(--eh-primary-btn) !important;
+  border-color: var(--eh-primary-btn) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(1, 54, 158, 0.25);
+}
+.cd-cotizacion-detalle .cd-btn-add-servicio:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.cd-servicio-tipo-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
 @media (max-width: 540px) {
   .cd-cotizacion-detalle .cd-servicios-banner { flex-wrap: wrap; }
 }
 
 /* ── Botón "Cotización PDF" del encabezado ── */
 .cd-cotizacion-detalle .cd-btn-report {
-  background: #01369e;
-  border-color: #01369e;
-  color: #ffffff;
+  background: transparent;
+  border: 1px solid rgba(171, 173, 175, 0.5);
+  color: var(--eh-ink, #2c2f31);
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 999px;
 }
 .cd-cotizacion-detalle .cd-btn-report:hover,
 .cd-cotizacion-detalle .cd-btn-report:focus {
-  background: #0a2a7a !important;
-  border-color: #0a2a7a !important;
-  color: #ffffff !important;
+  background: var(--eh-surface-2, #f8fafc) !important;
+  border-color: #cbd5e1 !important;
+  color: var(--eh-ink, #2c2f31) !important;
 }

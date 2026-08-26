@@ -96,9 +96,12 @@ export const actionLogin = (params, onSuccess, onError) => {
       }
 
       const token = data?.access_token;
-     
+
       if (!token) throw new Error("Invalid login response");
 
+      // Un login normal no es sesión de panel admin: limpiar cualquier
+      // tokenadmin viejo/expirado para que no se use por delante del token fresco.
+      localStorage.removeItem("tokenadmin");
       localStorage.setItem("token", token);
       localStorage.setItem("email", params.email);
       localStorage.setItem("last_login", new Date().toISOString());
@@ -132,7 +135,7 @@ export const actionLogin = (params, onSuccess, onError) => {
 
       dispatch(fetchLoginSuccess({ role: data.role }));
       window.dispatchEvent(new Event("permisos-refresh"));
-      onSuccess({ role: data.role });
+      onSuccess({ role: data.role, mensaje_show: data?.mensaje_show });
     } catch (err) {
       const msg =
         err?.response?.data?.detail || "Email or password does not match";

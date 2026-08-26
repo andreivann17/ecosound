@@ -239,20 +239,19 @@ height: 100vh;
 
 /* Switches — active state primary blue */
 .ant-switch.ant-switch-checked {
-  background: #01369e !important;
+  background: var(--eh-primary-btn, #01369e) !important;
 }
 
 .custom-button {
-    background-color: #01369e !important;
-    border-color: #01369e !important;
+    background-color: var(--eh-primary-btn, #01369e) !important;
+    border-color: var(--eh-primary-btn, #01369e) !important;
     color: white !important;
-    transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out, filter 0.15s ease-out;
   }
 
   .custom-button:hover {
     transform: scale(1.1);
-    background-color: #0a2a7a !important;
-    border-color: #0a2a7a !important;
+    filter: brightness(0.85);
   }
 
   .custom-button:active {
@@ -260,19 +259,19 @@ height: 100vh;
   }
   /* Mantener el color de hover cuando está ACTIVO */
 .custom-button.active {
-  background-color: #0a2a7a !important;
-  border-color: #01369e !important;
+  background-color: var(--eh-primary-btn, #01369e) !important;
+  border-color: var(--eh-primary-btn, #01369e) !important;
   color: #ffffff !important;
   transform: none !important;
   box-shadow: none !important;
-  border-left: 4px solid #01369e !important;
+  border-left: 4px solid var(--eh-primary-btn, #01369e) !important;
+  filter: brightness(0.85);
 }
 
 /* Que el hover NO cambie el tamaño cuando ya está activo */
 .custom-button.active:hover {
   transform: none !important;
-  background-color: #0a2a7a !important;
-  border-color: #01369e !important;
+  filter: brightness(0.85);
 }
 
 /* Exportar / botones secundarios */
@@ -287,6 +286,18 @@ height: 100vh;
   background-color: #597494 !important;
   border-color: #597494 !important;
   color: #fff !important;
+}
+
+:root[data-eh-content-theme="dark"] .laboral-btn-import {
+  background-color: #4b5563 !important;
+  border-color: #4b5563 !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-eh-content-theme="dark"] .laboral-btn-import:hover {
+  background-color: #3f4653 !important;
+  border-color: #3f4653 !important;
+  color: #f1f5f9 !important;
 }
 
 .custom-button-primary {

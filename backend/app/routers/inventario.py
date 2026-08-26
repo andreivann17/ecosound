@@ -55,6 +55,7 @@ async def _notify_equipo(tipo: int, descripcion: str, id_equipo: int, user_id: i
         "source": "inventario",
         "id_equipo": id_equipo,
         "descripcion_notificacion": descripcion,
+        "id_user": user_id,
     })
 
 

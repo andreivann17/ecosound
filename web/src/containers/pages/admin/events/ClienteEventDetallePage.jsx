@@ -6,15 +6,19 @@ import {
   authHeaderClientesEvents,
 } from "../../../../redux/actions/clientes_events/clientes_events";
 import {
-  Button, Modal, notification, Spin, Empty,
-  Form, Input, DatePicker, Switch, Select, Space, Alert,
+  Button, Modal, Spin, Empty,
+  Form, Input, DatePicker, Switch, Select, Space, Alert, ColorPicker, Upload,
 } from "antd";
 import {
   ArrowLeftOutlined, EditOutlined, DeleteOutlined,
   UserOutlined, CalendarOutlined, DollarOutlined, HistoryOutlined,
   PlusOutlined, MailOutlined, PhoneOutlined, SettingOutlined,
   WarningFilled, LockOutlined, ExclamationCircleFilled, AppstoreOutlined,
+  BgColorsOutlined, PictureOutlined, UploadOutlined, InboxOutlined,
+  SafetyOutlined, CloseOutlined,
 } from "@ant-design/icons";
+import Toast from "../../../../components/toasts/toast";
+import { PATH } from "../../../../redux/utils";
 import "../../EventoDetallePage.css";
 import "./events-detail.css";
 
@@ -53,6 +57,605 @@ const PAGO_FILTER_OPTIONS = [
   { value: "custom",   label: "Rango personalizado" },
 ];
 
+const COLOR_FIELDS = [
+  { key: "primary_color",                label: "Color primario",         desc: "Color base usado en toda la app" },
+  { key: "navbar_color",                 label: "Color de navbar",        desc: "Fondo de la barra de navegación" },
+  { key: "header_color",                 label: "Color de header",        desc: "Fondo del encabezado" },
+  { key: "primary_button_color",         label: "Botón primario",         desc: "Color de los botones principales" },
+  { key: "text_color_navbar",            label: "Texto del navbar",       desc: "Color del texto/íconos normales del navbar (no el activo)" },
+  { key: "color_primary_active_nabvar",  label: "Texto activo navbar",    desc: "Color del texto/ícono activo en el navbar" },
+];
+
+const IMAGE_FIELDS = [
+  {
+    key: "logo_path", formField: "logo", label: "Logo principal", hint: "PNG · JPG · WEBP",
+    desc: "Aparece en la barra superior (header) de la app del cliente.",
+    previewBgKey: "header_color",
+  },
+  {
+    key: "background_image", formField: "background", label: "Imagen de fondo (login)", hint: "PNG · JPG · WEBP",
+    desc: "Fondo de pantalla completa detrás del formulario de inicio de sesión.",
+  },
+  {
+    key: "logo_login", formField: "logo_login", label: "Logo de inicio de sesión", hint: "PNG · JPG · WEBP",
+    desc: "Se muestra junto al formulario en la pantalla de inicio de sesión.",
+  },
+  {
+    key: "logo_container", formField: "logo_container", label: "Logo del menú lateral", hint: "PNG · JPG · WEBP",
+    desc: "Aparece en el menú lateral (sidebar) de la app, arriba de las opciones.",
+    previewBgKey: "navbar_color",
+  },
+];
+
+const DEFAULT_TEMA = {
+  plan_deluxe: 0,
+  dark_design: 1,
+  nombre_app: "",
+  primary_color: "#05060a",
+  navbar_color: "#05060a",
+  header_color: "#05060a",
+  primary_button_color: "#05060a",
+  text_color_navbar: "#ffffff",
+  color_primary_active_nabvar: "#ffffff",
+};
+
+const RESEND_COOLDOWN_SECS = 30;
+
+function imgSrc(path) {
+  return path ? `${PATH}/${String(path).replace(/^\/+/, "")}` : null;
+}
+
+function buildTemaFromCliente(cliente) {
+  return {
+    plan_deluxe: cliente.plan_deluxe ?? DEFAULT_TEMA.plan_deluxe,
+    dark_design: cliente.dark_design ?? DEFAULT_TEMA.dark_design,
+    nombre_app: cliente.nombre_app || DEFAULT_TEMA.nombre_app,
+    primary_color: cliente.primary_color || DEFAULT_TEMA.primary_color,
+    navbar_color: cliente.navbar_color || DEFAULT_TEMA.navbar_color,
+    header_color: cliente.header_color || DEFAULT_TEMA.header_color,
+    primary_button_color: cliente.primary_button_color || DEFAULT_TEMA.primary_button_color,
+    text_color_navbar: cliente.text_color_navbar || DEFAULT_TEMA.text_color_navbar,
+    color_primary_active_nabvar: cliente.color_primary_active_nabvar || DEFAULT_TEMA.color_primary_active_nabvar,
+  };
+}
+
+function ImageDropzone({ label, desc, hint, currentPath, preview, onPick, disabled, previewBg }) {
+  const src = preview || imgSrc(currentPath);
+  return (
+    <div>
+      <Upload.Dragger
+        accept="image/*"
+        showUploadList={false}
+        disabled={disabled}
+        beforeUpload={(file) => { onPick(file); return false; }}
+        className={`ap-dropzone${disabled ? " ap-dropzone-disabled" : ""}`}
+      >
+        {src ? (
+          <div
+            className={`ap-dropzone-preview${previewBg ? "" : " ap-dropzone-checker"}`}
+            style={previewBg ? { background: previewBg } : undefined}
+          >
+            <img src={src} alt={label} />
+            {!disabled && (
+              <div className="ap-dropzone-overlay">
+                <UploadOutlined />
+                <span>Cambiar {label.toLowerCase()}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className={`ap-dropzone-empty${previewBg ? "" : " ap-dropzone-checker"}`}
+            style={previewBg ? { background: previewBg } : undefined}
+          >
+            <InboxOutlined className="ap-dropzone-icon" />
+            <span className="ap-dropzone-label">{label}</span>
+            <span className="ap-dropzone-hint">{hint}</span>
+          </div>
+        )}
+      </Upload.Dragger>
+      {desc && <p className="ap-dropzone-desc">{desc}</p>}
+    </div>
+  );
+}
+
+/** Modal 1 — confirmar identidad con correo + contraseña (como el login). */
+function ModalConfirmarLogin({ open, email, onEmailChange, password, onPasswordChange, loading, error, onCancel, onSubmit }) {
+  return (
+    <Modal open={open} onCancel={loading ? undefined : onCancel} footer={null} centered width={420} maskClosable={!loading}>
+      <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: "50%", background: "#eff6ff",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+        }}>
+          <LockOutlined style={{ fontSize: 28, color: BLUE }} />
+        </div>
+        <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6, color: "#0f172a" }}>Confirma tu identidad</h2>
+        <p style={{ color: "#64748b", fontSize: 13, marginBottom: 24 }}>
+          Para editar la apariencia de este cliente, primero inicia sesión de nuevo.
+        </p>
+
+        <div style={{ textAlign: "left", marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+            Correo electrónico
+          </label>
+          <Input
+            size="large"
+            prefix={<MailOutlined style={{ color: "#9ca3af" }} />}
+            placeholder="correo@ejemplo.com"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            autoComplete="email"
+            style={{ borderRadius: 8 }}
+            disabled={loading}
+          />
+        </div>
+
+        <div style={{ textAlign: "left", marginBottom: error ? 14 : 24 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+            Contraseña
+          </label>
+          <Input.Password
+            size="large"
+            prefix={<LockOutlined style={{ color: "#9ca3af" }} />}
+            placeholder="Tu contraseña"
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+            onPressEnter={onSubmit}
+            autoComplete="current-password"
+            style={{ borderRadius: 8 }}
+            disabled={loading}
+          />
+        </div>
+
+        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 20, borderRadius: 8, textAlign: "left" }} />}
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button block size="large" onClick={onCancel} disabled={loading} style={{ borderRadius: 8 }}>Cancelar</Button>
+          <Button block size="large" type="primary" loading={loading} onClick={onSubmit}
+            style={{ borderRadius: 8, background: BLUE, borderColor: BLUE }}>
+            Continuar
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/** Modal 2 — código de 6 dígitos enviado por correo. */
+function ModalConfirmarCodigo({ open, email, code, onCodeChange, loading, error, sending, cooldown, onResend, onCancel, onSubmit }) {
+  return (
+    <Modal open={open} onCancel={loading ? undefined : onCancel} footer={null} centered width={440} maskClosable={!loading}>
+      <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: "50%", background: "#eff6ff",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+        }}>
+          <SafetyOutlined style={{ fontSize: 28, color: BLUE }} />
+        </div>
+        <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6, color: "#0f172a" }}>Verificación por correo</h2>
+        <p style={{ color: "#64748b", fontSize: 13, marginBottom: 4 }}>
+          Enviamos un código de 6 dígitos a
+        </p>
+        <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 22 }}>{email}</p>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: error ? 12 : 20 }}>
+          <Input.OTP length={6} value={code} onChange={onCodeChange} disabled={loading} size="large" />
+        </div>
+
+        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16, borderRadius: 8, textAlign: "left" }} />}
+
+        <div style={{ marginBottom: 22 }}>
+          <Button type="link" size="small" onClick={onResend} disabled={sending || cooldown > 0 || loading} style={{ padding: 0 }}>
+            {cooldown > 0 ? `Reenviar código (${cooldown}s)` : sending ? "Enviando..." : "¿No te llegó? Reenviar código"}
+          </Button>
+        </div>
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button block size="large" onClick={onCancel} disabled={loading} style={{ borderRadius: 8 }}>Cancelar</Button>
+          <Button block size="large" type="primary" loading={loading} onClick={onSubmit} disabled={code.length < 6}
+            style={{ borderRadius: 8, background: BLUE, borderColor: BLUE }}>
+            Validar
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/** Modal 3 — confirmar contraseña una última vez, justo antes de guardar. */
+function ModalConfirmarPassword({ open, password, onPasswordChange, loading, error, onCancel, onSubmit }) {
+  return (
+    <Modal open={open} onCancel={loading ? undefined : onCancel} footer={null} centered width={400} maskClosable={!loading}>
+      <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: "50%", background: "#eff6ff",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+        }}>
+          <LockOutlined style={{ fontSize: 28, color: BLUE }} />
+        </div>
+        <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6, color: "#0f172a" }}>Confirma tu contraseña</h2>
+        <p style={{ color: "#64748b", fontSize: 13, marginBottom: 22 }}>
+          Último paso antes de guardar los cambios de apariencia.
+        </p>
+
+        <div style={{ textAlign: "left", marginBottom: error ? 14 : 24 }}>
+          <Input.Password
+            size="large"
+            prefix={<LockOutlined style={{ color: "#9ca3af" }} />}
+            placeholder="Tu contraseña"
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+            onPressEnter={onSubmit}
+            autoComplete="current-password"
+            style={{ borderRadius: 8 }}
+            disabled={loading}
+            autoFocus
+          />
+        </div>
+
+        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 20, borderRadius: 8, textAlign: "left" }} />}
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <Button block size="large" onClick={onCancel} disabled={loading} style={{ borderRadius: 8 }}>Cancelar</Button>
+          <Button block size="large" type="primary" loading={loading} onClick={onSubmit}
+            style={{ borderRadius: 8, background: BLUE, borderColor: BLUE }}>
+            Guardar
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function TabApariencia({ cliente, idCliente, onSaved, toast }) {
+  const [editing, setEditing] = useState(false);
+  const [tema, setTema] = useState(() => buildTemaFromCliente(cliente));
+  const [files, setFiles] = useState({});     // { logo_path: File, background_image: File, ... }
+  const [previews, setPreviews] = useState({}); // { logo_path: objectUrl, ... }
+  const [saving, setSaving] = useState(false);
+
+  // Identidad verificada durante esta sesión de edición (correo usado en los pasos 1 y 2).
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+
+  // --- Paso 1: login (correo + contraseña) ---
+  const [step1Open, setStep1Open] = useState(false);
+  const [step1Email, setStep1Email] = useState("");
+  const [step1Password, setStep1Password] = useState("");
+  const [step1Loading, setStep1Loading] = useState(false);
+  const [step1Error, setStep1Error] = useState("");
+
+  // --- Paso 2: código de 6 dígitos por correo ---
+  const [step2Open, setStep2Open] = useState(false);
+  const [code, setCode] = useState("");
+  const [step2Loading, setStep2Loading] = useState(false);
+  const [step2Error, setStep2Error] = useState("");
+  const [sendingCode, setSendingCode] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // --- Paso 3: contraseña antes de guardar ---
+  const [step3Open, setStep3Open] = useState(false);
+  const [step3Password, setStep3Password] = useState("");
+  const [step3Loading, setStep3Loading] = useState(false);
+  const [step3Error, setStep3Error] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const setColor = (key) => (color) => {
+    setTema((prev) => ({ ...prev, [key]: color.toHexString() }));
+  };
+
+  const handlePickImage = (key) => (file) => {
+    setFiles((prev) => ({ ...prev, [key]: file }));
+    setPreviews((prev) => ({ ...prev, [key]: URL.createObjectURL(file) }));
+  };
+
+  const resetEditState = () => {
+    setEditing(false);
+    setTema(buildTemaFromCliente(cliente));
+    setFiles({});
+    setPreviews({});
+    setVerifiedEmail("");
+  };
+
+  // ── Click en "Editar" → abre paso 1 ──────────────────────────────────────
+  const handleClickEditar = () => {
+    setStep1Email(localStorage.getItem("email") || "");
+    setStep1Password("");
+    setStep1Error("");
+    setStep1Open(true);
+  };
+
+  const handleEnviarCodigo = async (email) => {
+    setSendingCode(true);
+    try {
+      await apiClientesEventsInstance.post(
+        "/clientes/tema/verificacion/enviar",
+        { email },
+        { headers: authHeaderClientesEvents() }
+      );
+      setVerifiedEmail(email);
+      setCode("");
+      setStep2Error("");
+      setStep2Open(true);
+      setResendCooldown(RESEND_COOLDOWN_SECS);
+    } catch (err) {
+      toast(err?.response?.data?.detail || "No se pudo enviar el código. Intenta de nuevo.");
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  const handleStep1Submit = async () => {
+    if (!step1Email.trim() || !step1Password.trim()) {
+      setStep1Error("Ingresa tu correo y contraseña.");
+      return;
+    }
+    setStep1Loading(true);
+    setStep1Error("");
+    try {
+      await apiClientesEventsInstance.post("/auth/login-admin", {
+        email: step1Email.trim(),
+        password: step1Password,
+      });
+      setStep1Open(false);
+      await handleEnviarCodigo(step1Email.trim());
+    } catch (err) {
+      const status = err?.response?.status;
+      setStep1Error(
+        status === 401 || status === 400
+          ? "Correo o contraseña incorrectos. Inténtalo de nuevo."
+          : (err?.response?.data?.detail || "Error al verificar credenciales.")
+      );
+    } finally {
+      setStep1Loading(false);
+    }
+  };
+
+  const handleResendCodigo = () => {
+    if (sendingCode || resendCooldown > 0) return;
+    handleEnviarCodigo(verifiedEmail);
+  };
+
+  const handleStep2Submit = async () => {
+    if (code.length < 6) {
+      setStep2Error("Ingresa el código de 6 dígitos.");
+      return;
+    }
+    setStep2Loading(true);
+    setStep2Error("");
+    try {
+      const { data } = await apiClientesEventsInstance.post(
+        "/clientes/tema/verificacion/validar",
+        { email: verifiedEmail, code },
+        { headers: authHeaderClientesEvents() }
+      );
+      if (!data?.status) {
+        setStep2Error("Código incorrecto o expirado. Verifica e intenta de nuevo.");
+        return;
+      }
+      setStep2Open(false);
+      setEditing(true);
+      toast("Identidad verificada. Ya puedes editar la apariencia.");
+    } catch (err) {
+      setStep2Error(err?.response?.data?.detail || "Error al validar el código.");
+    } finally {
+      setStep2Loading(false);
+    }
+  };
+
+  // ── Click en "Guardar apariencia" → abre paso 3 ──────────────────────────
+  const handleClickGuardar = () => {
+    setStep3Password("");
+    setStep3Error("");
+    setStep3Open(true);
+  };
+
+  const handleGuardarApariencia = async () => {
+    setSaving(true);
+    try {
+      const form = new FormData();
+      form.append("plan_deluxe", tema.plan_deluxe ? "1" : "0");
+      form.append("dark_design", tema.dark_design === 0 ? "0" : "1");
+      form.append("nombre_app", tema.nombre_app || "");
+      COLOR_FIELDS.forEach(({ key }) => form.append(key, tema[key]));
+      IMAGE_FIELDS.forEach(({ key, formField }) => {
+        if (files[key]) form.append(formField, files[key]);
+      });
+
+      const res = await apiClientesEventsInstance.post(
+        `/clientes/${idCliente}/tema`,
+        form,
+        { headers: { ...authHeaderClientesEvents(), "Content-Type": "multipart/form-data" }, params: { id_app: 1 } }
+      );
+      onSaved(res.data.item);
+      setFiles({});
+      setPreviews({});
+      setEditing(false);
+      setVerifiedEmail("");
+      toast("Apariencia guardada correctamente");
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || "Error al guardar apariencia");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStep3Submit = async () => {
+    if (!step3Password.trim()) {
+      setStep3Error("Ingresa tu contraseña.");
+      return;
+    }
+    setStep3Loading(true);
+    setStep3Error("");
+    try {
+      await apiClientesEventsInstance.post("/auth/login-admin", {
+        email: verifiedEmail || localStorage.getItem("email") || "",
+        password: step3Password,
+      });
+      setStep3Open(false);
+      await handleGuardarApariencia();
+    } catch (err) {
+      const status = err?.response?.status;
+      setStep3Error(
+        status === 401 || status === 400
+          ? "Contraseña incorrecta. Inténtalo de nuevo."
+          : (err?.response?.data?.detail || "Error al verificar contraseña.")
+      );
+    } finally {
+      setStep3Loading(false);
+    }
+  };
+
+  return (
+    <div className="cd-card">
+      <div className="cd-card-header" style={{ justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="cd-card-icon-wrap"><BgColorsOutlined /></div>
+          <h2 className="cd-card-title">Apariencia y marca</h2>
+        </div>
+        {!editing ? (
+          <Button icon={<EditOutlined />} onClick={handleClickEditar}>Editar</Button>
+        ) : (
+          <Button icon={<CloseOutlined />} onClick={resetEditState}>Cancelar</Button>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 20px" }}>
+        <div>
+          <span className="cd-field-label" style={{ display: "block" }}>Tema personalizado activo</span>
+          <span style={{ fontSize: 12, color: "#6b7280" }}>
+            Si está apagado, el cliente ve el tema por defecto en su sistema
+          </span>
+        </div>
+        <Switch
+          checked={!!tema.plan_deluxe}
+          disabled={!editing}
+          onChange={(checked) => setTema((prev) => ({ ...prev, plan_deluxe: checked ? 1 : 0 }))}
+          style={tema.plan_deluxe ? { backgroundColor: BLUE } : {}}
+        />
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 20px" }}>
+        <div>
+          <span className="cd-field-label" style={{ display: "block" }}>Diseño oscuro del navbar</span>
+          <span style={{ fontSize: 12, color: "#6b7280" }}>
+            Actívalo si el color de navbar/header es oscuro (texto e íconos en blanco). Desactívalo si elegiste un color claro (texto e íconos en oscuro).
+          </span>
+        </div>
+        <Switch
+          checked={tema.dark_design !== 0}
+          disabled={!editing}
+          onChange={(checked) => setTema((prev) => ({ ...prev, dark_design: checked ? 1 : 0 }))}
+          style={tema.dark_design !== 0 ? { backgroundColor: BLUE } : {}}
+        />
+      </div>
+
+      <div style={{ marginBottom: 24, maxWidth: 360 }}>
+        <span className="cd-field-label" style={{ display: "block", marginBottom: 6 }}>Nombre de la app</span>
+        <Input
+          value={tema.nombre_app}
+          disabled={!editing}
+          onChange={(e) => setTema((prev) => ({ ...prev, nombre_app: e.target.value }))}
+          placeholder="Ej. EcoSound"
+          maxLength={80}
+        />
+      </div>
+
+      <span className="cd-field-label" style={{ display: "block", marginBottom: 12 }}>Colores</span>
+      <div className="ap-color-grid">
+        {COLOR_FIELDS.map(({ key, label, desc }) => (
+          <div key={key} className="ap-color-item">
+            <ColorPicker value={tema[key]} onChangeComplete={setColor(key)} format="hex" disabled={!editing} />
+            <div className="ap-color-text">
+              <span className="ap-color-label">{label}</span>
+              <span className="ap-color-desc">{desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="cd-divider" style={{ margin: "24px 0" }} />
+
+      <span className="cd-field-label" style={{ display: "block", marginBottom: 4 }}>Imágenes</span>
+      <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 12px" }}>
+        La vista previa se muestra sobre el color real donde aparecerá cada imagen (o un fondo a cuadros si no aplica),
+        para que puedas revisar logos blancos o transparentes antes de guardar.
+      </p>
+      <div className="ap-images-grid">
+        {IMAGE_FIELDS.map(({ key, label, desc, hint, previewBgKey }) => (
+          <div key={key}>
+            <ImageDropzone
+              label={label}
+              desc={desc}
+              hint={hint}
+              currentPath={cliente[key]}
+              preview={previews[key]}
+              onPick={handlePickImage(key)}
+              disabled={!editing}
+              previewBg={previewBgKey ? tema[previewBgKey] : null}
+            />
+          </div>
+        ))}
+      </div>
+
+      {editing && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+          <Button
+            type="primary"
+            icon={<PictureOutlined />}
+            loading={saving}
+            onClick={handleClickGuardar}
+            style={{ background: BLUE, borderColor: BLUE }}
+          >
+            Guardar apariencia
+          </Button>
+        </div>
+      )}
+
+      <ModalConfirmarLogin
+        open={step1Open}
+        email={step1Email}
+        onEmailChange={setStep1Email}
+        password={step1Password}
+        onPasswordChange={setStep1Password}
+        loading={step1Loading}
+        error={step1Error}
+        onCancel={() => setStep1Open(false)}
+        onSubmit={handleStep1Submit}
+      />
+
+      <ModalConfirmarCodigo
+        open={step2Open}
+        email={verifiedEmail}
+        code={code}
+        onCodeChange={setCode}
+        loading={step2Loading}
+        error={step2Error}
+        sending={sendingCode}
+        cooldown={resendCooldown}
+        onResend={handleResendCodigo}
+        onCancel={() => setStep2Open(false)}
+        onSubmit={handleStep2Submit}
+      />
+
+      <ModalConfirmarPassword
+        open={step3Open}
+        password={step3Password}
+        onPasswordChange={setStep3Password}
+        loading={step3Loading}
+        error={step3Error}
+        onCancel={() => setStep3Open(false)}
+        onSubmit={handleStep3Submit}
+      />
+    </div>
+  );
+}
+
 export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +681,10 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
   const [actividad, setActividad] = useState([]);
   const [loadingActividad, setLoadingActividad] = useState(false);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+
   const fetchCliente = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,7 +694,7 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
       );
       setCliente(res.data);
     } catch {
-      notification.error({ message: "Error al cargar cliente" });
+      toast("Error al cargar cliente");
     } finally {
       setLoading(false);
     }
@@ -131,9 +738,9 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
         { headers: authHeaderClientesEvents(), params: { id_app: 1 } }
       );
       setCliente(prev => ({ ...prev, habilitar_sistema: checked ? 1 : 0 }));
-      notification.success({ message: checked ? "Sistema habilitado" : "Sistema deshabilitado" });
+      toast(checked ? "Sistema habilitado" : "Sistema deshabilitado");
     } catch (err) {
-      notification.error({ message: "Error al actualizar", description: err?.response?.data?.detail || err.message });
+      toast(err?.response?.data?.detail || err.message || "Error al actualizar");
     } finally {
       setSwitching(false);
     }
@@ -155,7 +762,7 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
     setAuthLoading(true);
     setAuthError("");
     try {
-      await apiClientesEventsInstance.post("/auth/login", {
+      await apiClientesEventsInstance.post("/auth/login-admin", {
         email: authEmail.trim(),
         password: authPassword,
       });
@@ -165,7 +772,7 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
         `/clientes/${idCliente}`,
         { headers: authHeaderClientesEvents(), params: { id_app: 1 } }
       );
-      notification.success({ message: "Cliente eliminado correctamente" });
+      toast("Cliente eliminado correctamente");
       onBack();
     } catch (err) {
       const status = err?.response?.status;
@@ -174,7 +781,7 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
       } else if (err?.config?.url?.includes("/auth/login")) {
         setAuthError(err?.response?.data?.detail || "Error al verificar credenciales.");
       } else {
-        notification.error({ message: "Error al eliminar", description: err?.response?.data?.detail || err.message });
+        toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         setAuthModal(false);
       }
     } finally {
@@ -196,12 +803,12 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
         },
         { headers: authHeaderClientesEvents(), params: { id_app: 1 } }
       );
-      notification.success({ message: "Pago registrado" });
+      toast("Pago registrado");
       pagoForm.resetFields();
       setPagoModal(false);
       fetchPagos();
     } catch (err) {
-      notification.error({ message: "Error al registrar pago", description: err?.response?.data?.detail || err.message });
+      toast(err?.response?.data?.detail || err.message || "Error al registrar pago");
     } finally { setSavingPago(false); }
   };
 
@@ -212,9 +819,9 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
         `/clientes/${idCliente}/pagos/${id}`,
         { headers: authHeaderClientesEvents(), params: { id_app: 1 } }
       );
-      notification.success({ message: "Pago eliminado" });
+      toast("Pago eliminado");
       fetchPagos();
-    } catch { notification.error({ message: "Error al eliminar pago" }); }
+    } catch { toast("Error al eliminar pago"); }
     finally { setDeletingPagoId(null); }
   };
 
@@ -250,15 +857,7 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
 
   return (
     <div>
-      <Button
-        type="link"
-        icon={<ArrowLeftOutlined />}
-        className="cd-back-btn"
-        onClick={onBack}
-        style={{ marginBottom: 16 }}
-      >
-        Volver a Clientes
-      </Button>
+
 
       {/* Header card */}
       <div className="cd-header-card">
@@ -339,9 +938,10 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
 
         <div className="cd-header-tabs events-tabs-wrap">
           {[
-            { key: "datos",     label: "Datos del cliente", icon: <UserOutlined /> },
-            { key: "pagos",     label: "Pagos",             icon: <DollarOutlined />, count: pagos.length },
-            { key: "actividad", label: "Actividad",         icon: <HistoryOutlined />, count: actividad.length },
+            { key: "datos",       label: "Datos del cliente", icon: <UserOutlined /> },
+            { key: "apariencia",  label: "Apariencia",        icon: <BgColorsOutlined /> },
+            { key: "pagos",       label: "Pagos",             icon: <DollarOutlined />, count: pagos.length },
+            { key: "actividad",   label: "Actividad",         icon: <HistoryOutlined />, count: actividad.length },
           ].map((t) => (
             <button
               key={t.key}
@@ -458,6 +1058,17 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===== TAB: APARIENCIA ===== */}
+      {activeTab === "apariencia" && (
+        <TabApariencia
+          key={cliente.id_cliente}
+          cliente={cliente}
+          idCliente={idCliente}
+          onSaved={(item) => setCliente(item)}
+          toast={toast}
+        />
       )}
 
       {/* ===== TAB: PAGOS ===== */}
@@ -820,6 +1431,8 @@ export default function ClienteEventDetallePage({ idCliente, onBack, onEdit }) {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </div>
   );
 }

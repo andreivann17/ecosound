@@ -16,7 +16,7 @@
   src: url( ../fonts/proxima-nova.otf);
 }
 *{
-  font-family: proximanova;
+  font-family: "Noto Sans";
 }
 .Panel_Contenido{
   transition-timing-function: linear;

@@ -25,7 +25,7 @@ _REMINDERS = [
     (3, "correo_dia_evento",   "hora_inicio",         "1 DAY",  "1 día antes del evento",               "📅"),
     (7, "correo_hora_sesion",  "datetime_fotografia", "1 HOUR", "1 hora antes de la sesión de fotos",   "📷"),
     (8, "correo_dia_sesion",   "datetime_fotografia", "1 DAY",  "1 día antes de la sesión de fotos",    "📷"),
-    (6, "correo_hora_misa",    "hora_misa",           "1 HOUR", "1 hora antes de la misa",              "⛪"),
+    (6, "correo_hora_misa",    "fecha_misa",          "1 HOUR", "1 hora antes de la misa",              "⛪"),
 ]
 
 
@@ -43,7 +43,7 @@ def _evento_html(evento: Dict[str, Any], subject_label: str, icon: str, banner_t
     fecha       = fmt(evento.get("fecha_evento"))
     hora_ini    = fmt(evento.get("hora_inicio"))
     hora_fin    = fmt(evento.get("hora_final"))
-    hora_misa   = fmt(evento.get("hora_misa"))
+    hora_misa   = fmt(evento.get("fecha_misa"))
     lugar       = evento.get("lugar_evento") or "—"
     dir_misa    = evento.get("direccion_misa") or "—"
     importe     = evento.get("importe") or "—"
@@ -233,7 +233,7 @@ def _get_pending_eventos(time_field: str, mysql_interval: str, source_id: int) -
             cur.execute(
                 f"""
                 SELECT e.id_contrato, e.code, e.cliente_nombre, e.fecha_evento,
-                       e.hora_inicio, e.hora_final, e.hora_misa, e.lugar_evento,
+                       e.hora_inicio, e.hora_final, e.fecha_misa, e.lugar_evento,
                        e.direccion_misa, e.importe, e.comentarios,
                        u.name AS created_by_nombre,
                        c.nombre AS nombre_ciudad

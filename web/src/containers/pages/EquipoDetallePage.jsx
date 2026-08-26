@@ -17,7 +17,6 @@ import {
   Input,
   Select,
   DatePicker,
-  notification,
   Spin,
   Empty,
   Divider,
@@ -38,6 +37,9 @@ import {
   CheckCircleOutlined,
   StopOutlined,
 } from "@ant-design/icons";
+
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 import "./EventoDetallePage.css";
 import "./EstadisticasPage.css";
@@ -138,13 +140,18 @@ export default function EquipoDetallePage() {
   const [movPeriodo, setMovPeriodo] = useState("mes");
   const [movCustomRange, setMovCustomRange] = useState(null);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     apiInventarioInstance
       .get(`/inventario/equipo/${idEquipo}`, { headers: authHeaderInventario() })
       .then(({ data }) => { if (mounted) setEquipo(data); })
-      .catch(() => notification.error({ message: "No se pudo cargar el equipo" }))
+      .catch(() => toast("No se pudo cargar el equipo"))
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [idEquipo]);
@@ -255,15 +262,10 @@ export default function EquipoDetallePage() {
             { active: nuevoEstado ? 1 : 0 },
             { headers: authHeaderInventario() }
           );
-          notification.success({
-            message: nuevoEstado ? "Equipo reactivado" : "Equipo descontinuado",
-          });
+          toast(nuevoEstado ? "Equipo reactivado" : "Equipo descontinuado");
           reloadEquipo();
         } catch (err) {
-          notification.error({
-            message: "Error al actualizar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al actualizar");
         } finally {
           setToggling(false);
         }
@@ -274,7 +276,7 @@ export default function EquipoDetallePage() {
   const handleDelete = () => {
     Modal.confirm({
       title: "Eliminar equipo",
-      content: "El equipo se eliminará del sistema permanentemente (borrado lógico).",
+      content: "El equipo se eliminará del sistema permanentemente.",
       okText: "Eliminar",
       okType: "danger",
       cancelText: "Cancelar",
@@ -285,13 +287,13 @@ export default function EquipoDetallePage() {
           await apiInventarioInstance.delete(`/inventario/equipo/${idEquipo}`, {
             headers: authHeaderInventario(),
           });
-          notification.success({ message: "Equipo eliminado" });
-          navigate("/app/inventario");
-        } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
+          setSuccess({
+            show: true,
+            title: "¡Equipo eliminado!",
+            subtitle: `"${equipo?.nombre || ""}" se eliminó correctamente del inventario.`,
           });
+        } catch (err) {
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         } finally {
           setDeleting(false);
         }
@@ -313,14 +315,11 @@ export default function EquipoDetallePage() {
             `/inventario/equipo/${idEquipo}/movimientos/${mov.id_equipo_movimiento}`,
             { headers: authHeaderInventario() }
           );
-          notification.success({ message: "Movimiento eliminado" });
+          toast("Movimiento eliminado");
           fetchMovimientos();
           reloadEquipo();
         } catch (err) {
-          notification.error({
-            message: "Error al eliminar",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Error al eliminar");
         }
       },
     });
@@ -354,16 +353,13 @@ export default function EquipoDetallePage() {
         },
         { headers: authHeaderInventario() }
       );
-      notification.success({ message: "Movimiento registrado" });
+      toast("Movimiento registrado");
       movForm.resetFields();
       setMovModalOpen(false);
       fetchMovimientos();
       reloadEquipo();
     } catch (err) {
-      notification.error({
-        message: "Error al guardar movimiento",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar movimiento");
     } finally {
       setSavingMov(false);
     }
@@ -421,14 +417,6 @@ export default function EquipoDetallePage() {
     <div className="cd-main">
       <div className="cd-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          className="cd-back-btn"
-          onClick={() => navigate("/app/inventario")}
-        >
-          Volver a Inventario
-        </Button>
 
         <div className="cd-header-card">
           <div className="cd-header-top">
@@ -495,6 +483,7 @@ export default function EquipoDetallePage() {
                   icon={<DeleteOutlined />}
                   className="cd-btn-delete"
                   loading={deleting}
+                  disabled={success.show}
                   onClick={handleDelete}
                 >
                   Eliminar
@@ -968,6 +957,14 @@ export default function EquipoDetallePage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/inventario")}
+      />
     </div>
   );
 }

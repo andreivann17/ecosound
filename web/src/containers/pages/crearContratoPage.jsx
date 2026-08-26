@@ -16,7 +16,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
   Upload,
@@ -37,6 +36,8 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 import "./ContratosPage.css";
 
 const { Title, Text } = Typography;
@@ -78,12 +79,17 @@ export default function CrearContratoPage() {
   const [documentos, setDocumentos] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
+
   // ── Pre-rellenar en edición ──────────────────────────────────────
   useEffect(() => {
     if (contratoEditar) {
       const hi = contratoEditar.hora_inicio ? dayjs(contratoEditar.hora_inicio) : null;
       const hf = contratoEditar.hora_final  ? dayjs(contratoEditar.hora_final)  : null;
-      const mh = contratoEditar.hora_misa   ? dayjs(contratoEditar.hora_misa, "HH:mm") : null;
+      const fm = contratoEditar.fecha_misa  ? dayjs(contratoEditar.fecha_misa) : null;
 
       form.setFieldsValue({
         cliente_nombre:   contratoEditar.cliente_nombre,
@@ -99,7 +105,8 @@ export default function CrearContratoPage() {
         fecha_anticipo:   contratoEditar.fecha_anticipo   ? dayjs(contratoEditar.fecha_anticipo)   : null,
         importe_anticipo: contratoEditar.importe_anticipo ? toDecimal(contratoEditar.importe_anticipo) : "",
         direccion_misa:   contratoEditar.direccion_misa   ?? "",
-        hora_misa:        mh,
+        fecha_misa:       fm,
+        hora_misa:        fm,
         comentarios:      contratoEditar.comentarios      ?? "",
       });
 
@@ -130,19 +137,16 @@ export default function CrearContratoPage() {
         `/contratos/${contratoEditar.id_contrato}/documentos/${id}`,
         { headers: authHeaderContratos() }
       );
-      notification.success({ message: "Documento eliminado" });
+      toast("Documento eliminado");
       setDocumentos((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
-      notification.error({
-        message: "Error al eliminar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al eliminar");
     }
   };
 
   const handleBeforeUpload = (file) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      notification.error({ message: "Solo se permiten archivos PDF" });
+      toast("Solo se permiten archivos PDF");
       return Upload.LIST_IGNORE;
     }
     setPendingFile(file);
@@ -197,7 +201,9 @@ export default function CrearContratoPage() {
         ? dayjs(values.fecha_anticipo).format("YYYY-MM-DDTHH:mm:ss") : undefined,
       importe_anticipo: values.importe_anticipo ? String(values.importe_anticipo) : undefined,
       direccion_misa:   values.direccion_misa?.trim() || null,
-      hora_misa:        values.hora_misa ? dayjs(values.hora_misa).format("HH:mm") : null,
+      fecha_misa:       values.fecha_misa
+        ? `${dayjs(values.fecha_misa).format("YYYY-MM-DD")}T${values.hora_misa ? dayjs(values.hora_misa).format("HH:mm") : "00:00"}:00`
+        : null,
       comentarios:      values.comentarios?.trim() || null,
     };
 
@@ -222,22 +228,19 @@ export default function CrearContratoPage() {
         try {
           await uploadDocumento(id_contrato, pendingFile);
         } catch (err) {
-          notification.warning({
-            message: "Contrato guardado, pero falló la subida del documento",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Contrato guardado, pero falló la subida del documento");
         }
       }
 
-      notification.success({
-        message: isEditing ? "Contrato actualizado correctamente" : "Contrato creado exitosamente",
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Contrato creado!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `El contrato de "${values.cliente_nombre?.trim() || ""}" ya está registrado.`,
       });
-      navigate("/app/contratos");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -252,14 +255,7 @@ export default function CrearContratoPage() {
         <section className="contratos-header-section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <Space direction="vertical" size={2}>
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/app/contratos")}
-                style={{ padding: 0, height: "auto", fontSize: 12, color: "#05060a" }}
-              >
-                Volver a Contratos
-              </Button>
+
               <Title level={2} className="contratos-title" style={{ marginBottom: 0 }}>
                 {isEditing
                   ? `Editando contrato de ${contratoEditar.cliente_nombre}`
@@ -276,13 +272,14 @@ export default function CrearContratoPage() {
               <Button
                 className="contratos-btn-clean"
                 onClick={() => navigate("/app/contratos")}
-                disabled={saving}
+                disabled={saving || success.show}
               >
                 Cancelar
               </Button>
               <Button
                 type="primary"
                 loading={saving}
+                disabled={success.show}
                 onClick={handleSave}
                 style={{ backgroundColor: "#111", borderColor: "#111" }}
               >
@@ -446,6 +443,14 @@ export default function CrearContratoPage() {
                   <span className="cc-optional-badge">Opcional</span>
                 </div>
                 <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="fecha_misa"
+                      label={<span className="contratos-field-label">Fecha de la misa</span>}
+                    >
+                      <DatePicker style={{ width: "100%" }} format="DD MMM YYYY" placeholder="Selecciona fecha" />
+                    </Form.Item>
+                  </Col>
                   <Col xs={24} md={16}>
                     <Form.Item
                       name="direccion_misa"
@@ -454,6 +459,8 @@ export default function CrearContratoPage() {
                       <Input placeholder="Iglesia, parroquia, dirección..." />
                     </Form.Item>
                   </Col>
+                </Row>
+                <Row gutter={16}>
                   <Col xs={24} md={8}>
                     <Form.Item
                       name="hora_misa"
@@ -632,6 +639,14 @@ export default function CrearContratoPage() {
         </Form>
 
       </div>
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/contratos")}
+      />
     </main>
   );
 }

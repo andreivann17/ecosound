@@ -1,7 +1,7 @@
 /* InventarioPage.css — copy/adapted from EventosPage.css */
 
 .inv-main {
-  background-color: #eef1f5;
+  background-color: var(--eh-app-bg, #eef1f5);
   min-height: calc(100vh - 56px);
   padding: 24px;
 }
@@ -21,10 +21,11 @@
 .inv-title {
   margin-bottom: 2px !important;
   font-weight: 650;
+  color: var(--eh-ink, #0f172a) !important;
 }
 
 .inv-subtitle {
-  color: #7a7f87;
+  color: var(--eh-ink-muted, #7a7f87);
   font-size: 13px;
 }
 
@@ -34,8 +35,8 @@
 }
 
 .inv-filters-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--eh-surface, #ffffff);
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   border-radius: 16px;
   padding: 18px;
   box-shadow: 0 2px 10px rgba(15, 34, 58, 0.06);
@@ -47,7 +48,7 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: #303030;
+  color: var(--eh-ink, #303030);
   margin-bottom: 8px;
   text-transform: uppercase;
 }
@@ -61,7 +62,8 @@
 .inv-filters-panel .ant-select-selector,
 .inv-filters-panel .ant-picker {
   width: 100%;
-  background: #f8fafc !important;
+  background: var(--eh-surface-2, #f8fafc) !important;
+  color: var(--eh-ink, inherit);
   box-shadow: none !important;
 }
 
@@ -135,6 +137,7 @@
 }
 
 .inv-stat-card {
+  background: var(--eh-surface, #ffffff) !important;
   border-radius: 10px !important;
   border: none !important;
   box-shadow: 0 3px 10px rgba(15, 34, 58, 0.08);
@@ -169,13 +172,13 @@
 .inv-stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   line-height: 1;
 }
 
 .inv-stat-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
 }
 
 /* Toolbar */
@@ -206,7 +209,7 @@
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #475569;
+  color: var(--eh-ink-2, #475569);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -278,14 +281,14 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--eh-ink-faint, #94a3b8);
 }
 
 /* Equipo card */
 .equipo-card {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 12px;
-  border: 1px solid #e0e0e7;
+  border: 1px solid var(--eh-surface-border, #e0e0e7);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: box-shadow 180ms ease, transform 180ms ease;
   overflow: hidden;
@@ -301,7 +304,7 @@
 
 .equipo-card-header {
   padding: 14px 16px 12px;
-  border-bottom: 1px solid #f0edf2;
+  border-bottom: 1px solid var(--eh-surface-border, #f0edf2);
 }
 
 .equipo-card-head {
@@ -317,7 +320,7 @@
   font-weight: 600 !important;
   font-size: 15px !important;
   line-height: 1.3 !important;
-  color: #0d1b4b !important;
+  color: var(--eh-ink, #0d1b4b) !important;
 }
 
 .equipo-status-badge {
@@ -350,7 +353,7 @@
 }
 
 .equipo-info-icon {
-  color: #76777d;
+  color: var(--eh-ink-muted, #76777d);
   font-size: 15px;
   margin-top: 3px;
   flex-shrink: 0;
@@ -364,14 +367,14 @@
 .equipo-info-label {
   font-size: 11px;
   font-weight: 500;
-  color: #76777d;
+  color: var(--eh-ink-muted, #76777d);
   line-height: 1;
   margin-bottom: 2px;
 }
 
 .equipo-info-value {
   font-size: 13px;
-  color: #1b1b1d;
+  color: var(--eh-ink, #1b1b1d);
   line-height: 1.3;
 }
 
@@ -381,13 +384,13 @@
   justify-content: space-between;
   margin-top: 8px;
   padding-top: 10px;
-  border-top: 1px solid #f0edf2;
+  border-top: 1px solid var(--eh-surface-border, #f0edf2);
 }
 
 .equipo-cantidad-label {
   font-size: 11px;
   font-weight: 600;
-  color: #76777d;
+  color: var(--eh-ink-muted, #76777d);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -395,7 +398,7 @@
 .equipo-cantidad-value {
   font-size: 24px;
   font-weight: 800;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   line-height: 1;
 }
 
@@ -410,7 +413,7 @@
 .equipo-btn-details {
   width: 100%;
   padding: 14px 16px;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   border: none;
   color: #ffffff;
   font-size: 11px;
@@ -428,13 +431,21 @@
 
 .equipo-btn-details:hover { background: #0a2a7a; }
 
+:root[data-eh-content-theme="dark"] .equipo-btn-details {
+  background: rgba(100, 116, 139, 0.28);
+  color: #cbd5e1;
+}
+:root[data-eh-content-theme="dark"] .equipo-btn-details:hover {
+  background: rgba(100, 116, 139, 0.42);
+}
+
 .inv-empty {
   padding: 36px 12px;
   text-align: center;
-  color: rgba(0,0,0,0.55);
-  background: #fff;
+  color: var(--eh-ink-muted, rgba(0,0,0,0.55));
+  background: var(--eh-surface, #fff);
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
 }
 
 /* Crear / Editar Equipo */
@@ -453,8 +464,8 @@
 }
 
 .cc-section-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--eh-surface, #ffffff);
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   border-radius: 14px;
   padding: 20px 24px 8px;
   box-shadow: 0 2px 8px rgba(15, 34, 58, 0.05);
@@ -468,7 +479,7 @@
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.09em;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   text-transform: uppercase;
 }
 
@@ -477,12 +488,12 @@
   height: 28px;
   min-width: 28px;
   border-radius: 7px;
-  background: #f1f5f9;
+  background: var(--eh-surface-2, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #475569;
+  color: var(--eh-ink-2, #475569);
 }
 
 .cc-section-card .ant-input,
@@ -490,8 +501,9 @@
 .cc-section-card .ant-select-selector,
 .cc-section-card .ant-picker,
 .cc-section-card .ant-input-textarea textarea {
-  background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  background: var(--eh-surface-2, #f8fafc) !important;
+  border-color: var(--eh-surface-border, #e2e8f0) !important;
+  color: var(--eh-ink, inherit) !important;
   box-shadow: none !important;
 }
 
@@ -499,7 +511,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
-  color: #6b7280;
+  color: var(--eh-ink-muted, #6b7280);
   text-transform: uppercase;
 }
 
@@ -611,7 +623,7 @@
 
 /* Conteo page */
 .conteo-main {
-  background-color: #eef1f5;
+  background-color: var(--eh-app-bg, #eef1f5);
   min-height: calc(100vh - 56px);
   padding: 24px;
 }
@@ -619,9 +631,9 @@
 .conteo-content { margin: 0 auto; }
 
 .conteo-table-wrap {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   box-shadow: 0 4px 14px rgba(15, 34, 58, 0.08);
   overflow: hidden;
   margin-top: 16px;
@@ -634,27 +646,27 @@
 }
 
 .conteo-table thead th {
-  background: #f8fafc;
+  background: var(--eh-surface-2, #f8fafc);
   padding: 12px 16px;
   text-align: left;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #475569;
-  border-bottom: 2px solid #e2e8f0;
+  color: var(--eh-ink-2, #475569);
+  border-bottom: 2px solid var(--eh-surface-border, #e2e8f0);
 }
 
 .conteo-table tbody tr {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--eh-surface-border, #f1f5f9);
   transition: background 0.12s;
 }
 
-.conteo-table tbody tr:hover { background: #f8fafc; }
+.conteo-table tbody tr:hover { background: var(--eh-surface-2, #f8fafc); }
 
 .conteo-table tbody td {
   padding: 10px 16px;
-  color: #1b1b1d;
+  color: var(--eh-ink, #1b1b1d);
   vertical-align: middle;
 }
 
@@ -666,12 +678,13 @@
 .conteo-input {
   width: 90px;
   text-align: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 14px;
   font-weight: 700;
-  background: #f8fafc;
+  background: var(--eh-surface-2, #f8fafc);
+  color: var(--eh-ink, inherit);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -679,7 +692,7 @@
 .conteo-input:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .conteo-categoria-row td {
@@ -695,8 +708,8 @@
 
 /* ── Conteos list cards ── */
 .conteo-list-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--eh-surface, #fff);
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   display: flex;
@@ -722,14 +735,14 @@
 .conteo-fecha-title {
   font-weight: 700;
   font-size: 15px;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
 }
 
 .conteo-list-meta {
   display: flex;
   gap: 20px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -757,7 +770,7 @@
 
 .conteo-btn-details {
   padding: 0 22px;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   border: none;
   color: #ffffff;
   font-size: 11px;
@@ -774,6 +787,14 @@
 }
 
 .conteo-btn-details:hover { background: #0a2a7a; }
+
+:root[data-eh-content-theme="dark"] .conteo-btn-details {
+  background: rgba(100, 116, 139, 0.28);
+  color: #cbd5e1;
+}
+:root[data-eh-content-theme="dark"] .conteo-btn-details:hover {
+  background: rgba(100, 116, 139, 0.42);
+}
 
 .conteo-btn-delete {
   padding: 0 18px;
@@ -802,6 +823,7 @@
 @media (max-width: 768px) { .cd-stats-row { grid-template-columns: repeat(2, 1fr); } }
 
 .cd-stat-card {
+  background: var(--eh-surface, #ffffff) !important;
   border-radius: 10px !important;
   border: none !important;
   box-shadow: 0 3px 10px rgba(15, 34, 58, 0.08);
@@ -830,13 +852,13 @@
 .cd-stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   line-height: 1;
 }
 
 .cd-stat-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--eh-ink-muted, #64748b);
   margin-top: 2px;
 }
 

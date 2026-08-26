@@ -56,6 +56,5 @@ def get_current_user(
 def get_tenant_filter(
     current_user: Dict = Depends(get_current_user),
 ) -> Optional[int]:
-    from .models.users import get_user_id_cliente
-    user_id = int(current_user.get("id") or 0)
-    return get_user_id_cliente(user_id) if user_id else None
+    id_cliente = current_user.get("id_cliente")
+    return int(id_cliente) if id_cliente else None

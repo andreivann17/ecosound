@@ -1,0 +1,107 @@
+.succ-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: succ-fade-in 0.25s ease both;
+}
+
+.succ-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: var(--eh-surface, #ffffff);
+  border-radius: 20px;
+  padding: 36px 44px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  animation: succ-pop-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  max-width: 320px;
+  text-align: center;
+}
+
+.succ-check {
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+}
+
+.succ-check-circle {
+  stroke: var(--eh-primary-btn, #2f6bff);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 176;
+  stroke-dashoffset: 176;
+  animation: succ-draw 0.5s ease-out 0.1s forwards;
+}
+
+.succ-check-mark {
+  stroke: var(--eh-primary-btn, #2f6bff);
+  stroke-width: 4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 37;
+  stroke-dashoffset: 37;
+  animation: succ-draw 0.35s ease-out 0.55s forwards;
+}
+
+.succ-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--eh-ink, #0f172a);
+  opacity: 0;
+  animation: succ-text-in 0.35s ease-out 0.75s forwards;
+}
+
+.succ-subtitle {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--eh-ink-muted, #64748b);
+  opacity: 0;
+  animation: succ-text-in 0.35s ease-out 0.85s forwards;
+}
+
+@keyframes succ-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes succ-pop-in {
+  0% { opacity: 0; transform: scale(0.86) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes succ-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes succ-text-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+:root[data-eh-content-theme="dark"] .succ-card {
+  background: var(--eh-surface, #111827);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .succ-overlay,
+  .succ-card,
+  .succ-check-circle,
+  .succ-check-mark,
+  .succ-title,
+  .succ-subtitle {
+    animation: none !important;
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+    transform: none !important;
+  }
+}

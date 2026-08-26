@@ -1,0 +1,132 @@
+/* Toast rediseñado para compartir la misma identidad visual (tarjetas
+   redondeadas, iconografía circular, color de marca) del resto del sistema. */
+
+.eh-toast-container {
+  z-index: 2100;
+}
+
+.eh-toast.toast {
+  min-width: 300px;
+  max-width: 380px;
+  background: var(--eh-surface, #ffffff);
+  border: 1px solid var(--eh-surface-border, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  animation: eh-toast-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes eh-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.eh-toast-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 16px 16px;
+}
+
+.eh-toast-icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
+}
+
+.eh-toast-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: block;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+}
+
+.eh-toast-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #ffffff;
+  border: 2px solid var(--eh-surface, #ffffff);
+}
+
+.eh-toast-success .eh-toast-badge {
+  background: #16a34a;
+}
+
+.eh-toast-error .eh-toast-badge {
+  background: var(--eh-badge-red-text, #b91c1c);
+}
+
+.eh-toast-msg {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--eh-ink, #0f172a);
+  padding-top: 3px;
+}
+
+.eh-toast-close {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--eh-ink-faint, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.eh-toast-close:hover {
+  background: var(--eh-surface-2, #f1f5f9);
+  color: var(--eh-ink-2, #475569);
+}
+
+.eh-toast-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--eh-primary-btn, #2f6bff);
+  transform-origin: left;
+  animation: eh-toast-progress 3s linear forwards;
+}
+
+.eh-toast-error .eh-toast-progress {
+  background: var(--eh-badge-red-text, #b91c1c);
+}
+
+@keyframes eh-toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eh-toast.toast {
+    animation: none;
+  }
+  .eh-toast-progress {
+    animation: none;
+    display: none;
+  }
+}

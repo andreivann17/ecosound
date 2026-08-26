@@ -71,7 +71,7 @@ function buildHtml(data) {
 
   const css = `
 * { box-sizing:border-box; margin:0; padding:0; }
-html,body { background:#f0f2f5; color:#1b1b1d; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-size:10pt; }
+html,body { background:#f0f2f5; color:#1b1b1d; font-family:"Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif; font-size:10pt; }
 .page { width:176mm; margin:0 auto; background:#fff; }
 
 /* ── CABECERA AZUL (esquinas redondeadas abajo, como la referencia) ── */
@@ -234,6 +234,9 @@ tfoot td { border:1px solid #c8d1dc; padding:9px 10px; }
 }`;
 
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 <title>Cotización ${e(folio || "")} — HerrSoft Events</title>
 <style>${css}</style></head><body>
 <div class="page">

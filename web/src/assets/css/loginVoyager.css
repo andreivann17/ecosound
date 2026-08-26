@@ -42,7 +42,7 @@
 
 .login-right {
   flex: 2;
-background: url('../img/pexels-jules-clark-624979041-35555283.webp') no-repeat center center;
+  background: var(--eh-login-bg-image, url('../img/pexels-jules-clark-624979041-35555283.webp')) no-repeat center center;
   background-size: cover;
 }
 

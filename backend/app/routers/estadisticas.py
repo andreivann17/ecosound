@@ -336,6 +336,53 @@ def get_estadisticas(
                 for r in cur.fetchall()
             ]
 
+            # ── Cotizaciones en el período ────────────────────────────────────
+
+            _qf = " AND id_cliente = %s" if tenant_id is not None else ""
+            _qfq = " AND q.id_cliente = %s" if tenant_id is not None else ""
+
+            cotizaciones_count = int(_scalar(cur,
+                f"SELECT COUNT(*) AS cnt FROM cotizaciones "
+                f"WHERE active = 1 AND DATE(fecha_evento) BETWEEN %s AND %s{_qf}",
+                (p_from, p_to) + _tp,
+            ))
+
+            cotizaciones_importe_total = float(_scalar(cur,
+                f"SELECT COALESCE(SUM(CAST(NULLIF(TRIM(importe),'') AS DECIMAL(12,2))),0) AS t "
+                f"FROM cotizaciones "
+                f"WHERE active=1 AND importe IS NOT NULL AND importe != '' "
+                f"AND DATE(fecha_evento) BETWEEN %s AND %s{_qf}",
+                (p_from, p_to) + _tp,
+            ))
+
+            cur.execute(
+                f"SELECT COALESCE(ci.nombre, 'Sin ciudad') AS ciudad, COUNT(*) AS cantidad "
+                f"FROM cotizaciones q "
+                f"LEFT JOIN ciudades ci ON ci.id_ciudad = q.id_ciudad "
+                f"WHERE q.active = 1 AND DATE(q.fecha_evento) BETWEEN %s AND %s{_qfq} "
+                f"GROUP BY q.id_ciudad, ci.nombre "
+                f"ORDER BY cantidad DESC",
+                (p_from, p_to) + _tp,
+            )
+            cotizaciones_por_ciudad = [
+                {"ciudad": r["ciudad"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
+            cur.execute(
+                f"SELECT COALESCE(te.nombre, 'Sin tipo') AS tipo, COUNT(*) AS cantidad "
+                f"FROM cotizaciones q "
+                f"LEFT JOIN tipo_eventos te ON te.id_tipo_evento = q.id_tipo_evento "
+                f"WHERE q.active = 1 AND DATE(q.fecha_evento) BETWEEN %s AND %s{_qfq} "
+                f"GROUP BY q.id_tipo_evento, te.nombre "
+                f"ORDER BY cantidad DESC",
+                (p_from, p_to) + _tp,
+            )
+            cotizaciones_por_tipo = [
+                {"tipo": r["tipo"], "cantidad": int(r["cantidad"])}
+                for r in cur.fetchall()
+            ]
+
             # ── Contratos con saldo pendiente en el período ──────────────────
 
             cur.execute(
@@ -411,6 +458,12 @@ def get_estadisticas(
                 "top_paquetes_foto": top_paquetes_foto,
                 "top_paquetes_sonido": top_paquetes_sonido,
                 "trabajadores_stats": trabajadores_stats,
+                "cotizaciones": {
+                    "count": cotizaciones_count,
+                    "importe_total": cotizaciones_importe_total,
+                    "por_ciudad": cotizaciones_por_ciudad,
+                    "por_tipo_evento": cotizaciones_por_tipo,
+                },
                 "cobranza": {
                     "contratos_pendientes": contratos_pendientes,
                 },

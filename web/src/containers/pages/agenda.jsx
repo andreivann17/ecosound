@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
-import { Layout, Modal, notification } from "antd";
+import { Layout, Modal } from "antd";
+import Toast from "../../components/toasts/toast";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -29,6 +30,7 @@ import {
   buildDayHours,
   normalizeEvent,
 } from "../../components/calendar/calendarUtils";
+import { getServiceBadge } from "../../components/calendar/serviceBadges";
 
 import "../../components/calendar/css/index.css";
 
@@ -85,20 +87,6 @@ const buildAgendaPayload = ({ rangeParams, filters }) => {
   };
 };
 
-const TIPO_CONTRATO_COLORS = {
-  1:  "#be123c",  // Bodas
-  2:  "#7c3aed",  // XV
-  3:  "#1d4ed8",  // Graduación
-  4:  "#0f766e",  // Corporativo
-  5:  "#ea580c",  // Cumpleaños
-  6:  "#0891b2",  // Citas
-  7:  "#4f46e5",  // Reunion Zoom
-  8:  "#d97706",  // Pendiente
-  10: "#c026d3",  // Fotografía
-};
-
-const SESION_COLOR = "#e91e8c";
-
 const mapAgendaItemToUiEvent = (it) => {
   const canceled =
     it?.status === "canceled" || it?.canceled === true || it?.is_canceled === true;
@@ -142,6 +130,10 @@ const mapAgendaItemToUiEvent = (it) => {
   const source = source_table === "sesiones_fotos" ? "sesiones_fotos" : source_table;
 
   const tipo_id = it?.contrato_tipo_id ?? it?.id_agenda_evento ?? null;
+  const tipo_evento_nombre = it?.tipo_evento_nombre || null;
+  const usuario_nombre = it?.usuario_nombre || null;
+
+  const badge = getServiceBadge({ source, source_table, description: it?.description, title: it?.title });
 
   return {
     ...base,
@@ -154,14 +146,12 @@ const mapAgendaItemToUiEvent = (it) => {
     documento_url,
     documento_filename,
     contrato_tipo_id: tipo_id,
+    tipo_evento_nombre,
+    usuario_nombre,
     source_table,
     source,
-    color_hex: source_table === "sesiones_fotos"
-      ? SESION_COLOR
-      : (TIPO_CONTRATO_COLORS[tipo_id] || it?.color_hex || null),
-    color: source_table === "sesiones_fotos"
-      ? SESION_COLOR
-      : (TIPO_CONTRATO_COLORS[tipo_id] || it?.color_hex || null),
+    color_hex: badge.dot,
+    color: badge.dot,
     id_agenda_evento: it?.id_agenda_evento ?? it?.id_evento ?? null,
     is_recurring: it?.is_recurring ?? null,
   };
@@ -173,6 +163,10 @@ export default function OutlookCalendarPage() {
   const [view, setView] = useState("month");
   const [cursorDate, setCursorDate] = useState(dayjs());
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = useCallback((msg) => { setToastMsg(msg); setShowToast(true); }, []);
+
   const lastNotifAtRef = useRef(0);
   const pendingNotifRef = useRef(null);
   const notifyAgendaUpdate = useCallback((text) => {
@@ -183,36 +177,26 @@ export default function OutlookCalendarPage() {
       if (pendingNotifRef.current) clearTimeout(pendingNotifRef.current);
       pendingNotifRef.current = setTimeout(() => {
         lastNotifAtRef.current = Date.now();
-        notification.info({
-          message: "Agenda actualizada",
-          description: text || "Se detectaron cambios en la agenda.",
-          key: "agenda_update",
-        });
+        toast(text || "Se detectaron cambios en la agenda.");
         pendingNotifRef.current = null;
       }, cooldownMs);
       return;
     }
 
     lastNotifAtRef.current = now;
-    notification.info({
-      message: "Agenda actualizada",
-      description: text || "Se detectaron cambios en la agenda.",
-      key: "agenda_update",
-    });
-  }, []);
-
-  useEffect(() => {
-    notification.config({
-      placement: "topRight",
-      maxCount: 3,
-      duration: 3,
-    });
-  }, []);
+    toast(text || "Se detectaron cambios en la agenda.");
+  }, [toast]);
 
   const [filters, setFilters] = useState({
     tipoContratoIds: [],
     cityIds: [],
     showSesiones: true,
+    hiddenServicios: [],
+    ciudadesSel: [],
+    tiposEventoSel: [],
+    usuarioQuery: "",
+    fechaDesde: null,
+    fechaHasta: null,
   });
 
   const rangeParams = useMemo(() => getRangeParams(view, cursorDate), [view, cursorDate]);
@@ -330,10 +314,11 @@ export default function OutlookCalendarPage() {
         location: s.lugar || "",
         description: s.comentarios || "",
       });
+      const badge = getServiceBadge({ source: "sesiones_fotos" });
       return {
         ...base,
-        color: SESION_COLOR,
-        color_hex: SESION_COLOR,
+        color: badge.dot,
+        color_hex: badge.dot,
         source: "sesiones_fotos",
         source_id: s.id_sesion,
       };
@@ -357,11 +342,31 @@ export default function OutlookCalendarPage() {
   }, [eventsUi, rangeParams]);
 
   const visibleEvents = useMemo(() => {
+    const { ciudadesSel, tiposEventoSel, usuarioQuery, fechaDesde, fechaHasta } = filters;
+    const q = (usuarioQuery || "").trim().toLowerCase();
+    const desde = fechaDesde ? dayjs(fechaDesde) : null;
+    const hasta = fechaHasta ? dayjs(fechaHasta) : null;
+
     return eventsUiInRange.filter((e) => {
-      if (e.color_hex === SESION_COLOR && !filters.showSesiones) return false;
+      if (Array.isArray(ciudadesSel) && ciudadesSel.length > 0) {
+        if (!ciudadesSel.includes(e.nombre_ciudad)) return false;
+      }
+      if (Array.isArray(tiposEventoSel) && tiposEventoSel.length > 0) {
+        if (!tiposEventoSel.includes(e.tipo_evento_nombre)) return false;
+      }
+      if (q && !(e.usuario_nombre || "").toLowerCase().includes(q)) return false;
+      if (desde && dayjs(e.start).isBefore(desde, "day")) return false;
+      if (hasta && dayjs(e.start).isAfter(hasta, "day")) return false;
       return true;
     });
-  }, [eventsUiInRange, filters.showSesiones]);
+  }, [
+    eventsUiInRange,
+    filters.ciudadesSel,
+    filters.tiposEventoSel,
+    filters.usuarioQuery,
+    filters.fechaDesde,
+    filters.fechaHasta,
+  ]);
 
   const onPrev = () => {
     if (view === "day") setCursorDate((d) => d.subtract(1, "day"));
@@ -424,15 +429,11 @@ export default function OutlookCalendarPage() {
       setModalOpen(false);
       setDraft(null);
 
-      notification.info({
-        message: "Evento guardado",
-        description: "",
-        key: "agenda_creado",
-      });
+      toast("Evento guardado");
     } catch (e) {
       const msg =
         e?.response?.data?.detail || e?.message || "No se pudo guardar el evento";
-      notification.error({ message: msg });
+      toast(msg);
     }
   };
 
@@ -491,19 +492,11 @@ export default function OutlookCalendarPage() {
       await dispatch(actionAgendaDelete(data.id, {}));
       const refreshPayload = lastPayloadRef.current ?? buildAgendaPayload({ rangeParams, filters });
       dispatch(actionAgendaPost(refreshPayload));
-      notification.info({
-        message: "Evento eliminado",
-        description: "",
-        key: "agenda_eliminado",
-      });
+      toast("Evento eliminado");
     } catch (e) {
       const msg =
         e?.response?.data?.detail || e?.message || "No se pudo eliminar el evento";
-      notification.info({
-        message: msg,
-        description: "",
-        key: "agenda_no_eliminado",
-      });
+      toast(msg);
     }
   };
 
@@ -635,6 +628,8 @@ export default function OutlookCalendarPage() {
           });
         }}
       />
+
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
     </Layout>
   );
 }

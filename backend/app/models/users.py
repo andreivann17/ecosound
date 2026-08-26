@@ -241,7 +241,7 @@ def set_user_active_flag(*, id_user: int, active_value: int) -> int:
 # ===== PERMISOS ===========
 # ==========================
 
-_MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones"]
+_MODULES = ["eventos", "trabajadores", "inventario", "usuarios", "agenda", "estadisticas", "configuracion", "paquetes", "gastos", "notificaciones", "informes"]
 _ACTIONS = ["modulo", "consultar", "insertar", "editar", "eliminar"]
 
 
@@ -347,14 +347,22 @@ CREATE TABLE IF NOT EXISTS perfil (
     ultima_sesion    DATETIME     DEFAULT NULL,
     path             VARCHAR(125) DEFAULT NULL,
     filename         VARCHAR(125) DEFAULT NULL,
+    tema_preferencia VARCHAR(10)  NOT NULL DEFAULT 'auto',
     UNIQUE KEY uq_perfil_user (id_user)
 )
 """
+
+TEMA_PREFERENCIA_VALORES = {"claro", "oscuro", "auto"}
 
 
 def _ensure_perfil(conn):
     with conn.cursor() as cur:
         cur.execute(_PERFIL_DDL)
+        cur.execute("SHOW COLUMNS FROM perfil LIKE 'tema_preferencia'")
+        if not cur.fetchone():
+            cur.execute(
+                "ALTER TABLE perfil ADD COLUMN tema_preferencia VARCHAR(10) NOT NULL DEFAULT 'auto'"
+            )
     conn.commit()
 
 
@@ -389,7 +397,8 @@ def get_user_perfil(id_user: int) -> Dict[str, Any]:
         _ensure_perfil(conn)
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
-                "SELECT nombre, apellido, fecha_nacimiento, telefono, ultima_sesion, path, filename FROM perfil WHERE id_user=%s AND active=1",
+                "SELECT nombre, apellido, fecha_nacimiento, telefono, ultima_sesion, path, filename, tema_preferencia "
+                "FROM perfil WHERE id_user=%s AND active=1",
                 (id_user,),
             )
             row = cur.fetchone() or {}
@@ -402,7 +411,7 @@ def get_user_perfil(id_user: int) -> Dict[str, Any]:
 
 
 def upsert_user_perfil(id_user: int, data: Dict[str, Any]) -> None:
-    allowed = {"nombre", "apellido", "fecha_nacimiento", "telefono"}
+    allowed = {"nombre", "apellido", "fecha_nacimiento", "telefono", "tema_preferencia"}
     filtered = {k: v for k, v in data.items() if k in allowed}
     if not filtered:
         return
@@ -432,6 +441,12 @@ def upsert_user_perfil(id_user: int, data: Dict[str, Any]) -> None:
         conn.close()
 
 
+def update_user_tema_preferencia(id_user: int, tema_preferencia: str) -> None:
+    if tema_preferencia not in TEMA_PREFERENCIA_VALORES:
+        raise ValueError("tema_preferencia inválido")
+    upsert_user_perfil(id_user, {"tema_preferencia": tema_preferencia})
+
+
 def update_perfil_imagen(id_user: int, filename: str, path: str) -> None:
     conn = get_connection()
     try:
@@ -452,6 +467,16 @@ def update_perfil_imagen(id_user: int, filename: str, path: str) -> None:
                     "INSERT INTO perfil (id_user, nombre, apellido, active, datetime, filename, path, id_cliente) VALUES (%s, '', '', 1, NOW(), %s, %s, %s)",
                     (id_user, filename, path, id_cliente),
                 )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def mark_mensaje_show(id_user: int) -> None:
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET mensaje_show=1 WHERE id_user=%s", (id_user,))
         conn.commit()
     finally:
         conn.close()

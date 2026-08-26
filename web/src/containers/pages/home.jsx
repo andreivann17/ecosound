@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
@@ -15,6 +15,7 @@ import {
 } from "@ant-design/icons";
 import { actionAgendaPost } from "../../redux/actions/agenda/agenda";
 import { usePermisos } from "../../context/PermisosContext";
+import PostLoginChangeModal from "../../components/modals/PostLoginChangeModal";
 import {
   apiContratosInstance,
   authHeaderContratos,
@@ -127,6 +128,7 @@ export default function Home() {
 
   return (
     <>
+      <PostLoginChangeModal />
       <main className="hm-main">
         <div className="hm-content">
 
@@ -187,7 +189,7 @@ export default function Home() {
             <div className="hm-card hm-today-card">
               <div className="hm-card-header">
                 <div className="hm-card-title">
-                  <span className="hm-card-dot" style={{ background: "#01369e" }} />
+                  <span className="hm-card-dot" style={{ background: "var(--eh-primary-btn)" }} />
                   Hoy
                 </div>
                 <span className="hm-card-badge">
@@ -219,7 +221,7 @@ export default function Home() {
             <div className="hm-card hm-week-card">
               <div className="hm-card-header">
                 <div className="hm-card-title">
-                  <span className="hm-card-dot" style={{ background: "#01369e" }} />
+                  <span className="hm-card-dot" style={{ background: "var(--eh-primary-btn)" }} />
                   Esta semana
                 </div>
                 <span className="hm-card-badge">
@@ -331,7 +333,7 @@ function TodayEventRow({ ev, onClick }) {
 const CSS = `
 /* ── layout ── */
 .hm-main {
-  background: #eef1f5;
+  background: var(--eh-app-bg, #eef1f5);
   min-height: calc(100vh - 56px);
   padding: 28px 20px;
   display: flex;
@@ -352,7 +354,7 @@ const CSS = `
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  background: linear-gradient(120deg, #01369e 0%, #0a2a7a 100%);
+  background: linear-gradient(120deg, var(--eh-primary-btn) 0%, var(--eh-primary-btn-2) 100%);
   border-radius: 20px;
   padding: 32px 36px;
   box-shadow: 0 6px 24px rgba(37, 45, 53, 0.18);
@@ -402,9 +404,9 @@ const CSS = `
 
 /* ── card genérico ── */
 .hm-card {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-radius: 18px;
-  border: 1px solid #e4e8f0;
+  border: 1px solid var(--eh-surface-border, #e4e8f0);
   box-shadow: 0 3px 14px rgba(15,34,58,0.07);
   overflow: hidden;
   display: flex;
@@ -415,7 +417,7 @@ const CSS = `
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #f0f2f6;
+  border-bottom: 1px solid var(--eh-surface-border, #f0f2f6);
 }
 .hm-card-title {
   display: flex;
@@ -423,7 +425,7 @@ const CSS = `
   gap: 8px;
   font-weight: 700;
   font-size: 15px;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
 }
 .hm-card-dot {
   width: 10px;
@@ -433,8 +435,8 @@ const CSS = `
 }
 .hm-card-badge {
   font-size: 12px;
-  color: #7a7f87;
-  background: #f3f5f8;
+  color: var(--eh-ink-muted, #7a7f87);
+  background: var(--eh-surface-2, #f3f5f8);
   padding: 2px 10px;
   border-radius: 999px;
 }
@@ -458,11 +460,11 @@ const CSS = `
   cursor: pointer;
   text-align: left;
   width: 100%;
-  border-bottom: 1px solid #f5f6f8;
+  border-bottom: 1px solid var(--eh-surface-border, #f5f6f8);
   transition: background 0.13s;
 }
 .hm-today-row:last-child { border-bottom: none; }
-.hm-today-row:hover { background: #f7f9fc; }
+.hm-today-row:hover { background: var(--eh-surface-2, #f7f9fc); }
 .hm-today-color {
   width: 4px;
   height: 36px;
@@ -479,21 +481,21 @@ const CSS = `
 .hm-today-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .hm-today-meta {
   font-size: 11px;
-  color: #8a93a2;
+  color: var(--eh-ink-muted, #8a93a2);
   display: flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
 }
 .hm-today-arrow {
-  color: #c4cad6;
+  color: var(--eh-ink-faint, #c4cad6);
   font-size: 11px;
   flex-shrink: 0;
 }
@@ -506,13 +508,13 @@ const CSS = `
   justify-content: center;
   gap: 8px;
   padding: 36px 20px;
-  color: #b0b8c6;
+  color: var(--eh-ink-faint, #b0b8c6);
   font-size: 13px;
   flex: 1;
 }
 .hm-empty-icon {
   font-size: 28px;
-  color: #d0d8e6;
+  color: var(--eh-ink-faint, #d0d8e6);
 }
 .hm-center {
   display: flex;
@@ -538,13 +540,21 @@ const CSS = `
   gap: 5px;
   border-radius: 12px;
   padding: 8px 6px;
-  background: #f9fafc;
-  border: 1px solid #edf0f5;
+  background: var(--eh-surface-2, #f9fafc);
+  border: 1px solid var(--eh-surface-border, #edf0f5);
   min-height: 160px;
+}
+:root[data-eh-content-theme="dark"] .hm-day-col {
+  background: color-mix(in srgb, var(--eh-primary-btn) 25%, #05060a 75%);
+  border-color: color-mix(in srgb, var(--eh-primary-btn) 45%, #05060a 55%);
 }
 .hm-day-col--today {
   background: #eef4ff;
   border-color: #b8d0f5;
+}
+:root[data-eh-content-theme="dark"] .hm-day-col--today {
+  background: color-mix(in srgb, var(--eh-primary-btn) 50%, #05060a 50%);
+  border-color: var(--eh-primary-btn);
 }
 .hm-day-col--past {
   opacity: 0.5;
@@ -555,24 +565,24 @@ const CSS = `
   align-items: center;
   gap: 2px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #e8ecf2;
+  border-bottom: 1px solid var(--eh-surface-border, #e8ecf2);
   margin-bottom: 2px;
 }
 .hm-day-name {
   font-size: 9px;
   font-weight: 700;
-  color: #9aa2b1;
+  color: var(--eh-ink-muted, #9aa2b1);
   letter-spacing: 0.6px;
 }
 .hm-day-num {
   font-size: 17px;
   font-weight: 700;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   line-height: 1;
 }
 .hm-day-num--today {
   color: #fff;
-  background: #01369e;
+  background: var(--eh-primary-btn);
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -601,14 +611,14 @@ const CSS = `
 }
 .hm-day-empty {
   text-align: center;
-  color: #ccd3de;
+  color: var(--eh-ink-faint, #ccd3de);
   font-size: 14px;
   padding: 10px 0;
 }
 
 /* ── chip de evento en semana ── */
 .hm-chip {
-  background: #fff;
+  background: var(--eh-surface, #fff);
   border-left: 3px solid #2c528f;
   border-radius: 6px;
   padding: 4px 6px;
@@ -625,19 +635,19 @@ const CSS = `
 }
 .hm-chip-time {
   font-size: 10px;
-  color: #7a7f87;
+  color: var(--eh-ink-muted, #7a7f87);
   font-weight: 500;
 }
 .hm-chip-title {
   font-size: 11px;
   font-weight: 600;
-  color: #0d1b4b;
+  color: var(--eh-ink, #0d1b4b);
   line-height: 1.3;
   word-break: break-word;
 }
 .hm-chip-loc {
   font-size: 10px;
-  color: #9aa2b1;
+  color: var(--eh-ink-muted, #9aa2b1);
   display: flex;
   align-items: center;
   gap: 2px;

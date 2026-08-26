@@ -7,12 +7,16 @@
 
 .usr-card {
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--eh-surface-border, #e5e7eb);
+  background: var(--eh-surface, #fff);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.18s;
+}
+
+:root[data-eh-content-theme="dark"] .usr-card {
+  background: linear-gradient(135deg, #16213f 0%, #0c1220 100%);
 }
 
 .usr-card:hover {
@@ -61,7 +65,7 @@
 .usr-card-name {
   font-weight: 700;
   font-size: 15px;
-  color: #111;
+  color: var(--eh-ink, #111);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -70,7 +74,7 @@
 
 .usr-card-email {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--eh-ink-muted, #6b7280);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -103,7 +107,7 @@
 
 .usr-card-footer {
   padding: 10px 14px 14px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--eh-surface-border, #f3f4f6);
 }
 
 .usr-btn-detail {
@@ -122,6 +126,14 @@
 
 .usr-btn-detail:hover {
   background: #4e6a8a;
+}
+
+:root[data-eh-content-theme="dark"] .usr-btn-detail {
+  background: rgba(100, 116, 139, 0.28);
+  color: #cbd5e1;
+}
+:root[data-eh-content-theme="dark"] .usr-btn-detail:hover {
+  background: rgba(100, 116, 139, 0.42);
 }
 
 /* ===== CREAR USUARIO – DRAGGER ===== */
@@ -204,4 +216,30 @@
 .usr-dragger-placeholder-text {
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* Botón flotante circular — volver arriba */
+.usr-back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--eh-primary-btn, #2563eb);
+  color: #ffffff;
+  font-size: 18px;
+  box-shadow: 0 6px 16px rgba(15, 34, 58, 0.3);
+  cursor: pointer;
+  z-index: 100;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.usr-back-to-top:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 34, 58, 0.38);
 }

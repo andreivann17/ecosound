@@ -22,7 +22,6 @@ import {
   Button,
   Row,
   Col,
-  notification,
   Typography,
   Space,
   Upload,
@@ -46,6 +45,9 @@ import {
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+
+import Toast from "../../components/toasts/toast";
+import SuccessOverlay from "../../components/feedback/SuccessOverlay";
 
 import "./EventosPage.css";
 import "./CotizacionForm.css";
@@ -202,6 +204,10 @@ export default function CrearCotizacionPage() {
 
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
+  const [success, setSuccess] = useState({ show: false, title: "", subtitle: "" });
 
   // Valores en vivo para el resumen de la cotización
   const watchImporte = Form.useWatch("importe", form);
@@ -383,19 +389,16 @@ export default function CrearCotizacionPage() {
         `/cotizaciones/${eventoEditar.id_cotizacion}/documentos/${id}`,
         { headers: authHeaderCotizaciones() }
       );
-      notification.success({ message: "Documento eliminado" });
+      toast("Documento eliminado");
       setDocumentos((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
-      notification.error({
-        message: "Error al eliminar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al eliminar");
     }
   };
 
   const handleBeforeUpload = (file) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      notification.error({ message: "Solo se permiten archivos PDF" });
+      toast("Solo se permiten archivos PDF");
       return Upload.LIST_IGNORE;
     }
     setPendingFile(file);
@@ -459,10 +462,7 @@ export default function CrearCotizacionPage() {
 
     if (aiCacheRef.current[cacheKey]) {
       applyAIResult(aiCacheRef.current[cacheKey]);
-      notification.success({
-        message: "Datos cargados",
-        description: "Se usó el resultado ya extraído de este documento.",
-      });
+      toast("Se usó el resultado ya extraído de este documento.");
       return;
     }
 
@@ -486,12 +486,9 @@ export default function CrearCotizacionPage() {
 
       aiCacheRef.current[cacheKey] = campos;
       applyAIResult(campos);
-      notification.success({
-        message: "Datos extraídos con IA",
-        description: "Revisa y corrige los campos antes de guardar.",
-      });
+      toast("Datos extraídos con IA. Revisa y corrige los campos antes de guardar.");
     } catch (err) {
-      notification.error({ message: "Error con IA", description: err.message });
+      toast(err.message || "Error con IA");
     } finally {
       setAiLoading(false);
     }
@@ -499,10 +496,7 @@ export default function CrearCotizacionPage() {
 
   const handleSave = async () => {
     if (serviciosActivos.length === 0) {
-      notification.error({
-        message: "Sin servicio seleccionado",
-        description: "Selecciona al menos un servicio (Sonido, Fotografía, Banquete o Barra).",
-      });
+      toast("Selecciona al menos un servicio (Sonido, Fotografía, Banquete o Barra).");
       return;
     }
 
@@ -531,14 +525,9 @@ export default function CrearCotizacionPage() {
       const campos = (errInfo?.errorFields || [])
         .map((f) => labelForField(f.name?.[0]))
         .filter(Boolean);
-      notification.warning({
-        message: "Faltan campos por completar",
-        description: campos.length > 0
-          ? `Por favor llena: ${campos.join(", ")}.`
-          : "Revisa los campos marcados en rojo antes de continuar.",
-        duration: 6,
-        placement: "topRight",
-      });
+      toast(campos.length > 0
+        ? `Faltan campos por completar. Por favor llena: ${campos.join(", ")}.`
+        : "Faltan campos por completar. Revisa los campos marcados en rojo antes de continuar.");
       return;
     }
 
@@ -637,22 +626,19 @@ export default function CrearCotizacionPage() {
         try {
           await uploadDocumento(id_cotizacion, pendingFile);
         } catch (err) {
-          notification.warning({
-            message: "Cotización guardada, pero falló la subida del contrato",
-            description: err?.response?.data?.detail || err.message,
-          });
+          toast(err?.response?.data?.detail || err.message || "Cotización guardada, pero falló la subida del contrato");
         }
       }
 
-      notification.success({
-        message: isEditing ? "Cotización actualizada correctamente" : "Cotización creada exitosamente",
+      setSuccess({
+        show: true,
+        title: isEditing ? "¡Cambios guardados!" : "¡Cotización creada!",
+        subtitle: isEditing
+          ? "Los cambios se guardaron correctamente."
+          : `La cotización de "${values.cliente_nombre?.trim() || ""}" ya está lista.`,
       });
-      navigate("/app/cotizaciones");
     } catch (err) {
-      notification.error({
-        message: "Error al guardar",
-        description: err?.response?.data?.detail || err.message,
-      });
+      toast(err?.response?.data?.detail || err.message || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -662,14 +648,7 @@ export default function CrearCotizacionPage() {
     <main className="eventos-main cot-form-page">
       <div className="eventos-content">
 
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/app/cotizaciones")}
-          className="cc-back-btn"
-        >
-          Volver a Cotizaciones
-        </Button>
+
 
         <section className="cc-page-header-card">
           <Space direction="vertical" size={2}>
@@ -689,9 +668,10 @@ export default function CrearCotizacionPage() {
             <Button
               type="primary"
               loading={saving}
+              disabled={success.show}
               icon={!isEditing ? <PlusOutlined /> : null}
               onClick={handleSave}
-              style={{ backgroundColor: "#01369e", borderColor: "#01369e" }}
+              style={{ backgroundColor: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
             >
               {isEditing ? "Guardar cambios" : "Crear cotización"}
             </Button>
@@ -1002,6 +982,13 @@ export default function CrearCotizacionPage() {
         </Form>
 
       </div>
+      <Toast show={showToast} msg={toastMsg} setShow={setShowToast} />
+      <SuccessOverlay
+        show={success.show}
+        title={success.title}
+        subtitle={success.subtitle}
+        onDone={() => navigate("/app/cotizaciones")}
+      />
     </main>
   );
 }

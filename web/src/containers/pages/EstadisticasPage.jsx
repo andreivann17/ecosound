@@ -1,4 +1,4 @@
-﻿// src/containers/pages/EstadisticasPage.jsx
+// src/containers/pages/EstadisticasPage.jsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -9,6 +9,8 @@ import {
   FileTextOutlined,
   WalletOutlined,
   DownloadOutlined,
+  ExclamationCircleOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import { previewEstadisticasReportPdf, printEstadisticasReportPdf } from "../../components/utils/printEstadisticasReportPdf";
 import {
@@ -30,6 +32,10 @@ import "./EstadisticasPage.css";
 dayjs.locale("es");
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+
+// Chart.js dibuja en <canvas> y no puede leer variables CSS (var(--eh-ink)),
+// por eso se fija un gris medio legible tanto en fondo claro como oscuro.
+ChartJS.defaults.color = "#64748b";
 
 const { RangePicker } = DatePicker;
 
@@ -62,6 +68,15 @@ const fmtFechaCorta = (v) => {
   return d.isValid() ? d.format("D MMM YYYY") : "—";
 };
 
+const getClienteIniciales = (nombreCompleto) => {
+  const partes = String(nombreCompleto || "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[1][0]).toUpperCase();
+};
+
+const fmtVencido = (dias) => `Vencido hace ${dias} día${dias === 1 ? "" : "s"}`;
+
 function periodLabel(tipo, dateFrom, dateTo) {
   if (!dateFrom) return "";
   const df = dayjs(dateFrom);
@@ -87,7 +102,7 @@ function makeHbarOptions(tooltipSuffix = "contratos") {
     },
     scales: {
       x: {
-        grid: { color: "#f1f5f9" },
+        grid: { color: "rgba(148,163,184,0.2)" },
         ticks: { font: { size: 11 }, stepSize: 1 },
       },
       y: {
@@ -176,7 +191,7 @@ export default function EstadisticasPage() {
       {
         label: "Pendiente",
         data: data.ingresos_por_mes.map((m) => m.pendiente),
-        backgroundColor: "#cbd5e1",
+        backgroundColor: "#60a5fa",
         borderRadius: 4,
         borderSkipped: false,
       },
@@ -201,7 +216,7 @@ export default function EstadisticasPage() {
         ticks: { font: { size: 11 } },
       },
       y: {
-        grid: { color: "#f1f5f9" },
+        grid: { color: "rgba(148,163,184,0.2)" },
         ticks: {
           font: { size: 11 },
           callback: (v) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`,
@@ -263,25 +278,11 @@ export default function EstadisticasPage() {
         ticks: { font: { size: 12 } },
       },
       y: {
-        grid: { color: "#f1f5f9" },
+        grid: { color: "rgba(148,163,184,0.2)" },
         ticks: { font: { size: 11 }, stepSize: 1 },
       },
     },
   };
-
-  // ── Chart: tipo paquete donut ─────────────────────────────────────────────
-  const tipoPaqueteData =
-    data?.por_tipo_paquete?.some((t) => t.cantidad > 0)
-      ? {
-          labels: data.por_tipo_paquete.map((t) => t.tipo),
-          datasets: [{
-            data: data.por_tipo_paquete.map((t) => t.cantidad),
-            backgroundColor: ["#6366f1", "#10b981"],
-            borderWidth: 0,
-            hoverOffset: 6,
-          }],
-        }
-      : null;
 
   // ── Chart: top paquetes fotografía (hbar) ─────────────────────────────────
   const topFotoData = data?.top_paquetes_foto?.length ? {
@@ -302,6 +303,77 @@ export default function EstadisticasPage() {
       label: "Contratos",
       data: data.top_paquetes_sonido.map((p) => p.cantidad),
       backgroundColor: "#10b981",
+      borderRadius: 4,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  // ── Chart: cotizaciones por ciudad ────────────────────────────────────────
+  const cotizacionesCiudadData = data?.cotizaciones?.por_ciudad?.length ? {
+    labels: data.cotizaciones.por_ciudad.map((c) => c.ciudad),
+    datasets: [{
+      label: "Cotizaciones",
+      data: data.cotizaciones.por_ciudad.map((c) => c.cantidad),
+      backgroundColor: DONUT_COLORS.slice(0, data.cotizaciones.por_ciudad.length),
+      borderRadius: 6,
+      borderSkipped: false,
+    }],
+  } : null;
+
+  const cotizacionesCiudadOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (ctx) => `  ${ctx.raw} cotizaciones` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12 } },
+      },
+      y: {
+        grid: { color: "rgba(148,163,184,0.2)" },
+        ticks: { font: { size: 11 }, stepSize: 1 },
+      },
+    },
+  };
+
+  // ── Chart: cotizaciones por tipo de evento (donut) ────────────────────────
+  const cotizacionesTipoData = data?.cotizaciones?.por_tipo_evento?.length ? {
+    labels: data.cotizaciones.por_tipo_evento.map((t) => t.tipo),
+    datasets: [{
+      data: data.cotizaciones.por_tipo_evento.map((t) => t.cantidad),
+      backgroundColor: DONUT_COLORS.slice(0, data.cotizaciones.por_tipo_evento.length),
+      borderWidth: 0,
+      hoverOffset: 6,
+    }],
+  } : null;
+
+  const cotizacionesTipoOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "65%",
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: { font: { size: 12 }, padding: 12, usePointStyle: true },
+      },
+      tooltip: {
+        callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} cotizaciones` },
+      },
+    },
+  };
+
+  // ── Chart: trabajadores con más contratos (hbar) ─────────────────────────
+  const trabajadoresData = data?.trabajadores_stats?.length ? {
+    labels: data.trabajadores_stats.map((t) => t.nombre),
+    datasets: [{
+      label: "Contratos",
+      data: data.trabajadores_stats.map((t) => t.contratos_count),
+      backgroundColor: "#3b82f6",
       borderRadius: 4,
       borderSkipped: false,
     }],
@@ -333,7 +405,7 @@ export default function EstadisticasPage() {
     },
     scales: {
       x: {
-        grid: { color: "#f1f5f9" },
+        grid: { color: "rgba(148,163,184,0.2)" },
         ticks: {
           font: { size: 11 },
           callback: (v) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`,
@@ -383,9 +455,6 @@ export default function EstadisticasPage() {
           <div className="est-section-header">
             <div className="est-header-left">
               <span className="est-section-label">RESUMEN DEL PERIODO</span>
-              {periodoDescripcion && (
-                <span className="est-period-display">{periodoDescripcion}</span>
-              )}
             </div>
             <div className="est-period-selector">
               <Select
@@ -489,105 +558,7 @@ export default function EstadisticasPage() {
           )}
         </div>
 
-        {/* ── ANÁLISIS DE NEGOCIO ── */}
-        {!loading && data && (
-          <div className="est-section-card">
-            <div className="est-section-header est-section-header-sm">
-              <div className="est-header-left">
-                <span className="est-section-label">ANÁLISIS DEL PERÍODO</span>
-                {periodoDescripcion && (
-                  <span className="est-period-display">{periodoDescripcion}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Fila 1: Ciudad + Tipo paquete */}
-            <div className="est-analysis-row">
-              <div className="est-chart-inner est-chart-inner-wide">
-                <p className="est-chart-title">Contratos por ciudad</p>
-                <div className="est-bar-wrap-md">
-                  {ciudadData ? (
-                    <Bar data={ciudadData} options={ciudadOptions} />
-                  ) : (
-                    <Empty description="Sin datos de ciudad" style={{ margin: "24px 0" }} />
-                  )}
-                </div>
-              </div>
-              <div className="est-chart-inner">
-                <p className="est-chart-title">Tipo de evento más contratado</p>
-                <div className="est-donut-wrap-md">
-                  {tipoPaqueteData ? (
-                    <Doughnut data={tipoPaqueteData} options={{
-                      ...donutOptions,
-                      plugins: {
-                        ...donutOptions.plugins,
-                        legend: {
-                          position: "bottom",
-                          labels: { font: { size: 12 }, padding: 12, usePointStyle: true },
-                        },
-                        tooltip: {
-                          callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} contratos` },
-                        },
-                      },
-                    }} />
-                  ) : (
-                    <Empty description="Sin paquetes asignados" style={{ margin: "24px 0" }} />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Fila 2: Top paquetes foto + sonido */}
-            <div className="est-analysis-row est-analysis-row-mt">
-              <div className="est-chart-inner">
-                <p className="est-chart-title">
-                  <span className="est-chart-dot" style={{ background: "#6366f1" }} />
-                  Paquetes de fotografía más vendidos
-                </p>
-                <div className="est-hbar-wrap">
-                  {topFotoData ? (
-                    <Bar data={topFotoData} options={hbarOpts} />
-                  ) : (
-                    <Empty description="Sin paquetes de fotografía en el período" style={{ margin: "24px 0" }} />
-                  )}
-                </div>
-              </div>
-              <div className="est-chart-inner">
-                <p className="est-chart-title">
-                  <span className="est-chart-dot" style={{ background: "#10b981" }} />
-                  Paquetes de sonido más vendidos
-                </p>
-                <div className="est-hbar-wrap">
-                  {topSonidoData ? (
-                    <Bar data={topSonidoData} options={hbarOpts} />
-                  ) : (
-                    <Empty description="Sin paquetes de sonido en el período" style={{ margin: "24px 0" }} />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Fila 3: Gastos por categoría (full width) */}
-            <div className="est-analysis-row est-analysis-row-mt">
-              <div className="est-chart-inner est-chart-inner-full">
-                <p className="est-chart-title">
-                  <span className="est-chart-dot" style={{ background: "#f43f5e" }} />
-                  Gastos por categoría en el período
-                </p>
-                <div className="est-hbar-wrap-xl">
-                  {gastosPorTipoData ? (
-                    <Bar data={gastosPorTipoData} options={hbarMoneyOpts} />
-                  ) : (
-                    <Empty description="Sin gastos registrados en el período" style={{ margin: "32px 0" }} />
-                  )}
-                </div>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ── BOTTOM ROW ── */}
+        {/* ── BOTTOM ROW (independiente, sin tabs) ── */}
         {!loading && data && (
           <div className="est-bottom-row">
 
@@ -595,8 +566,11 @@ export default function EstadisticasPage() {
             <div className="est-section-card">
               <div className="est-section-header est-section-header-sm">
                 <div className="est-header-left">
-                  <span className="est-section-label">SALDO PENDIENTE</span>
-                  <span className="est-period-display">{periodoDescripcion}</span>
+                  <span className="est-section-label-row">
+                    <span className="est-title-icon est-title-icon-red"><ExclamationCircleOutlined /></span>
+                    <span className="est-section-label">SALDO PENDIENTE</span>
+                  </span>
+                  <p className="est-card-subtitle">Contratos con pagos por cobrar este mes.</p>
                 </div>
               </div>
 
@@ -618,6 +592,7 @@ export default function EstadisticasPage() {
                               : vencido ? "est-dot-orange"
                               : "est-dot-green"
                             }`} />
+                            <span className="est-avatar">{getClienteIniciales(c.cliente_nombre)}</span>
                             <div>
                               <p className="est-vencido-nombre">{c.cliente_nombre}</p>
                               <p className="est-vencido-sub">
@@ -629,7 +604,7 @@ export default function EstadisticasPage() {
                             <span className="est-vencido-monto">{fmtMoney(c.saldo)}</span>
                             {vencido ? (
                               <span className={`est-badge-tag ${c.dias_diff > 30 ? "est-badge-red" : "est-badge-orange"}`}>
-                                {c.dias_diff} días vencido
+                                {fmtVencido(c.dias_diff)}
                               </span>
                             ) : (
                               <span className="est-badge-tag est-badge-green">Pendiente</span>
@@ -655,8 +630,11 @@ export default function EstadisticasPage() {
             <div className="est-section-card">
               <div className="est-section-header est-section-header-sm">
                 <div className="est-header-left">
-                  <span className="est-section-label">CONTRATOS DEL PERÍODO</span>
-                  <span className="est-period-display">{periodoDescripcion}</span>
+                  <span className="est-section-label-row">
+                    <span className="est-title-icon est-title-icon-slate"><UnorderedListOutlined /></span>
+                    <span className="est-section-label">CONTRATOS DEL PERÍODO</span>
+                  </span>
+                  <p className="est-card-subtitle">Todos los contratos con evento este mes.</p>
                 </div>
                 <span className="est-count-badge">
                   {data.contratos_del_periodo.length} contratos
@@ -680,7 +658,7 @@ export default function EstadisticasPage() {
                         onClick={() => navigate(`/contratos/${c.id_contrato}`)}
                       >
                         <div className="est-contrato-nombre">
-                          <span className="est-dot est-dot-blue" style={{ flexShrink: 0 }} />
+                          <span className="est-avatar est-avatar-sm">{getClienteIniciales(c.cliente_nombre)}</span>
                           <span>{c.cliente_nombre}</span>
                         </div>
                         <span className="est-contrato-tipo">{c.tipo_evento}</span>
@@ -738,7 +716,7 @@ export default function EstadisticasPage() {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              style={{ background: "#01369e", borderColor: "#01369e" }}
+              style={{ background: "var(--eh-primary-btn)", borderColor: "var(--eh-primary-btn)" }}
               onClick={() => printEstadisticasReportPdf({ data, periodoDescripcion })}
             >
               Exportar PDF

@@ -1,19 +1,35 @@
 /* ===== 05 ===== */
+.ol-filterBtn.ant-btn {
+  border-radius: 999px;
+  border: 1px solid var(--eh-surface-border, #d0d5dd);
+  background: var(--eh-surface, #fff);
+  color: var(--eh-ink, #1f2937);
+  font-weight: 600;
+}
+
+.ol-filterBtn.ant-btn:hover {
+  background: var(--eh-surface-2, #f8fafc) !important;
+  border-color: var(--eh-primary-btn) !important;
+  color: var(--eh-ink, #1f2937) !important;
+}
+
 .ol-viewTabs.ant-segmented {
-  background: #eef2f9;
-  border: 1px solid #c3cfe8;
+  background: var(--eh-surface-2, #eef2f9);
+  border: 1px solid var(--eh-surface-border, #c3cfe8);
   padding: 4px;
   border-radius: 12px;
 }
 
-.ol-viewTabs .ant-segmented-item {
+.ol-viewTabs .ant-segmented-item,
+.ol-viewTabs .ant-segmented-item:hover,
+.ol-viewTabs .ant-segmented-item .ant-segmented-item-label {
   border-radius: 10px;
   font-weight: 700;
-  color: #01369e;
+  color: var(--eh-accent-text, var(--eh-primary-btn)) !important;
 }
 
 .ol-viewTabs .ant-segmented-item-selected {
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
   color: #fff !important;
 }
 
@@ -22,34 +38,34 @@
 }
 
 .ol-viewTabs .ant-segmented-thumb {
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
   border-radius: 10px !important;
 }
 
 /* hover suave */
 .ol-viewTabs .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
-  background: rgba(1, 54, 158, 0.10);
+  background: var(--eh-accent-soft, rgba(1, 54, 158, 0.10));
 }
 
 /* CONTENEDOR del toolbar */
 .ol-toolbarWrap {
-  background: #f4f6fa;
+  background: var(--eh-surface-2, #f4f6fa);
   padding: 12px 16px;
-  border-bottom: 1px solid #e6eaf0;
+  border-bottom: 1px solid var(--eh-surface-border, #e6eaf0);
 }
 
 .ol-toolbarElevated {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   border-radius: 12px;
   padding: 12px 16px;
   box-shadow:
     0 1px 2px rgba(16, 24, 40, 0.06),
     0 4px 14px rgba(16, 24, 40, 0.12);
-  border: 1px solid #e9edf3;
+  border: 1px solid var(--eh-surface-border, #e9edf3);
 }
 
 .ol-content {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   padding-top: 8px;
 }
 
@@ -79,7 +95,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   padding-top: 8px;
 }
 
@@ -104,7 +120,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
 }
 
 .ol-ribbon {
@@ -130,6 +146,14 @@
   white-space: nowrap;
 }
 
+.ol-ribbonRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* Segmented tabs: shrink font on screens where they barely fit */
 @media (max-width: 780px) {
   .ol-viewTabs .ant-segmented-item-label {
@@ -146,14 +170,14 @@
 
 /* ===== Date bar (solo sobre calendario principal) ===== */
 .ol-datebarWrap {
-  background: #f5f7fb;
-  border-bottom: 1px solid #e6eaf0;
+  background: var(--eh-app-bg, #f5f7fb);
+  border-bottom: 1px solid var(--eh-surface-border, #e6eaf0);
   padding: 10px 12px;
 }
 
 .ol-datebar {
-  background: #fff;
-  border: 1px solid #e9edf3;
+  background: var(--eh-surface, #fff);
+  border: 1px solid var(--eh-surface-border, #e9edf3);
   border-radius: 12px;
   padding: 10px 12px;
   box-shadow:
@@ -182,7 +206,7 @@
 }
 
 .ol-rangeClickable:hover {
-  background: #f3f6fb;
+  background: var(--eh-surface-2, #f3f6fb);
 }
 
 .ol-monthPickerWide {
@@ -198,7 +222,7 @@
    Layout: aire general
    ========================= */
 .ol-root {
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
 }
 
 .ol-shell {
@@ -206,8 +230,8 @@
 }
 
 .ol-sider {
-  background: #fff;
-  border-right: 1px solid #e9edf3;
+  background: var(--eh-surface, #fff);
+  border-right: 1px solid var(--eh-surface-border, #e9edf3);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -230,7 +254,7 @@
   background: transparent;
 }
 .ol-sidebar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: var(--eh-surface-2, #e2e8f0);
   border-radius: 999px;
 }
 
@@ -243,10 +267,10 @@
    ========================= */
 .ol-miniGrid {
   margin-top: 10px;
-  border: 1px solid #e9edf3;
+  border: 1px solid var(--eh-surface-border, #e9edf3);
   border-radius: 14px;
   padding: 10px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
 }
 
@@ -273,10 +297,10 @@
    Legend: tarjeta + chips
    ========================= */
 .ol-legendCard {
-  border: 1px solid #e9edf3;
+  border: 1px solid var(--eh-surface-border, #e9edf3);
   border-radius: 14px;
   padding: 12px;
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
 }
 
@@ -291,13 +315,13 @@
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.6px;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   text-transform: uppercase;
 }
 
 .ol-legendHint {
   font-size: 12px;
-  color: rgba(17, 24, 39, 0.55);
+  color: var(--eh-ink-muted, rgba(17, 24, 39, 0.55));
 }
 
 .ol-legendGrid {
@@ -312,14 +336,14 @@
   align-items: center;
   padding: 10px 10px;
   border-radius: 12px;
-  background: #f6f8fc;
+  background: var(--eh-surface-2, #f6f8fc);
   border: 1px solid rgba(16, 24, 40, 0.06);
   cursor: default;
   transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .ol-legendChip:hover {
-  background: #ffffff;
+  background: var(--eh-surface, #ffffff);
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.10);
   transform: translateY(-1px);
 }
@@ -349,14 +373,14 @@
 .ol-legendName {
   font-size: 13px;
   font-weight: 800;
-  color: #111827;
+  color: var(--eh-ink, #111827);
   line-height: 1.1;
 }
 
 .ol-legendSub {
   margin-top: 2px;
   font-size: 12px;
-  color: rgba(17, 24, 39, 0.60);
+  color: var(--eh-ink-muted, rgba(17, 24, 39, 0.60));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -409,18 +433,18 @@
 
 /* ===== Outlook look: tipografía + botones + bordes ===== */
 .ol-root{
-  font-family: "Segoe UI Variable","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-family: "Noto Sans","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
 }
 
 .ol-root .ant-btn{
   font-family: inherit;
   border-radius: 10px;
   font-weight: 600;
-  border-color: #dfe3ea;
+  border-color: var(--eh-surface-border, #dfe3ea);
 }
 
 .ol-root .ant-btn-default{
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-root .ant-btn-default:hover{
@@ -441,20 +465,22 @@
 
 
 .ol-viewTabs.ant-segmented{
-  background: #eef2f9;
-  border: 1px solid #c3cfe8;
+  background: var(--eh-surface-2, #eef2f9);
+  border: 1px solid var(--eh-surface-border, #c3cfe8);
   padding: 4px;
   border-radius: 12px;
 }
 
-.ol-viewTabs .ant-segmented-item{
+.ol-viewTabs .ant-segmented-item,
+.ol-viewTabs .ant-segmented-item:hover,
+.ol-viewTabs .ant-segmented-item .ant-segmented-item-label{
   border-radius: 10px;
   font-weight: 700;
-  color: #01369e;
+  color: var(--eh-accent-text, var(--eh-primary-btn)) !important;
 }
 
 .ol-viewTabs .ant-segmented-item-selected{
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
   color: #fff !important;
 }
 
@@ -463,20 +489,20 @@
 }
 
 .ol-viewTabs .ant-segmented-thumb{
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
   border-radius: 10px !important;
 }
 
 .ol-viewTabs .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
-  background: rgba(1, 54, 158, 0.10);
+  background: var(--eh-accent-soft, rgba(1, 54, 158, 0.10));
 }
 
 .ol-month,
 .ol-weekWrap{
-  border: 1px solid #dfe3ea;
+  border: 1px solid var(--eh-surface-border, #dfe3ea);
   border-radius: 14px;
   overflow: hidden;
-  background: #fff;
+  background: var(--eh-surface, #fff);
 }
 
 .ol-monthHeader,
@@ -730,7 +756,7 @@ html, body, #root {
   height: 22px;
   line-height: 22px;
   font-size: 12px;
-  color: #05060a;
+  color: var(--eh-ink, #05060a);
   font-weight: 700;
   cursor: pointer;
   user-select: none;
@@ -778,7 +804,7 @@ html, body, #root {
     AJUSTA si cambian
   */
   padding: 12px;
-  background: #f5f7fb;
+  background: var(--eh-app-bg, #f5f7fb);
   overflow: hidden;
 }
 
@@ -795,31 +821,31 @@ html, body, #root {
   border-color: #05060a !important;
 }
 
-/* ===== Checkboxes filtro ribbon = azul marino #01369e ===== */
+/* ===== Checkboxes filtro ribbon = azul marino var(--eh-primary-btn) ===== */
 .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #01369e !important;
-  border-color: #01369e !important;
+  background-color: var(--eh-primary-btn) !important;
+  border-color: var(--eh-primary-btn) !important;
 }
 .ant-checkbox-checked::after {
-  border-color: #01369e !important;
+  border-color: var(--eh-primary-btn) !important;
 }
 .ant-checkbox:hover .ant-checkbox-inner,
 .ant-checkbox-wrapper:hover .ant-checkbox-inner,
 .ant-checkbox-input:focus + .ant-checkbox-inner {
-  border-color: #01369e !important;
+  border-color: var(--eh-primary-btn) !important;
 }
 
-/* ===== DatePicker: día seleccionado = azul marino #01369e ===== */
+/* ===== DatePicker: día seleccionado = azul marino var(--eh-primary-btn) ===== */
 .ant-picker-cell-selected .ant-picker-cell-inner,
 .ant-picker-cell-selected:hover .ant-picker-cell-inner {
-  background: #01369e !important;
+  background: var(--eh-primary-btn) !important;
 }
 .ant-picker-today-btn {
-  color: #01369e !important;
+  color: var(--eh-primary-btn) !important;
 }
 .ant-picker-header-view button:hover {
-  color: #01369e !important;
+  color: var(--eh-primary-btn) !important;
 }
 .ant-picker-cell-in-view.ant-picker-cell-today .ant-picker-cell-inner::before {
-  border-color: #01369e !important;
+  border-color: var(--eh-primary-btn) !important;
 }
