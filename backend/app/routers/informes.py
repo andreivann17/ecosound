@@ -58,6 +58,15 @@ def _in_ph(lst: list) -> str:
     return "(" + ",".join(["%s"] * len(lst)) + ")"
 
 
+# Algunas instalaciones tienen `contratos` y `cotizaciones` con collations
+# distintas en sus columnas de texto (p. ej. utf8mb4_general_ci vs
+# utf8mb4_unicode_ci, según cómo se creó/importó cada tabla), lo que rompe los
+# UNION de /informes/catalogos con "Illegal mix of collations for operation
+# 'UNION'". Normaliza la columna a un charset/collation común en ambos lados.
+def _coll(col: str) -> str:
+    return f"CONVERT({col} USING utf8mb4) COLLATE utf8mb4_unicode_ci"
+
+
 # id_servicio (tabla `servicios`, fijo 1..4) -> tabla de paquetes correspondiente.
 # Mismo mapeo hardcodeado que usa crearEventoPage.jsx (SERVICIOS) en el frontend.
 _PAQUETE_TABLES = {
@@ -198,10 +207,10 @@ def get_catalogos(
 
             cur.execute(
                 f"""
-                SELECT DISTINCT cliente_nombre AS nombre FROM contratos
+                SELECT DISTINCT {_coll('cliente_nombre')} AS nombre FROM contratos
                 WHERE active = 1 AND cliente_nombre IS NOT NULL AND cliente_nombre <> ''{_cf}
                 UNION
-                SELECT DISTINCT cliente_nombre AS nombre FROM cotizaciones
+                SELECT DISTINCT {_coll('cliente_nombre')} AS nombre FROM cotizaciones
                 WHERE active = 1 AND cliente_nombre IS NOT NULL AND cliente_nombre <> ''{_cf}
                 ORDER BY nombre ASC
                 """,
@@ -271,10 +280,10 @@ def get_catalogos(
 
             cur.execute(
                 f"""
-                SELECT DISTINCT celular AS v FROM contratos
+                SELECT DISTINCT {_coll('celular')} AS v FROM contratos
                 WHERE active = 1 AND celular IS NOT NULL AND celular <> ''{_cf}
                 UNION
-                SELECT DISTINCT celular AS v FROM cotizaciones
+                SELECT DISTINCT {_coll('celular')} AS v FROM cotizaciones
                 WHERE active = 1 AND celular IS NOT NULL AND celular <> ''{_cf}
                 ORDER BY v ASC
                 """,
@@ -284,10 +293,10 @@ def get_catalogos(
 
             cur.execute(
                 f"""
-                SELECT DISTINCT lugar_evento AS v FROM contratos
+                SELECT DISTINCT {_coll('lugar_evento')} AS v FROM contratos
                 WHERE active = 1 AND lugar_evento IS NOT NULL AND lugar_evento <> ''{_cf}
                 UNION
-                SELECT DISTINCT lugar_evento AS v FROM cotizaciones
+                SELECT DISTINCT {_coll('lugar_evento')} AS v FROM cotizaciones
                 WHERE active = 1 AND lugar_evento IS NOT NULL AND lugar_evento <> ''{_cf}
                 ORDER BY v ASC
                 """,
