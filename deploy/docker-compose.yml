@@ -21,6 +21,7 @@ services:
 
   backend:
     build: ../backend
+    image: ecosound-backend:latest
     container_name: fastapi_app
     restart: always
     env_file:
@@ -37,6 +38,28 @@ services:
       retries: 3
       start_period: 20s
 
+  # Módulo Evaluation: proceso propio (app.evaluation_server), reusa la
+  # imagen del backend pero corre en su puerto y con su propio lifecycle.
+  # Si la base `spie` no está o algo falla aquí, no afecta al backend principal.
+  evaluation:
+    image: ecosound-backend:latest
+    container_name: fastapi_evaluation
+    restart: always
+    command: ["uvicorn", "app.evaluation_server:app", "--host", "0.0.0.0", "--port", "8001"]
+    env_file:
+      - .env.prod
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
   web:
     build: ../web
     container_name: react_app
@@ -48,6 +71,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
+      - evaluation
 
   phpmyadmin:
     image: phpmyadmin:latest
