@@ -8,7 +8,7 @@ import {
   CheckCircleFilled,
   LoadingOutlined,
 } from "@ant-design/icons";
-import { PATH } from "../../../redux/utils";
+import { EVALUATION_PATH as PATH } from "../../../redux/utils";
 import AppToast from "../../../components/toasts/toastDark";
 import logoEvaluation from "../../../assets/img/logo_evaluation.webp";
 

@@ -16,6 +16,7 @@ from pydantic import BaseModel, EmailStr
 
 from ..db import get_spie_connection
 from ..models import evaluation as evaluation_model
+from ..utils.email import get_users_contact_info, send_email_bg
 
 router = APIRouter(prefix="/evaluation", tags=["evaluation"])
 
@@ -128,14 +129,46 @@ def get_my_evaluations(evaluator: Dict = Depends(get_current_evaluator)):
     return {"evaluations": rows}
 
 
+def _notify_evaluation_completed(evaluator_name: str, images_count: int, notify_user_ids: List[int]) -> None:
+    """Email the subscribed users (spie.correo_users) that an evaluator finished the dataset."""
+    recipients = get_users_contact_info(notify_user_ids)
+    to_emails = [r["email"] for r in recipients if r.get("email")]
+    if not to_emails:
+        return
+
+    subject = f"Retinal Evaluation completed by {evaluator_name}"
+    html = f"""
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.6;">
+      <h2 style="margin: 0 0 12px; color: #01369e;">Retinal Evaluation completed</h2>
+      <p>Hello,</p>
+      <p>
+        <strong>{evaluator_name}</strong> has just finished evaluating all
+        <strong>{images_count}</strong> images in the Retinal Evaluation dataset.
+      </p>
+      <p>No further action is required. This is an automated notification.</p>
+      <p style="margin-top: 24px; color: #6b7280; font-size: 12px;">
+        Retinal Evaluation &mdash; automated notification
+      </p>
+    </div>
+    """
+    send_email_bg(to_emails, subject, html)
+
+
 @router.post("/evaluations", status_code=status.HTTP_200_OK)
 def submit_evaluation(payload: EvaluationSubmit, evaluator: Dict = Depends(get_current_evaluator)):
     classification = payload.classification.strip()
     if not classification:
         raise HTTPException(status_code=400, detail="Classification is required")
 
+    just_completed = False
+    notify_user_ids: List[int] = []
+    total = 0
+
     conn = get_spie_connection()
     try:
+        total = evaluation_model.count_active_images(conn)
+        before = evaluation_model.count_evaluations_for_evaluator(conn, evaluator["id_evaluator"])
+
         evaluation_model.upsert_evaluation(
             conn,
             evaluator["id_evaluator"],
@@ -144,8 +177,19 @@ def submit_evaluation(payload: EvaluationSubmit, evaluator: Dict = Depends(get_c
             payload.notes or "",
         )
         conn.commit()
+
+        after = evaluation_model.count_evaluations_for_evaluator(conn, evaluator["id_evaluator"])
+        # Fires exactly once: the request whose upsert pushes this evaluator's
+        # count from "not yet done" to "done" (re-editing an already-evaluated
+        # image never re-crosses the threshold, so this can't double-notify).
+        just_completed = total > 0 and before < total <= after
+        if just_completed:
+            notify_user_ids = evaluation_model.list_notification_user_ids(conn)
     finally:
         conn.close()
+
+    if just_completed and notify_user_ids:
+        _notify_evaluation_completed(evaluator.get("name") or "An evaluator", total, notify_user_ids)
 
     return {"message": "Saved"}
 

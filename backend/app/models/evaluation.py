@@ -92,6 +92,28 @@ def get_evaluations_for_evaluator(conn, id_evaluator: int) -> List[Dict[str, Any
         return cur.fetchall()
 
 
+def count_active_images(conn) -> int:
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM retinal_images WHERE active = 1")
+        return cur.fetchone()[0]
+
+
+def count_evaluations_for_evaluator(conn, id_evaluator: int) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) FROM evaluations WHERE id_evaluator = %s AND active = 1",
+            (id_evaluator,),
+        )
+        return cur.fetchone()[0]
+
+
+def list_notification_user_ids(conn) -> List[int]:
+    """id_user of the accounts subscribed to evaluation-completion notifications (spie.correo_users)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id_user FROM correo_users WHERE active = 1")
+        return [row[0] for row in cur.fetchall()]
+
+
 def upsert_evaluation(
     conn,
     id_evaluator: int,

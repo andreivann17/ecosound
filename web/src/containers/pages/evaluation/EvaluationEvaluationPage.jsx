@@ -10,7 +10,7 @@ import {
   LoadingOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
-import { PATH } from "../../../redux/utils";
+import { EVALUATION_PATH as PATH } from "../../../redux/utils";
 import AppToast from "../../../components/toasts/toastDark";
 import logoEvaluation from "../../../assets/img/logo_evaluation.webp";
 import { clearEvaluationSession, evaluationAuthHeader } from "../../../utils/evaluationAuth";

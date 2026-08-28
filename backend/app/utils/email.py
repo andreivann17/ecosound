@@ -50,6 +50,30 @@ def send_email_bg(to_emails: List[str], subject: str, html: str) -> None:
     threading.Thread(target=_do_send, args=(to_emails, subject, html), daemon=True).start()
 
 
+def get_users_contact_info(id_users: List[int]) -> List[dict]:
+    """Return {name, email} for the given users.id_user values (main ecosound DB)."""
+    if not id_users:
+        return []
+    from ..db import get_connection
+    conn = get_connection()
+    try:
+        placeholders = ", ".join(["%s"] * len(id_users))
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                f"""
+                SELECT name, email
+                FROM users
+                WHERE id_user IN ({placeholders}) AND active = 1
+                """,
+                tuple(id_users),
+            )
+            return cur.fetchall()
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
 def get_destinatarios_emails(id_modulo: int, source_id: int) -> List[str]:
     """Return the email addresses of users configured to receive this notification."""
     from ..db import get_connection

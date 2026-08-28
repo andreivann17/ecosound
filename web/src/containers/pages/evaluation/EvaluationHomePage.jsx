@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ClockCircleOutlined, CheckCircleOutlined, PictureOutlined } from "@ant-design/icons";
-import { PATH } from "../../../redux/utils";
+import { EVALUATION_PATH as PATH } from "../../../redux/utils";
 import { evaluationAuthHeader, getEvaluationEvaluator } from "../../../utils/evaluationAuth";
 
 export default function EvaluationHomePage() {
