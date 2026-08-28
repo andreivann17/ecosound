@@ -1,0 +1,132 @@
+/* Dark copy of ../toasts/toast.css — same shape/behavior, palette matches
+   Evaluation.css (dark surfaces + the shared --eh-primary-btn blue). */
+
+.dt-toast-container {
+  z-index: 2100;
+}
+
+.dt-toast.toast {
+  min-width: 300px;
+  max-width: 380px;
+  background: #12181f;
+  border: 1px solid #232b35;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  animation: dt-toast-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dt-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dt-toast-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 16px 16px;
+}
+
+.dt-toast-icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
+}
+
+.dt-toast-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: block;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.dt-toast-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #ffffff;
+  border: 2px solid #12181f;
+}
+
+.dt-toast-success .dt-toast-badge {
+  background: #22c55e;
+}
+
+.dt-toast-error .dt-toast-badge {
+  background: #ef4444;
+}
+
+.dt-toast-msg {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #e6edf3;
+  padding-top: 3px;
+}
+
+.dt-toast-close {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #6b7686;
+  cursor: pointer;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dt-toast-close:hover {
+  background: #1a2330;
+  color: #e6edf3;
+}
+
+.dt-toast-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--eh-primary-btn, #01369e);
+  transform-origin: left;
+  animation: dt-toast-progress 3s linear forwards;
+}
+
+.dt-toast-error .dt-toast-progress {
+  background: #ef4444;
+}
+
+@keyframes dt-toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-toast.toast {
+    animation: none;
+  }
+  .dt-toast-progress {
+    animation: none;
+    display: none;
+  }
+}

@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import io
+import os
 import zipfile
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import bcrypt
+import jwt
 import pandas as pd
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Security, UploadFile, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr
 
 from ..db import get_spie_connection
 from ..models import evaluation as evaluation_model
@@ -17,6 +23,131 @@ RETINAL_IMAGES_DIR = Path(__file__).resolve().parents[2] / "uploads" / "evaluati
 RETINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 REQUIRED_CSV_COLUMNS = {"nombre_original", "ruta_original", "nombre_generado"}
+
+EVAL_SECRET_KEY = os.getenv("SECRET_KEY", "herrsoft-ecosound-jwt-secret-key-change-in-prod-2026")
+EVAL_ALGORITHM = "HS256"
+EVAL_TOKEN_MINUTES = 60 * 24 * 30  # 30 días: los evaluadores vuelven en días distintos
+
+_eval_security = HTTPBearer(auto_error=False)
+
+
+class EvaluatorRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
+class EvaluatorLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class EvaluationSubmit(BaseModel):
+    id_retinal_image: int
+    classification: str
+    notes: str = ""
+
+
+def _create_evaluator_token(id_evaluator: int, name: str) -> str:
+    payload = {
+        "id_evaluator": id_evaluator,
+        "name": name,
+        "scope": "evaluation",
+        "exp": datetime.utcnow() + timedelta(minutes=EVAL_TOKEN_MINUTES),
+    }
+    return jwt.encode(payload, EVAL_SECRET_KEY, algorithm=EVAL_ALGORITHM)
+
+
+def get_current_evaluator(
+    credentials: HTTPAuthorizationCredentials = Security(_eval_security),
+) -> Dict:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    try:
+        payload = jwt.decode(credentials.credentials, EVAL_SECRET_KEY, algorithms=[EVAL_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    if payload.get("scope") != "evaluation":
+        raise HTTPException(status_code=401, detail="Invalid session")
+    return {"id_evaluator": payload["id_evaluator"], "name": payload.get("name", "")}
+
+
+@router.post("/auth/register", status_code=status.HTTP_200_OK)
+def register_evaluator(payload: EvaluatorRegister):
+    name = payload.name.strip()
+    email = payload.email.lower().strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+
+    conn = get_spie_connection()
+    try:
+        if evaluation_model.get_evaluator_by_email(conn, email):
+            raise HTTPException(status_code=400, detail="An account with this email already exists")
+        password_hash = bcrypt.hashpw(payload.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        id_evaluator = evaluation_model.create_evaluator(conn, name, email, password_hash)
+    finally:
+        conn.close()
+
+    token = _create_evaluator_token(id_evaluator, name)
+    return {"access_token": token, "evaluator": {"id": id_evaluator, "name": name}}
+
+
+@router.post("/auth/login", status_code=status.HTTP_200_OK)
+def login_evaluator(payload: EvaluatorLogin):
+    email = payload.email.lower().strip()
+    conn = get_spie_connection()
+    try:
+        row = evaluation_model.get_evaluator_by_email(conn, email)
+    finally:
+        conn.close()
+
+    if not row:
+        raise HTTPException(status_code=401, detail="Email not registered")
+
+    stored = (row.get("password") or "").strip()
+    try:
+        password_ok = bool(stored) and bcrypt.checkpw(payload.password.encode("utf-8"), stored.encode("utf-8"))
+    except ValueError:
+        password_ok = False
+    if not password_ok:
+        raise HTTPException(status_code=401, detail="Incorrect password")
+
+    token = _create_evaluator_token(row["id_evaluator"], row["name"])
+    return {"access_token": token, "evaluator": {"id": row["id_evaluator"], "name": row["name"]}}
+
+
+@router.get("/evaluations/mine", status_code=status.HTTP_200_OK)
+def get_my_evaluations(evaluator: Dict = Depends(get_current_evaluator)):
+    conn = get_spie_connection()
+    try:
+        rows = evaluation_model.get_evaluations_for_evaluator(conn, evaluator["id_evaluator"])
+    finally:
+        conn.close()
+    return {"evaluations": rows}
+
+
+@router.post("/evaluations", status_code=status.HTTP_200_OK)
+def submit_evaluation(payload: EvaluationSubmit, evaluator: Dict = Depends(get_current_evaluator)):
+    classification = payload.classification.strip()
+    if not classification:
+        raise HTTPException(status_code=400, detail="Classification is required")
+
+    conn = get_spie_connection()
+    try:
+        evaluation_model.upsert_evaluation(
+            conn,
+            evaluator["id_evaluator"],
+            payload.id_retinal_image,
+            classification,
+            payload.notes or "",
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {"message": "Saved"}
 
 
 def _resolve_is_real_and_stage(ruta_original: str) -> Tuple[int, str]:

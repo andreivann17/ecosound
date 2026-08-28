@@ -17,22 +17,166 @@
 .evaluation-titlebar {
   display: flex;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: space-between;
   height: 32px;
   background: var(--eh-primary-btn, #01369e);
   -webkit-app-region: drag;
   flex-shrink: 0;
 }
 
+.evaluation-titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-left: 12px;
+}
+
+.evaluation-titlebar-title {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.evaluation-titlebar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.evaluation-titlebar-nav a {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.evaluation-titlebar-nav a:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.evaluation-titlebar-nav a.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.evaluation-titlebar-right {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 12px;
+}
+
+.evaluation-user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.evaluation-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.evaluation-avatar:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.evaluation-user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  background: #12181f;
+  border: 1px solid #232b35;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  min-width: 130px;
+}
+
+.evaluation-user-dropdown button {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: #e6edf3;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.evaluation-user-dropdown button:hover {
+  background: #1a2330;
+}
+
+.evaluation-titlebar-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.evaluation-win-controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+.evaluation-win-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.evaluation-win-controls button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.evaluation-win-controls button.is-close:hover {
+  background: #e5484d;
+  color: #ffffff;
+}
+
 .evaluation-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 32px;
-  max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
+  min-height: 0;
+  padding: 24px 32px;
 }
 
 .evaluation-card {
@@ -41,6 +185,9 @@
   border-radius: 12px;
   padding: 28px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  max-width: 760px;
+  width: 100%;
+  margin: auto;
 }
 
 .evaluation-title {
@@ -48,6 +195,60 @@
   font-weight: 700;
   margin: 0 0 6px;
   color: #e6edf3;
+}
+
+/* Auth (login / signup) */
+.evaluation-auth-card {
+  max-width: 400px;
+}
+
+.evaluation-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.evaluation-input {
+  background: #0f151b;
+  border: 1px solid #2b3542;
+  border-radius: 8px;
+  color: #e6edf3;
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.evaluation-input:hover,
+.evaluation-input:focus {
+  border-color: var(--eh-primary-btn, #01369e);
+  box-shadow: 0 0 0 2px rgba(1, 54, 158, 0.25);
+}
+
+.evaluation-input::placeholder {
+  color: #6b7686;
+}
+
+.evaluation-auth-submit {
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.evaluation-auth-switch {
+  margin: 20px 0 0;
+  font-size: 13px;
+  color: #8b98a5;
+  text-align: center;
+}
+
+.evaluation-auth-switch a {
+  color: var(--eh-primary-btn-light, #5b8def);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.evaluation-auth-switch a:hover {
+  text-decoration: underline;
 }
 
 .evaluation-subtitle {
@@ -82,6 +283,24 @@
   color: #6b7686 !important;
   cursor: not-allowed;
   filter: none;
+}
+
+.evaluation-btn-secondary {
+  background: transparent;
+  border: 1px solid #2b3542;
+  color: #e6edf3;
+}
+
+.evaluation-btn-secondary:hover {
+  background: #1a2330;
+  filter: none;
+  color: #e6edf3;
+}
+
+.evaluation-btn-secondary:disabled {
+  background: transparent !important;
+  border-color: #232b35;
+  color: #4a545f !important;
 }
 
 /* Upload — dos columnas (dataset .zip / etiquetas .csv) */
@@ -222,17 +441,20 @@
   color: #8b98a5;
 }
 
-/* Pantalla de evaluación */
-.evaluation-eval-card {
+/* Pantalla de evaluación — sin card, ocupa todo el alto/ancho disponible */
+.evaluation-eval-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  margin: 0 auto;
+  gap: 20px;
 }
 
 .evaluation-eval-progress {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 24px;
 }
 
 .evaluation-eval-progress-label {
@@ -241,10 +463,48 @@
   color: #8b98a5;
 }
 
+.evaluation-progress-bar .ant-progress-inner {
+  overflow: hidden;
+}
+
+.evaluation-progress-bar .ant-progress-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Overlay independiente: no depende de pisar el `background` inline que
+   antd pone en .ant-progress-bg (siempre pierde ese pulso si se ataca
+   directo, aunque sea con !important, porque antd repinta el inline
+   style en cada render). Un ::after nunca es tocado por ese estilo. */
+.evaluation-progress-bar .ant-progress-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.3) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.3) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: evaluation-progress-stripes 0.7s linear infinite;
+}
+
+@keyframes evaluation-progress-stripes {
+  from { background-position: 1rem 0; }
+  to { background-position: 0 0; }
+}
+
 .evaluation-eval-body {
   display: flex;
   align-items: stretch;
-  gap: 28px;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 760px) {
@@ -258,8 +518,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 55%;
-  min-height: 60vh;
+  flex: 1 1 65%;
+  min-width: 0;
   background: #0f151b;
   border: 1px solid #232b35;
   border-radius: 10px;
@@ -280,19 +540,96 @@
   100% { background-position: 0 50%; }
 }
 
+.evaluation-eval-image-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s linear;
+}
+
 .evaluation-eval-image {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   display: block;
   position: relative;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.evaluation-eval-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(11, 15, 20, 0.78);
+  border: 1px solid #232b35;
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+}
+
+.evaluation-eval-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #c7d0da;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.evaluation-eval-toolbar button:hover:not(:disabled) {
+  background: #1a2330;
+  color: #ffffff;
+}
+
+.evaluation-eval-toolbar button.is-active {
+  background: var(--eh-primary-btn, #01369e);
+  color: #ffffff;
+}
+
+.evaluation-eval-toolbar button:disabled {
+  color: #4a545f;
+  cursor: not-allowed;
+}
+
+.evaluation-eval-zoom-label {
+  min-width: 38px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b98a5;
+}
+
+.evaluation-eval-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: #232b35;
+  margin: 0 2px;
 }
 
 .evaluation-eval-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  flex: 1 1 45%;
+  flex: 1 1 35%;
+  min-width: 300px;
+  max-width: 440px;
+  background: #12181f;
+  border: 1px solid #232b35;
+  border-radius: 12px;
+  padding: 24px;
 }
 
 .evaluation-eval-form .evaluation-eval-actions {
@@ -364,5 +701,137 @@
 
 .evaluation-eval-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Home — bienvenida + progreso del evaluador (sin card contenedor) */
+.evaluation-home {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 36px;
+}
+
+.evaluation-home-greeting .evaluation-title {
+  font-size: 26px;
+}
+
+.evaluation-home-greeting .evaluation-subtitle {
+  margin: 0;
+}
+
+.evaluation-home-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.evaluation-home-progress-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b98a5;
+}
+
+.evaluation-home-progress-label strong {
+  color: #e6edf3;
+  font-size: 14px;
+}
+
+.evaluation-home-progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #1a2330;
+  overflow: hidden;
+}
+
+.evaluation-home-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--eh-primary-btn, #01369e);
+  transition: width 0.3s ease;
+}
+
+.evaluation-home-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.evaluation-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #0f151b;
+  border: 1px solid #232b35;
+  border-radius: 16px;
+  padding: 28px 30px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.evaluation-stat-card:hover {
+  border-color: #2b3542;
+  transform: translateY(-1px);
+}
+
+.evaluation-stat-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.evaluation-stat-card--pending .evaluation-stat-card-icon {
+  background: rgba(217, 119, 6, 0.15);
+  color: #f0a020;
+}
+
+.evaluation-stat-card--done .evaluation-stat-card-icon {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.evaluation-stat-card--total .evaluation-stat-card-icon {
+  background: rgba(1, 54, 158, 0.18);
+  color: #5b8def;
+}
+
+.evaluation-home-total {
+  display: flex;
+}
+
+.evaluation-home-total .evaluation-stat-card {
+  min-width: 260px;
+}
+
+.evaluation-stat-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.evaluation-stat-card-value {
+  font-size: 34px;
+  font-weight: 700;
+  color: #e6edf3;
+  line-height: 1.2;
+}
+
+.evaluation-stat-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b98a5;
+}
+
+.evaluation-home-actions {
+  display: flex;
 }

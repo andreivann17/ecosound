@@ -575,7 +575,7 @@ def _migrate_cotizaciones_db():
 
 
 def _migrate_spie_db():
-    """Crea la tabla retinal_images en la base spie (módulo Evaluation) si no existe."""
+    """Crea/actualiza las tablas de la base spie (módulo Evaluation)."""
     from .db import get_spie_connection
     conn = get_spie_connection()
     try:
@@ -589,6 +589,54 @@ def _migrate_spie_db():
                     stage        VARCHAR(50) NOT NULL,
                     active       TINYINT(1) NOT NULL DEFAULT 1,
                     datetime     DATETIME NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS evaluators (
+                    id_evaluator INT AUTO_INCREMENT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    active       TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime     DATETIME NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            # Login del evaluador: email/password no existían en la tabla original
+            for col_name, col_def in [
+                ("email",    "VARCHAR(255) DEFAULT NULL"),
+                ("password", "VARCHAR(255) DEFAULT NULL"),
+            ]:
+                cur.execute("""
+                    SELECT COUNT(*) FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'evaluators'
+                      AND COLUMN_NAME = %s
+                """, (col_name,))
+                if cur.fetchone()[0] == 0:
+                    cur.execute(f"ALTER TABLE evaluators ADD COLUMN {col_name} {col_def}")
+
+            cur.execute("""
+                SELECT COUNT(*) FROM information_schema.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'evaluators'
+                  AND INDEX_NAME = 'uq_evaluators_email'
+            """)
+            if cur.fetchone()[0] == 0:
+                cur.execute("ALTER TABLE evaluators ADD UNIQUE INDEX uq_evaluators_email (email)")
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS evaluations (
+                    id_evaluation    INT AUTO_INCREMENT PRIMARY KEY,
+                    active           TINYINT(1) NOT NULL DEFAULT 1,
+                    datetime         DATETIME NOT NULL,
+                    id_retinal_image INT NOT NULL,
+                    classification   VARCHAR(50) NOT NULL,
+                    notes            TEXT NOT NULL,
+                    evaluated_at     DATETIME NOT NULL,
+                    id_evaluator     INT NOT NULL,
+                    id_user          INT NOT NULL,
+                    INDEX idx_retinal_image (id_retinal_image),
+                    INDEX idx_evaluator (id_evaluator)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
         conn.commit()

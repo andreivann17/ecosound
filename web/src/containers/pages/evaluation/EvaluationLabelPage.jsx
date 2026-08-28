@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Upload, message } from "antd";
+import { Upload } from "antd";
 import {
   InboxOutlined,
   FileZipOutlined,
@@ -9,6 +9,8 @@ import {
   LoadingOutlined,
 } from "@ant-design/icons";
 import { PATH } from "../../../redux/utils";
+import AppToast from "../../../components/toasts/toastDark";
+import logoEvaluation from "../../../assets/img/logo_evaluation.webp";
 
 const { Dragger } = Upload;
 
@@ -54,15 +56,19 @@ export default function EvaluationLabelPage() {
   const [zipFile, setZipFile] = useState(null);
   const [csvFile, setCsvFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
+  const toast = (msg) => { setToastMsg(msg); setShowToast(true); };
 
   const validateZip = (file) => {
     const isZip = file.name.toLowerCase().endsWith(".zip") && ZIP_MIME_TYPES.includes(file.type);
     if (!isZip) {
-      message.error("The dataset must be a .zip file");
+      toast("The dataset must be a .zip file");
       return Upload.LIST_IGNORE;
     }
     if (file.size / 1024 / 1024 > MAX_ZIP_SIZE_MB) {
-      message.error(`The .zip can't exceed ${MAX_ZIP_SIZE_MB} MB`);
+      toast(`The .zip can't exceed ${MAX_ZIP_SIZE_MB} MB`);
       return Upload.LIST_IGNORE;
     }
     setZipFile(file);
@@ -72,11 +78,11 @@ export default function EvaluationLabelPage() {
   const validateCsv = (file) => {
     const isCsv = file.name.toLowerCase().endsWith(".csv");
     if (!isCsv) {
-      message.error("Labels must be a .csv file");
+      toast("Labels must be a .csv file");
       return Upload.LIST_IGNORE;
     }
     if (file.size / 1024 / 1024 > MAX_CSV_SIZE_MB) {
-      message.error(`The .csv can't exceed ${MAX_CSV_SIZE_MB} MB`);
+      toast(`The .csv can't exceed ${MAX_CSV_SIZE_MB} MB`);
       return Upload.LIST_IGNORE;
     }
     setCsvFile(file);
@@ -116,14 +122,14 @@ export default function EvaluationLabelPage() {
         throw new Error(extractErrorMessage(data));
       }
 
-      message.success(
+      toast(
         `Imported ${data.inserted} new records` +
           (data.skipped_count ? ` · ${data.skipped_count} already existed` : "")
       );
       setZipFile(null);
       setCsvFile(null);
     } catch (err) {
-      message.error(err.message || "Error importing the dataset");
+      toast(err.message || "Error importing the dataset");
     } finally {
       setSubmitting(false);
     }
@@ -212,6 +218,8 @@ export default function EvaluationLabelPage() {
           {submitting ? "Uploading…" : "Upload dataset"}
         </button>
       </div>
+
+      <AppToast show={showToast} setShow={setShowToast} msg={toastMsg} logo={logoEvaluation} />
     </div>
   );
 }

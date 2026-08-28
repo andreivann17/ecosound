@@ -61,6 +61,8 @@ import EvaluationLayout from "./components/evaluation/EvaluationLayout.jsx"
 import EvaluationHomePage from "./containers/pages/evaluation/EvaluationHomePage.jsx"
 import EvaluationLabelPage from "./containers/pages/evaluation/EvaluationLabelPage.jsx"
 import EvaluationEvaluationPage from "./containers/pages/evaluation/EvaluationEvaluationPage.jsx"
+import EvaluationLoginPage from "./containers/pages/evaluation/EvaluationLoginPage.jsx"
+import EvaluationSignupPage from "./containers/pages/evaluation/EvaluationSignupPage.jsx"
 import AdminHomePage from "./containers/pages/admin/AdminHomePage.jsx"
 import AdminAppsPage from "./containers/pages/admin/AdminAppsPage.jsx"
 import AdminClientesPage from "./containers/pages/admin/AdminClientesPage.jsx"
@@ -612,6 +614,22 @@ const routes = [
     className: "EvaluationEvaluation",
   },
   {
+    path: "/evaluation/login",
+    value: "evaluation-login",
+    name: "EvaluationLogin",
+    element: <EvaluationLoginPage />,
+    nodeRef: createRef(),
+    className: "EvaluationLogin",
+  },
+  {
+    path: "/evaluation/signup",
+    value: "evaluation-signup",
+    name: "EvaluationSignup",
+    element: <EvaluationSignupPage />,
+    nodeRef: createRef(),
+    className: "EvaluationSignup",
+  },
+  {
     path: "/admin",
     value: "admin",
     name: "Admin",
@@ -742,6 +760,23 @@ const requireAuth = ({ request }) => {
         localStorage.removeItem("tokenadmin");
       }
       throw redirect("/login");
+    }
+    return null;
+  }
+
+  // /evaluation/* requiere sesión de evaluador (excepto login/signup)
+  if (
+    path.startsWith("/evaluation") &&
+    path !== "/evaluation/login" &&
+    path !== "/evaluation/signup"
+  ) {
+    const evaluationToken = localStorage.getItem("evaluation_token");
+    if (!evaluationToken || isTokenExpired(evaluationToken)) {
+      if (evaluationToken) {
+        localStorage.removeItem("evaluation_token");
+        localStorage.removeItem("evaluation_evaluator");
+      }
+      throw redirect("/evaluation/login");
     }
     return null;
   }
