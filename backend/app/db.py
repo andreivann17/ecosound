@@ -16,7 +16,7 @@ import os
 from typing import Optional
 
 import mysql.connector
-from mysql.connector import pooling
+from mysql.connector import errors, pooling
 
 
 #: Global variable holding the connection pool instance. It is set by
@@ -38,52 +38,64 @@ def _get_base_config() -> dict:
     }
 
 
-def _init_main_pool() -> None:
-    global _POOL
-    cfg = _get_base_config()
-    _POOL = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="fastapi_pool",
+def _create_database_if_missing(cfg: dict, database: str) -> None:
+    """Conecta sin seleccionar database y la crea si no existe."""
+    conn = mysql.connector.connect(
+        host=cfg["host"],
+        port=cfg["port"],
+        user=cfg["user"],
+        password=cfg["password"],
+        autocommit=True,
+    )
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            f"CREATE DATABASE IF NOT EXISTS `{database}` "
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        )
+        cur.close()
+    finally:
+        conn.close()
+
+
+def _make_pool(pool_name: str, cfg: dict, database: str) -> pooling.MySQLConnectionPool:
+    """Crea el pool; si la base no existe (errno 1049) la crea y reintenta."""
+    kwargs = dict(
+        pool_name=pool_name,
         pool_size=cfg["pool_size"],
         host=cfg["host"],
         port=cfg["port"],
-        database=os.getenv("DB_NAME", "ecosound"),
+        database=database,
         user=cfg["user"],
         password=cfg["password"],
         autocommit=cfg["autocommit"],
         consume_results=cfg["consume_results"],
     )
+    try:
+        return mysql.connector.pooling.MySQLConnectionPool(**kwargs)
+    except errors.ProgrammingError as e:
+        if getattr(e, "errno", None) != 1049:
+            raise
+        _create_database_if_missing(cfg, database)
+        return mysql.connector.pooling.MySQLConnectionPool(**kwargs)
+
+
+def _init_main_pool() -> None:
+    global _POOL
+    cfg = _get_base_config()
+    _POOL = _make_pool("fastapi_pool", cfg, os.getenv("DB_NAME", "ecosound"))
 
 
 def _init_admin_pool() -> None:
     global _POOL_ADMIN
     cfg = _get_base_config()
-    _POOL_ADMIN = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="fastapi_admin_pool",
-        pool_size=cfg["pool_size"],
-        host=cfg["host"],
-        port=cfg["port"],
-        database=os.getenv("DB_ADMIN_NAME", "administrador"),
-        user=cfg["user"],
-        password=cfg["password"],
-        autocommit=cfg["autocommit"],
-        consume_results=cfg["consume_results"],
-    )
+    _POOL_ADMIN = _make_pool("fastapi_admin_pool", cfg, os.getenv("DB_ADMIN_NAME", "administrador"))
 
 
 def _init_spie_pool() -> None:
     global _POOL_SPIE
     cfg = _get_base_config()
-    _POOL_SPIE = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="fastapi_spie_pool",
-        pool_size=cfg["pool_size"],
-        host=cfg["host"],
-        port=cfg["port"],
-        database=os.getenv("DB_SPIE_NAME", "spie"),
-        user=cfg["user"],
-        password=cfg["password"],
-        autocommit=cfg["autocommit"],
-        consume_results=cfg["consume_results"],
-    )
+    _POOL_SPIE = _make_pool("fastapi_spie_pool", cfg, os.getenv("DB_SPIE_NAME", "spie"))
 
 
 def init_pool() -> None:
