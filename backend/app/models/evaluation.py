@@ -138,7 +138,7 @@ def upsert_evaluation(
             cur.execute(
                 """
                 UPDATE evaluations
-                SET classification = %s, notes = %s, evaluated_at = %s
+                SET classification = %s, notes = %s, evaluated_at = %s, active = 1
                 WHERE id_evaluation = %s
                 """,
                 (classification, notes, now, existing["id_evaluation"]),
