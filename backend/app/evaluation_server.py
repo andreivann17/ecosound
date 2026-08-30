@@ -38,12 +38,18 @@ from .routers.evaluation import router as evaluation_router
 app = FastAPI(title="Evaluation API", version="1.0.0")
 
 
+EXPOSE_ERROR_DETAILS = os.getenv("EVALUATION_EXPOSE_ERRORS", "1") == "1"
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         return await http_exception_handler(request, exc)
     traceback.print_exc()
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    detail = "Internal server error"
+    if EXPOSE_ERROR_DETAILS:
+        detail = f"Internal server error: {type(exc).__name__}: {exc}"
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 
 app.add_middleware(

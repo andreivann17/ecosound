@@ -51,11 +51,11 @@ def send_email_bg(to_emails: List[str], subject: str, html: str) -> None:
 
 
 def get_users_contact_info(id_users: List[int]) -> List[dict]:
-    """Return {name, email} for the given users.id_user values (main ecosound DB)."""
+    """Return {name, email} for the given users.id_user values (spie DB — evaluation module)."""
     if not id_users:
         return []
-    from ..db import get_connection
-    conn = get_connection()
+    from ..db import get_spie_connection
+    conn = get_spie_connection()
     try:
         placeholders = ", ".join(["%s"] * len(id_users))
         with conn.cursor(dictionary=True) as cur:
