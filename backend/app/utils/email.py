@@ -22,7 +22,7 @@ def _log(msg: str) -> None:
         print(msg.encode(encoding, errors="replace").decode(encoding), flush=True)
 
 
-def _do_send(to_emails: List[str], subject: str, html: str) -> None:
+def _do_send(to_emails: List[str], subject: str, html: str, from_name: str = "HerrSoft Events") -> None:
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
@@ -30,7 +30,7 @@ def _do_send(to_emails: List[str], subject: str, html: str) -> None:
             for email in to_emails:
                 try:
                     msg = EmailMessage()
-                    msg["From"] = f'"HerrSoft Events" <{SMTP_USER}>'
+                    msg["From"] = f'"{from_name}" <{SMTP_USER}>'
                     msg["To"] = email
                     msg["Subject"] = subject
                     msg.set_content("Este correo requiere un cliente compatible con HTML.")
@@ -43,11 +43,11 @@ def _do_send(to_emails: List[str], subject: str, html: str) -> None:
         _log(f"[email] ERROR de conexión SMTP ({to_emails}): {e}")
 
 
-def send_email_bg(to_emails: List[str], subject: str, html: str) -> None:
+def send_email_bg(to_emails: List[str], subject: str, html: str, from_name: str = "HerrSoft Events") -> None:
     """Dispatch email sending in a background thread so the request isn't blocked."""
     if not to_emails:
         return
-    threading.Thread(target=_do_send, args=(to_emails, subject, html), daemon=True).start()
+    threading.Thread(target=_do_send, args=(to_emails, subject, html, from_name), daemon=True).start()
 
 
 def get_users_contact_info(id_users: List[int]) -> List[dict]:

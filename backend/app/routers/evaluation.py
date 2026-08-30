@@ -151,7 +151,7 @@ def _notify_evaluation_completed(evaluator_name: str, images_count: int, notify_
       </p>
     </div>
     """
-    send_email_bg(to_emails, subject, html)
+    send_email_bg(to_emails, subject, html, from_name="Retinal Evaluation")
 
 
 @router.post("/evaluations", status_code=status.HTTP_200_OK)
